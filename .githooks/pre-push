@@ -1,0 +1,31 @@
+#!/bin/sh
+# Blocks a push when any commit in this repository's history ever added an API key or other secret.
+root=$(git rev-parse --show-toplevel) || exit 1
+cd "$root" || exit 1
+
+if [ -x .venv/bin/python ]; then
+    python=.venv/bin/python
+elif command -v python3 >/dev/null 2>&1; then
+    python=python3
+else
+    echo "pre-push: neither .venv/bin/python nor python3 was found, so the secret scan cannot run." >&2
+    exit 1
+fi
+
+"$python" scripts/check_secrets.py --history
+status=$?
+if [ "$status" -ne 0 ]; then
+    cat >&2 <<'MESSAGE'
+
+PUSH BLOCKED: the git history contains a possible API key or secret (or the scan could not run).
+
+To fix it:
+  1. Find the commit above and remove the secret from the history (for example an interactive rebase, or
+     git filter-repo), then push again. A harmless test value can carry a comment containing: secret-scan: allow
+  2. REVOKE any real key that was ever committed, in the provider's console, and create a new one.
+     Deleting it in a later commit does not remove it from git history, and anyone who could read a
+     copy of the history could still use it.
+MESSAGE
+    exit 1
+fi
+exit 0

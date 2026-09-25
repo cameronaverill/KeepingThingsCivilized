@@ -43,3 +43,15 @@ def test_python_version_file_matches_the_running_interpreter():
 
     wanted = (REPO_ROOT / ".python-version").read_text().strip()
     assert f"{sys.version_info.major}.{sys.version_info.minor}" == wanted
+
+
+def test_runtime_requirements_are_exactly_the_expected_packages_all_pinned():
+    entries = [line for line in read_lines("requirements.txt") if line and not line.startswith("#")]
+    pinned = {}
+    for line in entries:
+        match = re.fullmatch(r"([A-Za-z0-9][A-Za-z0-9._-]*)==(\d+(?:\.\d+)*)", line)
+        assert match, f"not an exact pin (name==version): {line!r}"
+        name = re.sub(r"[-_.]+", "-", match.group(1)).lower()
+        assert name not in pinned, f"{name} listed twice"
+        pinned[name] = match.group(2)
+    assert set(pinned) == {"django", "anthropic", "pydantic", "argon2-cffi", "django-axes", "python-dotenv"}

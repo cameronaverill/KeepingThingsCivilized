@@ -25,7 +25,7 @@ A two-person discussion forum with an AI moderator that makes discussions more p
 ## Users
 - Username + password (securely hashed) and required email confirmation.
 - Messages are capped at **3,000 characters**. The server enforces this, and users see a counter plus a clear error explaining why.
-- Posting is rate-limited.
+- Posting is limited to one message every 30 seconds per person. Whenever someone can't post (too long, too fast, conversation full or closed, something broke), the page says exactly why and what to do next.
 
 ## Measuring bias (later, phase B)
 - **Two stages, measured separately:**

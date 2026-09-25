@@ -81,9 +81,18 @@ All enforced in the single `llm.call()` function. `manage.py budget` prints the 
   - The browser does **not** silently truncate text (no `maxlength` attribute), so nothing a user wrote is lost without them seeing it.
   - An over-limit post returns the form **with the user's text still in it** and a clear error, e.g.: *"Your message is 3,412 characters; the limit is 3,000. Please shorten it by 412 characters. Messages are capped to keep the discussion readable and to keep the AI moderator's running costs low."*
   - The same short explanation appears on the "How this works" page, alongside the rate limit.
-- **Other user-facing limits** follow the same pattern (server check, clear message that says why): empty messages, posting too fast ("please wait N seconds"), the conversation's message cap, thread full, and moderation paused for budget reasons.
+- **Whenever a user cannot post, the page tells them why, in plain words, and what they can do next.** `post_message()` never fails silently and never with a generic error: it raises a `PostRejected` carrying a stable `code`, a user-facing `message`, and `retry_after` seconds where relevant. The view shows that message next to the compose box and keeps the user's text; for standing conditions it also disables the compose box and shows the reason. The server decides; any countdown on the page is guidance only. The reasons and their wording:
+  - **Empty message:** "Your message is empty."
+  - **Too long:** the message described above (count, limit, reason).
+  - **Too fast** (`MIN_SECONDS_BETWEEN_MESSAGES`, **30 seconds**): "Please wait 12 more seconds before posting again. Messages are limited to one every 30 seconds so both people have time to read and reply, and to keep the AI moderator's running costs low." The wait is measured from the same participant's previous message, on server time.
+  - **Conversation full** (`MAX_USER_MESSAGES_PER_CONVERSATION`): "This conversation has reached its limit of 30 messages and is closed. You can start a new one."
+  - **Conversation closed:** "This conversation is closed."
+  - **Not a participant / thread full:** "You are not a participant in this conversation." and "This conversation already has two participants."
+  - **Not logged in, or email not confirmed:** a redirect with a sentence saying what to do ("Please log in", "Please confirm your email first; we sent you a link").
+  - **Something failed on our side:** "Something went wrong on our side and your message was not sent. Your text is still in the box; please try again." (details go to the log, not the page).
+  - **Moderation paused** does not stop posting; the page says so and why, in plain words ("The AI moderator has reached today's spending limit and will resume tomorrow", "...this conversation's limit", "moderation is switched off", or "the moderator ran into a problem"), and that messages are still posted. It never shows internal error text.
 - **Synthetic messages** (paired test sets) are held to the same limit, so the test conditions match what real users can post.
-- **Other text inputs:** username 3–30 characters (letters, digits, `_`, `-`), email up to 254 characters, both checked on the server by Django's forms.
+- **Other text inputs:** username 3–30 characters, **ASCII letters, digits, `_` and `-` only** (so no two usernames can look alike on screen); email up to 254 characters. The username rule is enforced on the model, so every way of creating an account obeys it (forms, `create_user`, `createsuperuser`, admin, plain `save()`).
 
 ## 5. Taxonomy and dimensions (single source: `moderation/taxonomy.py`)
 The database choices, the Pydantic schemas and the prompt text all come from this one file. Each type has a one-sentence definition, boundary rules and examples.
@@ -140,10 +149,11 @@ The posted moderator message is the acts rendered in order. Display names are sw
 - User messages are inserted as delimited **data**. The prompts state that instructions inside user messages must be ignored. An injection attempt is one of the golden-set cases.
 - Moderator output is HTML-escaped when rendered.
 - Prompt builders receive only labels and message text, never `User` objects, so usernames and emails cannot reach an LLM or `LLMCall` logs. A test enforces this.
+- **Keys never reach GitHub (layered):** `.gitignore` blocks `.env`, `.env.*` (except `.env.example`), `*.pem`, `*.key` and `secrets/`; `scripts/check_secrets.py` (standard library only) finds Anthropic and other provider keys, private-key blocks and `password=`-style assignments, and never prints a whole secret; a `pre-commit` hook scans the staged content and a `pre-push` hook scans the entire history (installed per clone with `scripts/install_hooks.sh`; a line marked `secret-scan: allow` is skipped); tests keep the repository clean; agents are told never to read or print `.env`. Hooks can be skipped with `--no-verify`, so the real backstop is GitHub's own push protection plus revoking any leaked key immediately.
 
 ## 8. Data model
 `accounts` app:
-- `User` (extends `AbstractUser`, set as `AUTH_USER_MODEL` **before the first migration**): username (unique, case-insensitive), email (unique, case-insensitive), email_verified_at, password (salted hash only). `is_active` stays false until the email is confirmed.
+- `User` (extends `AbstractUser`, set as `AUTH_USER_MODEL` **before the first migration**): username (ASCII rule above), email (required), `username_key` and `email_key` (derived, unique, filled by `save()` from `normalize_key` = NFKC(casefold(NFKC(value))), because SQLite's `LOWER()` only folds ASCII and would accept look-alikes such as `Émile`/`émile`), email_verified_at, password (salted hash only). Duplicates raise a friendly `ValidationError` on every code path; the unique constraints on the keys are the database backstop. `is_active` is set false by the registration flow (step 6) until the email is confirmed.
 
 `forum` app:
 - `Topic`: title, description, proposition, `leans` (JSON: per side, per scheme and axis, with rationale)
@@ -276,6 +286,11 @@ Each step: write the listed tests first and watch them fail, implement, get ever
   - **Home page:** a placeholder at `/`.
 - Tests (80, all passing): settings and production strictness, WAL on a real file, tunables (exposed as settings, assigned only in `tunables.py`, each commented, agreed defaults, Decimal money), the User model (case-insensitive uniqueness, required email, Argon2, superuser), the home page, system checks, no missing migrations, repo hygiene. Django's Django-7.0 deprecation warnings are errors in tests.
 - Checked by hand: `migrate` on a fresh database, the database file really in WAL mode, a running server returning the home page.
+- **Step 1 fixes** (a later review by an independent testing agent, then fixed by a building agent; each phase by a separate agent):
+  - Case-insensitive uniqueness now uses derived `username_key`/`email_key` (migration `0002`, with a frozen normalizer and a loud failure if existing rows collide), and usernames are ASCII-only.
+  - Production refuses to start with the public development key, a secret shorter than 50 characters, or `*` as an allowed host; development mode refuses a non-local host unless `DJANGO_ENV` is set; a relative `DJANGO_DB_PATH` resolves against the project folder and its parent directory must exist.
+  - Secret protection (section 7): scanner, hooks, install script, `.gitignore` patterns. The scanner's "unquoted lowercase name is a variable" exemption applies only to Python source files.
+  - Test hygiene: environment-independent tests, AST-based `.env` check, tunable-name collision test, exact pinned requirements.
 - Known and expected: `manage.py check --deploy` still reports the console email backend (real SMTP arrives in step 6) and the HTTPS redirect and HSTS settings (the deployment step).
 **Step 2 — LLM gateway and budget guard**
 - Build: `LLMCall` and `GuardState` models; `pricing.py`; `budget.py` (ledger sums, caps, reservation, worst-case run cost); `llm.py` with a single `call(purpose, agent, model, system, messages, output_schema, max_tokens, run=None, conversation=None)`, which checks the kill switch, the breaker and the budget, makes the call with prompt caching and structured output, logs everything, prices it, and updates the breaker; `fake_llm.py` with scripted responses; `manage.py budget` and `manage.py reset_breaker`. Confirm the current SDK details for structured output, caching and token counting against Anthropic's docs while building.
@@ -305,7 +320,7 @@ Each step: write the listed tests first and watch them fail, implement, get ever
 
 **Step 7 — Forum web, including input limits**
 - Build: topic and thread list; start and join (capacity, random labels on fill); `forum/limits.py` (`count_message_chars`); `forum/services.py` (`post_message()`: length, emptiness, rate limit, conversation cap, then save and enqueue the run on commit); thread page with the compose box, live counter (`static/compose.js`), the limit shown, and error display that keeps the user's text; polling endpoint and `static/poll.js`; "How this works" page.
-- Tests first: posting exactly `MAX_MESSAGE_CHARS` is accepted; one character over is rejected with the error text naming the count, the limit and the reason, the text preserved in the form, **no message saved and no run created**; a hand-made POST that skips the page gets the same rejection; whitespace-only messages are rejected; emoji and accented characters are counted as the rules say (code points after NFC and trimming); posting too fast is rejected with the wait time; the conversation message cap is enforced; a third joiner gets "thread full"; labels are randomized across conversations with a recorded seed; non-participants can't post; the polling endpoint returns only newer messages; a skipped-budget run shows "moderation paused".
+- Tests first: posting exactly `MAX_MESSAGE_CHARS` is accepted; one character over is rejected with the error text naming the count, the limit and the reason, the text preserved in the form, **no message saved and no run created**; a hand-made POST that skips the page gets the same rejection; whitespace-only messages are rejected; emoji and accented characters are counted as the rules say (code points after NFC and trimming); posting too fast is rejected with the wait time and the reason for the 30-second gap, and the wait counts from that participant's own previous message; **every rejection reason in the list above has a test that checks its code, that the text names the reason and the next step, that the user's text is preserved, that nothing is saved and no run is created, and that no internal error text or stack trace is ever shown;** the conversation message cap is enforced; a third joiner gets "thread full"; labels are randomized across conversations with a recorded seed; non-participants can't post; the polling endpoint returns only newer messages; a skipped-budget run shows "moderation paused".
 - Done when: all tests pass and two browser sessions can hold a conversation, with moderation running in `sync` mode against `FakeLLM`.
 
 **Step 8 — Worker**
@@ -346,6 +361,7 @@ Each step: write the listed tests first and watch them fail, implement, get ever
 - `export_conversation <id>` produces the full nested JSON, with calls and costs and no identities.
 
 ## 17. Open decisions
+- **First push to GitHub.** No remote exists yet. Before the first push: keep the repository private, turn on secret scanning and push protection in its Code security settings, and clean the local history (the first local commit contains two harmless false positives that the pre-push scan will block: the public development key line and a test password literal), for example by squashing the local commits into a clean history, which is safe while nothing has been pushed. Revoke any real key that is ever committed.
 - **Hosting and HTTPS** before real users. May cost money.
 - **Email sending** (SMTP account) for real confirmation emails.
 - **Rubric wording**, settled with the human raters in step 11.

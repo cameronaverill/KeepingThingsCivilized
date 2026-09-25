@@ -1,0 +1,32 @@
+#!/bin/sh
+# Blocks a commit whose staged content contains an API key or other secret (see scripts/check_secrets.py).
+root=$(git rev-parse --show-toplevel) || exit 1
+cd "$root" || exit 1
+
+if [ -x .venv/bin/python ]; then
+    python=.venv/bin/python
+elif command -v python3 >/dev/null 2>&1; then
+    python=python3
+else
+    echo "pre-commit: neither .venv/bin/python nor python3 was found, so the secret scan cannot run." >&2
+    exit 1
+fi
+
+"$python" scripts/check_secrets.py --staged
+status=$?
+if [ "$status" -ne 0 ]; then
+    cat >&2 <<'MESSAGE'
+
+COMMIT BLOCKED: the staged changes contain a possible API key or secret (or the scan could not run).
+
+To fix it:
+  1. Remove the secret from the file and read it from an environment variable instead (.env is git-ignored).
+  2. Unstage the file, then stage the cleaned version again.
+  3. A harmless test value can be marked with a comment containing: secret-scan: allow
+
+If a real key was ever committed or pushed, REVOKE it now in the provider's console and create a new one.
+Deleting it in a later commit does not remove it from git history.
+MESSAGE
+    exit 1
+fi
+exit 0

@@ -107,3 +107,15 @@ def test_llm_calls_are_off_until_deliberately_enabled():
 def test_models_are_named():
     assert tunables.MASTER_MODEL and tunables.INTERVENOR_MODEL and tunables.SPIKE_MODEL
     assert len(tunables.JUDGE_MODELS) == 2
+
+
+def test_tunable_names_do_not_collide_with_django_settings_except_the_allowed_ones():
+    # config/settings.py copies every UPPERCASE tunable onto the Django settings, so a tunable named like a real
+    # Django setting would silently override it. SESSION_COOKIE_AGE is the one deliberate override.
+    from django.conf import global_settings
+
+    allowed = {"SESSION_COOKIE_AGE"}
+    django_names = {name for name in dir(global_settings) if name.isupper()}
+    collisions = set(tunable_names()) & django_names
+    assert collisions - allowed == set(), sorted(collisions - allowed)
+    assert allowed <= set(tunable_names()), "the allowed override is no longer a tunable; drop it from the allowed set"

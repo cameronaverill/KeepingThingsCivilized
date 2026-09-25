@@ -1,5 +1,10 @@
-# Secrets and local config
+# Secrets and local config (the hooks in .githooks/ also block committing these)
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
 
 # Local databases (SQLite in WAL mode also creates -wal and -shm files)
 db.sqlite3

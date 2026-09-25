@@ -25,6 +25,7 @@ def _env_list(name):
 
 # --- Environment: "development" (default) or "production" -------------------
 # A deployed site must set DJANGO_ENV=production, which turns on the strict checks below.
+DJANGO_ENV_WAS_SET = bool(_env("DJANGO_ENV"))
 ENVIRONMENT = _env("DJANGO_ENV", "development")
 if ENVIRONMENT not in ("development", "production"):
     raise ImproperlyConfigured(f"DJANGO_ENV must be 'development' or 'production', not {ENVIRONMENT!r}")
@@ -32,18 +33,30 @@ IS_PRODUCTION = ENVIRONMENT == "production"
 
 DEBUG = not IS_PRODUCTION
 
+DEV_SECRET_KEY = "dev-only-insecure-key-never-use-in-production"  # secret-scan: allow (deliberately public) # secret-scan: allow
 SECRET_KEY = _env("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if IS_PRODUCTION:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_ENV=production")
     SECRET_KEY = "dev-only-insecure-key-never-use-in-production" #secret-scan: allow # secret-scan: allow
+elif IS_PRODUCTION and (SECRET_KEY == DEV_SECRET_KEY or len(SECRET_KEY) < 50):
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be at least 50 characters and not the development key when DJANGO_ENV=production"
+    )
 
-
+_LOCAL_HOSTS = ("localhost", "127.0.0.1", "[::1]")
 ALLOWED_HOSTS = _env_list("DJANGO_ALLOWED_HOSTS")
 if not ALLOWED_HOSTS:
     if IS_PRODUCTION:
         raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must be set when DJANGO_ENV=production")
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
+    ALLOWED_HOSTS = list(_LOCAL_HOSTS)
+elif IS_PRODUCTION and "*" in ALLOWED_HOSTS:
+    raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must not contain '*' when DJANGO_ENV=production")
+elif not DJANGO_ENV_WAS_SET and not set(ALLOWED_HOSTS) <= set(_LOCAL_HOSTS):
+    raise ImproperlyConfigured(
+        "DJANGO_ALLOWED_HOSTS lists a host other than localhost, but DJANGO_ENV is not set. "
+        "Set DJANGO_ENV=production for a deployed site (or DJANGO_ENV=development to allow this on purpose)."
+    )
 
 CSRF_TRUSTED_ORIGINS = _env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
@@ -98,11 +111,16 @@ TEMPLATES = [
 # --- Database: SQLite in WAL mode -------------------------------------------------
 # WAL lets the web server and the moderation worker read while one of them writes.
 # IMMEDIATE transactions take the write lock up front, which avoids "database is locked" upgrade failures.
+# A relative DJANGO_DB_PATH is relative to the project folder (not the working directory), and its folder must exist.
+DB_PATH = BASE_DIR / _env("DJANGO_DB_PATH", "db.sqlite3")  # an absolute path replaces BASE_DIR
+if not DB_PATH.parent.is_dir():
+    raise ImproperlyConfigured(f"DJANGO_DB_PATH points into a folder that does not exist: {DB_PATH.parent}")
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         # DJANGO_DB_PATH lets a deployment put the file on a persistent disk.
-        "NAME": _env("DJANGO_DB_PATH", str(BASE_DIR / "db.sqlite3")),
+        "NAME": str(DB_PATH),
         "OPTIONS": {
             "transaction_mode": "IMMEDIATE",
             "timeout": tunables.DB_BUSY_TIMEOUT_SECONDS,
