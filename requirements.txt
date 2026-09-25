@@ -1,0 +1,7 @@
+# Runtime dependencies (what a deployed site needs). Versions pinned exactly.
+Django==6.1.1
+anthropic==1.8.0
+pydantic==2.13.5
+argon2-cffi==25.1.0
+django-axes==8.3.1
+python-dotenv==1.2.3

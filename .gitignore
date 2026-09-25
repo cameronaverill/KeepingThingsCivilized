@@ -1,0 +1,26 @@
+# Secrets and local config
+.env
+
+# Local databases (SQLite in WAL mode also creates -wal and -shm files)
+db.sqlite3
+db.sqlite3-*
+*.sqlite3
+*.sqlite3-*
+
+# Real-API prompt check outputs
+golden/results/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Django
+staticfiles/
+
+# Local Claude Code state
+.claude/
+
+# OS / editor
+.DS_Store
