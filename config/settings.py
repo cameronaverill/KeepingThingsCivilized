@@ -33,12 +33,12 @@ IS_PRODUCTION = ENVIRONMENT == "production"
 
 DEBUG = not IS_PRODUCTION
 
-DEV_SECRET_KEY = "dev-only-insecure-key-never-use-in-production"  # secret-scan: allow (deliberately public) # secret-scan: allow
+DEV_SECRET_KEY = "dev-only-insecure-key-never-use-in-production"  # secret-scan: allow (deliberately public) # secret-scan: allow # secret-scan: allow
 SECRET_KEY = _env("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if IS_PRODUCTION:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_ENV=production")
-    SECRET_KEY = "dev-only-insecure-key-never-use-in-production" #secret-scan: allow # secret-scan: allow
+    SECRET_KEY = "dev-only-insecure-key-never-use-in-production" #secret-scan: allow # secret-scan: allow # secret-scan: allow
 elif IS_PRODUCTION and (SECRET_KEY == DEV_SECRET_KEY or len(SECRET_KEY) < 50):
     raise ImproperlyConfigured(
         "DJANGO_SECRET_KEY must be at least 50 characters and not the development key when DJANGO_ENV=production"
@@ -59,6 +59,14 @@ elif not DJANGO_ENV_WAS_SET and not set(ALLOWED_HOSTS) <= set(_LOCAL_HOSTS):
     )
 
 CSRF_TRUSTED_ORIGINS = _env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+for _origin in CSRF_TRUSTED_ORIGINS:
+    _scheme, _sep, _rest = _origin.partition("://")
+    if _scheme.lower() not in ("http", "https") or not _sep or not _rest.split("/", 1)[0].strip():
+        # Deliberately does not include the value: a secret pasted into this variable by mistake must never be echoed.
+        raise ImproperlyConfigured(
+            "Every entry in DJANGO_CSRF_TRUSTED_ORIGINS must start with http:// or https:// and have a host, "
+            "like https://example.com (the offending value is not shown)"
+        )
 
 # Cookies are only marked Secure in production, where the site must be served over HTTPS.
 SESSION_COOKIE_SECURE = IS_PRODUCTION
@@ -78,6 +86,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "accounts",
+    "moderation",
 ]
 
 MIDDLEWARE = [
@@ -160,6 +169,9 @@ MAILERS = {
     }
 }
 DEFAULT_FROM_EMAIL = _env("DEFAULT_FROM_EMAIL", "forum@localhost")
+# Where the circuit breaker's alert email goes (moderation/breaker.py). Per-machine, so it comes from .env, never from
+# a tracked file. Empty = no email is sent (the trip is only logged).
+ALERT_EMAIL = _env("ALERT_EMAIL")
 
 # --- Internationalization ------------------------------------------------------------
 LANGUAGE_CODE = "en-us"

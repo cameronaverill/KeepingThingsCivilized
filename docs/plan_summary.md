@@ -34,7 +34,8 @@ A two-person discussion forum with an AI moderator that makes discussions more p
 - Both are compared **by political side, at equal intensity**.
 - **Ground truth:** two Claude judges and human raters, all using the same rubrics. Each phrase gets an issue type and a 0–4 intensity, or is marked "not scorable" (e.g. contested) with a reason.
 - Humans calibrate the AI judges. The metrics are also computed on the human labels alone.
-- **Two tracks:** paired test transcripts with planted problems and only the political side flipped (first), then real conversations (second).
+- **Test families:** (1) matched political-direction pairs, at obvious and hard difficulty and compared only at equal difficulty; (2) a small mechanical series (message length, label swap, flooding, repetition, unanswered question) whose ground truth is computed by code; (3) a non-political warm-up to shake out the pipeline cheaply (validates the machinery, not political neutrality); (4) real conversations later, as corroboration only.
+- **Controls:** a deliberately biased moderator must be detected (positive control); repeated runs and identical pairs measure the noise floor. The number of pairs is set by a power calculation, and the current ~42 transcripts are a smoke test, not evidence.
 
 ## How we build
 One step at a time, tests first. A **coding agent** writes each component and a **separate testing agent** writes its tests. Claude owns the architecture and reviews both. You approve each step before the next begins. Python 3.13, Django 6.1.
@@ -66,3 +67,6 @@ One step at a time, tests first. A **coding agent** writes each component and a 
 - Rubric wording
 - Whether the cheaper model is good enough for the live moderator (decided after step 3)
 - The analysis thresholds, fixed in the pre-registration
+
+## Owner to-do
+- **Audit the transcripts yourself** before trusting any result from them (plan section 19): balance, planted problems and sources, mechanical series, difficulty tiers, side effects. Record the date and version; any edit means re-audit. Status: not yet done.

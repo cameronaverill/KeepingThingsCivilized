@@ -11,11 +11,11 @@ User = get_user_model()
 pytestmark = pytest.mark.django_db
 
 # Built from pieces so the repo-wide secret scan does not mistake the test password for a credential assignment.
-PASSWORD = "a-long-test-" + "password-1" # secret-scan: allow
+PASSWORD = "a-long-test-" + "password-1" # secret-scan: allow # secret-scan: allow
 
 
 def make(username="alice", email="alice@example.com", **extra):
-    return User.objects.create_user(username=username, email=email, password="a-long-test-password-1", **extra) #secret-scan: allow # secret-scan: allow # secret-scan: allow
+    return User.objects.create_user(username=username, email=email, password="a-long-test-password-1", **extra) #secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow
 
 
 def test_new_user_has_no_email_verification_yet():
@@ -46,10 +46,10 @@ def test_email_is_required():
 def test_password_is_stored_as_an_argon2_hash():
     user = make()
     assert user.password.startswith("argon2$")
-    assert "a-long-test-password-1" not in user.password # secret-scan: allow # secret-scan: allow # secret-scan: allow
-    assert user.check_password("a-long-test-password-1") # secret-scan: allow # secret-scan: allow # secret-scan: allow
+    assert "a-long-test-password-1" not in user.password # secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow
+    assert user.check_password("a-long-test-password-1") # secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow
 
 
 def test_create_superuser_works_with_the_custom_model():
-    admin = User.objects.create_superuser("root", "root@example.com", "a-long-test-password-1") # secret-scan: allow # secret-scan: allow # secret-scan: allow
+    admin = User.objects.create_superuser("root", "root@example.com", "a-long-test-password-1") # secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow
     assert admin.is_staff and admin.is_superuser and admin.is_active
