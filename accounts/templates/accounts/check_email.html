@@ -1,0 +1,7 @@
+{% extends "accounts/base.html" %}
+{% block title %}Check your email{% endblock %}
+{% block content %}
+<h1>Check your email</h1>
+<p>We sent a confirmation link to that address. It expires in {{ expiry_days }} day{{ expiry_days|pluralize }}. Check your spam folder.</p>
+<p>Still nothing after a few minutes? <a href="{% url 'accounts:resend' %}">Request a new link</a>.</p>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "accounts/base.html" %}
+{% block title %}Create an account{% endblock %}
+{% block content %}
+<h1>Create an account</h1>
+<p>Already registered? <a href="{% url 'accounts:login' %}">Log in</a>.</p>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  {% for field in form %}
+  <p>
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label><br>
+    {{ field }}
+    {% if field.errors %}<span role="alert" id="{{ field.auto_id }}_errors">{% for error in field.errors %}<br>{{ error }}{% endfor %}</span>{% endif %}
+    {% if field.help_text %}<br><small>{{ field.help_text }}</small>{% endif %}
+    {% if field.name == "password1" %}<br><small>Your password must meet these rules:</small>
+    <ul>{% for text in password_help %}<li>{{ text }}</li>{% endfor %}</ul>{% endif %}
+  </p>
+  {% endfor %}
+  <button type="submit">Create account</button>
+</form>
+<p><small>We will email you a link to confirm your address. Your account works after you follow it.</small></p>
+<p><small>Did not get a link? <a href="{% url 'accounts:resend' %}">Ask for a new one</a>.</small></p>
+{% endblock %}

@@ -5,6 +5,7 @@ The .env file is loaded by manage.py / wsgi.py / asgi.py, NOT here, so tests nev
 Every number you might want to change lives in config/tunables.py, and is exposed here at the bottom.
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -33,12 +34,12 @@ IS_PRODUCTION = ENVIRONMENT == "production"
 
 DEBUG = not IS_PRODUCTION
 
-DEV_SECRET_KEY = "dev-only-insecure-key-never-use-in-production"  # secret-scan: allow (deliberately public) # secret-scan: allow # secret-scan: allow
+DEV_SECRET_KEY = "dev-only-insecure-key-never-use-in-production"  # secret-scan: allow (deliberately public) # secret-scan: allow # secret-scan: allow # secret-scan: allow
 SECRET_KEY = _env("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if IS_PRODUCTION:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_ENV=production")
-    SECRET_KEY = "dev-only-insecure-key-never-use-in-production" #secret-scan: allow # secret-scan: allow # secret-scan: allow
+    SECRET_KEY = "dev-only-insecure-key-never-use-in-production" #secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow
 elif IS_PRODUCTION and (SECRET_KEY == DEV_SECRET_KEY or len(SECRET_KEY) < 50):
     raise ImproperlyConfigured(
         "DJANGO_SECRET_KEY must be at least 50 characters and not the development key when DJANGO_ENV=production"
@@ -85,6 +86,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "axes",
     "accounts",
     "moderation",
 ]
@@ -97,6 +99,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "axes.middleware.AxesMiddleware",  # last, as django-axes requires
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -141,6 +144,27 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Accounts and passwords ---------------------------------------------------------
 AUTH_USER_MODEL = "accounts.User"
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+
+# --- Login throttling (django-axes 8.x) ------------------------------------------------
+# The axes backend comes first: it refuses the attempt while a client is locked out, then ModelBackend does the real check.
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+AXES_FAILURE_LIMIT = tunables.LOGIN_MAX_FAILURES  # locked on the Nth failed attempt
+AXES_COOLOFF_TIME = timedelta(minutes=tunables.LOGIN_COOLOFF_MINUTES)  # a timedelta, not hours
+# A lock on the username OR on the IP address is enough to refuse (two separate counters).
+AXES_LOCKOUT_PARAMETERS = ["username", "ip_address"]
+AXES_RESET_ON_SUCCESS = True
+# Attempts made during a lockout do not extend it, so the wait the page states stays true.
+AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
+# "Bob" and "bob" are one account (see accounts/keys.py), so they share one username counter.
+AXES_USERNAME_CALLABLE = "accounts.authviews.axes_username"
+# Show the login page (with a message naming the wait) instead of axes' bare text response.
+AXES_LOCKOUT_CALLABLE = "accounts.authviews.lockout_response"
 
 # Argon2 is used for new passwords; PBKDF2 stays listed so any older hash can still be verified.
 PASSWORD_HASHERS = [
