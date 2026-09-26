@@ -152,7 +152,7 @@ Output:
 - **Structural** (invalid JSON, or doesn't match the schema): retry once. If it fails again, the run is marked `failed`, nothing is posted, and everything is logged.
 - **Item level** (a quote that can't be found, an unknown message id, a breach of the only-new-issues rule, an act citing a rejected issue, acts over the cap): only that item is rejected, with a reason, and the run continues. Rejected items stay in the database. Rejection rates are reported by side, because whole-run failures would silently remove more data from whichever side writes longer messages.
 
-The posted moderator message is the acts rendered in order. Display names are swapped in for `Participant A/B` only when the page is rendered. There is no third tagging LLM in the MVP.
+The posted moderator message is the acts rendered in order. Users never see `Participant A/B` (owner decision 2026-09-25): act text must not name anyone, and the page shows "You" / "The other participant" plus a per-viewer heading computed from `addressee`/`subject`. There is no third tagging LLM in the MVP.
 
 ## 7. Prompt safety and privacy
 - User messages are inserted as delimited **data**. The prompts state that instructions inside user messages must be ignored. An injection attempt is one of the golden-set cases.
