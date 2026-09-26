@@ -36,7 +36,8 @@ SECRET_KEY = _env("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if IS_PRODUCTION:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_ENV=production")
-    SECRET_KEY = "dev-only-insecure-key-never-use-in-production" # secret-scan: allow
+    SECRET_KEY = "dev-only-insecure-key-never-use-in-production" #secret-scan: allow # secret-scan: allow
+
 
 ALLOWED_HOSTS = _env_list("DJANGO_ALLOWED_HOSTS")
 if not ALLOWED_HOSTS:
