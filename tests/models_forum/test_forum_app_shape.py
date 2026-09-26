@@ -1,5 +1,8 @@
-"""The forum app as a whole: migrations are in step with the models, and no view, URL or admin was added (4a is
-models only)."""
+"""The forum app as a whole: migrations are in step with the models and the app still carries its five models.
+
+Step 4a added models only, so this file used to assert that no view, URL, admin, form, service or template existed.
+Step 7 adds exactly those, so those assertions are gone; what is still true stays: the models, the migrations being
+consistent, and no forum code importing `anthropic` (only moderation/llm.py may)."""
 import importlib
 import io
 from pathlib import Path
@@ -50,40 +53,46 @@ def test_the_five_models_are_registered_under_the_forum_label():
     assert labels == {"forum.Topic", "forum.Experiment", "forum.Conversation", "forum.Participant", "forum.Message"}
 
 
-@pytest.mark.parametrize("name", ["views.py", "urls.py", "admin.py", "forms.py", "services.py", "templates", "templatetags"])
-def test_no_view_url_admin_or_template_was_added(name):
-    assert not (forum_path() / name).exists(), name
+def test_step_7a_added_its_files_and_the_second_migration():
+    root = forum_path()
+    for name in ("services.py", "viewmodels.py", "admin.py"):
+        assert (root / name).is_file(), name
+    assert len(list((root / "migrations").glob("0002_*.py"))) == 1
 
 
-@pytest.mark.parametrize("module", ["forum.views", "forum.urls", "forum.admin"])
-def test_those_modules_cannot_be_imported(module):
-    with pytest.raises(ModuleNotFoundError):
-        importlib.import_module(module)
+def test_the_forum_modules_that_step_7_added_can_be_imported():
+    for module in ("forum.services", "forum.viewmodels", "forum.admin", "forum.urls"):
+        assert importlib.import_module(module)
 
 
-def test_no_url_is_routed_to_the_forum_app():
-    from django.urls import URLPattern, URLResolver, get_resolver
+def test_the_forum_urls_are_routed_under_the_forum_namespace_only():
+    from django.urls import reverse
 
-    def walk(patterns):
-        for pattern in patterns:
-            if isinstance(pattern, URLResolver):
-                yield pattern
-                yield from walk(pattern.url_patterns)
-            elif isinstance(pattern, URLPattern):
-                yield pattern
-
-    for pattern in walk(get_resolver().url_patterns):
-        module = getattr(pattern, "urlconf_module", None)
-        name = getattr(module, "__name__", "")
-        callback = getattr(pattern, "callback", None)
-        callback_module = getattr(callback, "__module__", "") or ""
-        assert not name.startswith("forum"), pattern
-        assert not callback_module.startswith("forum"), pattern
-        assert getattr(pattern, "app_name", None) != "forum"
+    assert reverse("forum:home") == "/"
 
 
-def test_no_forum_model_is_registered_in_the_admin():
+def test_no_forum_code_imports_anthropic():
+    import ast
+
+    offenders = []
+    for path in forum_path().rglob("*.py"):
+        tree = ast.parse(path.read_text(), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                names = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                names = [node.module or ""]
+            else:
+                continue
+            if any(name == "anthropic" or name.startswith("anthropic.") for name in names):
+                offenders.append(str(path))
+    assert offenders == []
+
+
+def test_the_forum_admin_registers_topic():
+    """Step 7a registers Topic (hide and unhide propositions). Step 9 owns the rest of the admin."""
     from django.contrib import admin
 
-    forum_models = set(apps.get_app_config("forum").get_models())
-    assert forum_models.isdisjoint(admin.site._registry)
+    from forum.models import Topic
+
+    assert Topic in admin.site._registry

@@ -122,6 +122,14 @@ MAX_USER_MESSAGES_PER_CONVERSATION = 30
 # Most conversations that may be open at the same time.
 MAX_OPEN_CONVERSATIONS = 5
 
+# Longest proposition a user may create, in characters.
+MAX_PROPOSITION_CHARS = 200
+# How many propositions one user may create per UTC day (mainly to limit token use).
+MAX_PROPOSITIONS_PER_USER_PER_DAY = 20
+
+# How often the conversation page asks the server for new messages, in seconds.
+POLL_SECONDS = 3
+
 # People per conversation. The database supports more; the MVP allows two.
 MAX_PARTICIPANTS = 2
 

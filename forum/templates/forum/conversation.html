@@ -1,0 +1,116 @@
+{% extends "forum/base.html" %}
+{% load static %}
+{% block title %}{{ view.proposition }}{% endblock %}
+{% comment %}The header on this page deliberately shows no username: nothing on a conversation page names either person.{% endcomment %}
+{% block account_name %}{% endblock %}
+{% block main_class %}page page-wide{% endblock %}
+{% block content %}
+<div class="page-head conv-head">
+  <div>
+    <a class="back-link" href="{% url 'forum:home' %}">&larr; All propositions</a>
+    <h1>{{ view.proposition }}</h1>
+  </div>
+  <span class="pill" id="status-pill">{% if view.waiting %}Waiting for a second person{% elif view.status == "closed" %}Closed &middot; {{ view.message_count }} of {{ view.message_limit }} messages{% else %}Active &middot; 2 participants{% endif %}</span>
+</div>
+
+<div id="moderation-notice" class="banner banner-notice" role="status"{% if not view.moderation_notice %} hidden{% endif %}>
+  <div class="banner-title">About the AI moderator</div>
+  <span data-notice-text>{{ view.moderation_notice|default:"" }}</span>
+</div>
+
+<div id="state-changed" class="banner banner-info" role="status" hidden>
+  This conversation has changed. <a href="{% url 'forum:conversation' conversation.pk %}">Reload to see the latest.</a>
+</div>
+
+<div class="conv-layout">
+  <div class="conv-main">
+    <div id="thread" data-poll-url="{{ poll_url }}" data-poll-seconds="{{ poll_seconds }}" data-last-seq="{{ last_seq }}" data-status="{{ view.status }}" data-waiting="{{ view.waiting|yesno:'true,false' }}" data-can-post="{{ view.can_post|yesno:'true,false' }}">
+      <div id="message-list" class="message-list" role="log" aria-live="polite" aria-label="Messages in this conversation">{% for m in view.messages %}{% include "forum/_message.html" %}{% empty %}<p class="empty" id="no-messages">No messages yet.</p>{% endfor %}</div>
+    </div>
+    {% if view.status != "closed" %}<p class="hint">Updates appear automatically. Nothing you type is sent until you press Post.</p>{% endif %}
+
+    {% if view.waiting %}
+      {% if error %}<div class="banner banner-error" role="alert" data-code="{{ error.code }}">{{ error.message }}</div>{% endif %}
+      <section class="card state-box" id="waiting-box">
+        <h2 class="card-title">Waiting for a second person</h2>
+        <p>You are the first one here. When someone else picks this proposition, the conversation starts and the AI moderator begins reading along.</p>
+        <p class="strong">You can post once someone else joins.</p>
+        <p>This conversation is waiting for a second person to pick this proposition. There is nothing you need to do: come back any time and choose the proposition again to return here. It stays open until someone joins or you end it.</p>
+      </section>
+    {% elif view.status == "closed" %}
+      {% if error %}<div class="banner banner-error" role="alert" data-code="{{ error.code }}">{{ error.message }}</div>{% endif %}
+      <section class="card state-box" id="closed-box">
+        <h2 class="card-title">Conversation closed</h2>
+        {% if reason %}<p>{{ reason.message }}</p>
+        {% elif view.you_ended %}<p>You ended this conversation.</p>
+        {% elif view.ended_by_other %}<p>The other participant ended this conversation.</p>
+        {% else %}<p>This conversation has reached its limit of {{ max_messages }} messages and is closed.</p>{% endif %}
+        <p class="muted">The conversation stays here to read.</p>
+        <p><a class="btn btn-primary" href="{% url 'forum:home' %}">Start a new conversation</a></p>
+      </section>
+    {% elif view.can_post %}
+      <form class="card compose" id="composer" method="post" action="{% url 'forum:post' conversation.pk %}">
+        {% csrf_token %}
+        <label for="message" class="label">Your message</label>
+        {% if error %}
+        <div class="banner banner-error" role="alert" data-code="{{ error.code }}" id="message-error"{% if error.retry_after %} data-retry-after="{{ error.retry_after }}"{% endif %}>
+          <div class="banner-title">{% if error.code == "too_fast" %}Too soon to post again{% elif error.code == "too_long" %}This message is too long{% elif error.code == "empty" %}Your message is empty{% elif error.code == "server_error" %}Your message was not sent{% else %}Your message was not sent{% endif %}</div>
+          {{ error.message }}{% if error.code != "server_error" and draft %} Nothing was sent and your text is kept.{% endif %}
+        </div>
+        {% endif %}
+        <textarea id="message" name="text" rows="5" data-counter="message-counter" data-limit="{{ max_message_chars }}" data-noun="message" data-advice="message-advice"{% if error %} aria-describedby="message-error"{% endif %}{% if error and error.code == "too_long" %} class="is-over" aria-invalid="true"{% endif %}>
+{{ draft }}</textarea>
+        <p id="message-advice" class="banner banner-error advice" aria-live="polite" hidden></p>
+        <div class="compose-foot">
+          <span id="message-counter" class="counter{% if draft_count > max_message_chars %} is-over{% endif %}" aria-live="polite"><span data-count>{{ draft_count|floatformat:"0g" }}</span> / {{ max_message_chars|floatformat:"0g" }} characters</span>
+          <button type="submit" class="btn btn-primary">Post message</button>
+        </div>
+        <p class="hint">Type or paste here. The counter counts the way the server does (trimmed, one emoji is one character), but only the server decides. Posting several messages in a row is allowed; the wait only spaces them out.</p>
+      </form>
+    {% else %}
+      {% if error %}<div class="banner banner-error" role="alert" data-code="{{ error.code }}">{{ error.message }}</div>{% endif %}
+      <section class="card state-box" id="cannot-post-box">
+        <h2 class="card-title">You cannot post right now</h2>
+        <p>{% if reason %}{{ reason.message }}{% else %}Posting is not available in this conversation at the moment.{% endif %}</p>
+      </section>
+    {% endif %}
+  </div>
+
+  <aside class="conv-side" aria-label="About this conversation">
+    <section class="card">
+      <h2 class="card-title small">Who is here</h2>
+      {% if view.waiting %}
+      <p class="muted">Only you so far. Whoever joins is shown to you as &ldquo;The other participant&rdquo;. Neither of you sees a name or label for the other.</p>
+      {% else %}
+      <p class="muted">You and one other participant. Neither of you sees a name or label for the other; the moderator&rsquo;s notes say whose message they are about.</p>
+      {% endif %}
+    </section>
+    <section class="card">
+      <h2 class="card-title small">Limits</h2>
+      <ul class="muted limits">
+        <li><span data-message-count>{{ view.message_count }}</span> of {{ view.message_limit }} messages used</li>
+        <li>{{ max_message_chars|floatformat:"0g" }} characters per message</li>
+        <li>One message every {{ min_seconds }} seconds</li>
+      </ul>
+      <a href="{% url 'forum:how_it_works' %}">Why these limits?</a>
+    </section>
+    {% if view.status != "closed" %}
+    <section class="card" id="end-box">
+      <h2 class="card-title small">Finished?</h2>
+      <details class="end-details">
+        <summary>End conversation</summary>
+        <p class="muted">{% if view.waiting %}Ending closes this conversation before anyone joins it.{% else %}Ending closes the conversation for both of you.{% endif %} It becomes read-only, is kept for the research record, and cannot be reopened. You can start a new one afterwards.</p>
+        <form method="post" action="{% url 'forum:end' conversation.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">End conversation</button>
+        </form>
+      </details>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'forum/compose.js' %}" defer></script>
+{% if view.status != "closed" %}<script src="{% static 'forum/poll.js' %}" defer></script>{% endif %}
+{% endblock %}

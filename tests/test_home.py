@@ -3,18 +3,19 @@ import pytest
 from django.core.management import call_command
 
 
-def test_home_page_is_served(client):
+@pytest.mark.django_db
+def test_home_page_sends_anonymous_visitors_to_login(client):
     response = client.get("/")
-    assert response.status_code == 200
-    assert response["Content-Type"].startswith("text/html")
-    assert "Discussion Forum" in response.content.decode()
+    assert response.status_code == 302
+    assert response["Location"].startswith("/accounts/login/")
 
 
 def test_unknown_path_is_a_404(client):
     assert client.get("/no-such-page/").status_code == 404
 
 
-def test_django_system_checks_pass():
+@pytest.mark.django_db
+def test_django_system_checks_pass():  # JSONField checks ask the database which features it supports
     call_command("check")
 
 

@@ -1,18 +1,1 @@
-{% comment %}Shared page shell for every accounts page. Extend it; do not restyle per page.{% endcomment %}
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}AI-Moderated Discussion Forum{% endblock %}</title>
-</head>
-<body>
-  <header><a href="/">AI-Moderated Discussion Forum</a></header>
-  {% if messages %}
-  <ul class="messages" role="status">
-    {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
-  </ul>
-  {% endif %}
-  <main>{% block content %}{% endblock %}</main>
-</body>
-</html>
+{% extends "forum/base.html" %}{% comment %}Shared page shell for every accounts page. Extend it; do not restyle per page. It shares the look of the forum pages (forum/base.html: site header, Django messages, stylesheet); the accounts pages fill the "content" block.{% endcomment %}

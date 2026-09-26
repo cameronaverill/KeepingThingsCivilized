@@ -1,0 +1,43 @@
+{% extends "forum/base.html" %}
+{% block title %}Choose a proposition{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Choose a proposition</h1>
+    <p class="lead">Pick one to discuss it in writing with one other person, or propose your own. If someone is already waiting to discuss a proposition, you are paired with them; otherwise you wait until someone picks it. An AI moderator reads along and may step in. <a href="{% url 'forum:how_it_works' %}">How this works</a></p>
+  </div>
+  <div class="page-head-action">
+    <a class="btn btn-primary" href="{% url 'forum:propose' %}">Propose a new one</a>
+  </div>
+</div>
+
+{% if error %}
+<div class="banner banner-error" role="alert" data-code="{{ error.code }}">{{ error.message }}</div>
+{% endif %}
+
+<form class="search" method="get" action="{% url 'forum:home' %}" role="search">
+  <label for="search" class="label">Search propositions</label>
+  <div class="search-row">
+    <input id="search" name="q" type="search" value="{{ query }}" autocomplete="off">
+    <button type="submit" class="btn btn-secondary">Search</button>
+  </div>
+  <span class="hint">Newest first.</span>
+</form>
+
+{% if topics %}
+<ul class="topic-list">
+  {% for topic in topics %}
+  <li>
+    <form method="post" action="{% url 'forum:enter' topic.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="topic-card">{{ topic.proposition }}</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% elif query %}
+<p class="empty">No proposition matches &ldquo;{{ query }}&rdquo;. Try fewer words, or <a href="{% url 'forum:propose' %}">propose it yourself</a>.</p>
+{% else %}
+<p class="empty">There are no propositions yet. <a href="{% url 'forum:propose' %}">Propose the first one.</a></p>
+{% endif %}
+{% endblock %}

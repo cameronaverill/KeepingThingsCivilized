@@ -1,0 +1,7 @@
+{% extends "forum/base.html" %}
+{% block title %}Not allowed{% endblock %}
+{% block content %}
+<h1>Not allowed</h1>
+<p class="lead">You do not have permission to do that. If you think this is a mistake, go back to the propositions and try again.</p>
+<p><a class="btn btn-primary" href="{% url 'forum:home' %}">Back to propositions</a></p>
+{% endblock %}

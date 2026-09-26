@@ -1,0 +1,36 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}AI-Moderated Discussion Forum{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'forum/site.css' %}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the page content</a>
+  <header class="site-header">
+    <a class="brand" href="{% url 'forum:home' %}">AI-Moderated Discussion Forum</a>
+    <nav class="site-nav" aria-label="Site">
+      {% block account_name %}{% if user.is_authenticated %}<span class="who-am-i">Signed in as {{ user.get_username }}</span>{% endif %}{% endblock %}
+      <a class="nav-link" href="{% url 'forum:how_it_works' %}">How this works</a>
+      {% if user.is_authenticated %}
+      <form class="inline-form" method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary btn-small">Log out</button>
+      </form>
+      {% else %}
+      <a class="nav-link" href="{% url 'accounts:login' %}">Log in</a>
+      <a class="nav-link" href="{% url 'accounts:register' %}">Create an account</a>
+      {% endif %}
+    </nav>
+  </header>
+  {% if messages %}
+  <ul class="messages" role="status">
+    {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  <main id="main" class="{% block main_class %}page{% endblock %}">{% block content %}{% endblock %}</main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

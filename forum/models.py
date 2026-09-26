@@ -32,15 +32,45 @@ AUTHOR_CHOICES = [("user", "user"), ("moderator", "moderator")]
 
 
 class Topic(models.Model):
-    title = models.CharField(max_length=200, unique=True)
+    # Optional since step 7: a user-created proposition is displayed by its proposition text alone. When a title is set
+    # it is unique (a conditional constraint, so any number of topics may have a blank title).
+    title = models.CharField(max_length=200, blank=True, default="")
     description = models.TextField(blank=True, default="")
     proposition = models.TextField(blank=True, default="")
     # Per side, per scheme and axis, with rationale (plan section 2).
     leans = models.JSONField(default=dict, blank=True)
+    # Null for seeded topics; the user who created a proposition otherwise (plan section 2, step 7).
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="created_topics"
+    )
+    # Set by an admin: a hidden proposition leaves the home page and cannot be entered; its conversations are kept.
+    hidden = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["title"], condition=~Q(title=""), name="forum_topic_title_unique_if_set"),
+            models.CheckConstraint(condition=~Q(proposition=""), name="forum_topic_proposition_not_empty"),
+        ]
+
     def __str__(self):
-        return self.title
+        return self.title or (self.proposition[:60] + ("..." if len(self.proposition) > 60 else ""))
+
+    def validate_unique(self, exclude=None):
+        """Keep the friendly field error for a duplicate non-blank title (a conditional constraint alone would report
+        it as a non-field error)."""
+        errors = {}
+        try:
+            super().validate_unique(exclude=exclude)
+        except ValidationError as error:
+            errors = error.update_error_dict(errors)
+        if self.title and (exclude is None or "title" not in exclude):
+            if Topic.objects.filter(title=self.title).exclude(pk=self.pk).exists():
+                errors.setdefault("title", []).append(
+                    ValidationError("Topic with this Title already exists.", code="unique")
+                )
+        if errors:
+            raise ValidationError(errors)
 
 
 class Experiment(models.Model):
@@ -78,6 +108,12 @@ class Conversation(models.Model):
     # The golden transcript this synthetic conversation came from.
     transcript_id = models.CharField(max_length=100, blank=True, default="")
     label_seed = models.BigIntegerField(null=True, blank=True)
+    # Set by forum.services.end_conversation when a participant closes the conversation (a conversation closed by the
+    # message limit has neither).
+    ended_by = models.ForeignKey(
+        "Participant", null=True, blank=True, on_delete=models.PROTECT, related_name="ended_conversations"
+    )
+    ended_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

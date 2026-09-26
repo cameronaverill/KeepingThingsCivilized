@@ -1,0 +1,32 @@
+{% extends "forum/base.html" %}
+{% load static %}
+{% block title %}Propose a new debate{% endblock %}
+{% block content %}
+<h1>Propose a new debate</h1>
+<p class="lead">Write a statement that someone could agree or disagree with. Two people will discuss it. You do not have to argue for or against it, and you will not be told which side the other person takes.</p>
+
+<form class="card compose" method="post" action="{% url 'forum:propose' %}">
+  {% csrf_token %}
+  <label for="proposition" class="label">Your proposition</label>
+  {% if error %}
+  <div class="banner banner-error" role="alert" data-code="{{ error.code }}" id="proposition-error">
+    <div class="banner-title">{% if error.code == "daily_limit" %}You cannot publish another proposition today{% elif error.code == "too_long" %}This proposition is too long{% elif error.code == "duplicate" %}This proposition already exists{% elif error.code == "empty" %}Your proposition is empty{% else %}Your proposition was not published{% endif %}</div>
+    {{ error.message }}{% if error.code != "duplicate" %} Nothing was published and your text is kept.{% endif %}
+  </div>
+  {% if duplicate_topic_id %}
+  <div class="duplicate-action">
+    <button type="submit" class="btn btn-secondary" formaction="{% url 'forum:enter' duplicate_topic_id %}">Discuss the existing proposition</button>
+  </div>
+  {% endif %}
+  {% endif %}
+  <textarea id="proposition" name="text" rows="3" data-counter="proposition-counter" data-limit="{{ max_proposition_chars }}" data-noun="proposition"{% if error %} aria-describedby="proposition-error"{% endif %}{% if error and error.code == "too_long" %} class="is-over" aria-invalid="true"{% endif %}>
+{{ draft }}</textarea>
+  <div class="compose-foot">
+    <span id="proposition-counter" class="counter{% if draft_count > max_proposition_chars %} is-over{% endif %}" aria-live="polite"><span data-count>{{ draft_count|floatformat:"0g" }}</span> / {{ max_proposition_chars|floatformat:"0g" }} characters</span>
+    <button type="submit" class="btn btn-primary">Publish proposition</button>
+  </div>
+  <p class="hint">It appears on the home page immediately. You can create up to {{ max_propositions_per_day }} propositions per day.</p>
+</form>
+<p><a href="{% url 'forum:home' %}">&larr; Back to all propositions</a></p>
+{% endblock %}
+{% block scripts %}<script src="{% static 'forum/compose.js' %}" defer></script>{% endblock %}
