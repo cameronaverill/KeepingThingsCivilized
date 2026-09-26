@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     "accounts",
     "moderation",
     "forum",
+    "evaluation",
 ]
 
 MIDDLEWARE = [

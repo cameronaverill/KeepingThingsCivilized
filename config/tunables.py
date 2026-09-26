@@ -206,3 +206,25 @@ INTENSITY_DISAGREEMENT_THRESHOLD = 2
 
 # A phrase counts as an "error" for the metrics if its intensity is at least this. Proposal; not final.
 INTENSITY_ERROR_THRESHOLD = 2
+
+# How many earlier messages (text only, labelled "earlier message") a rater sees as context beside the message rated.
+BLINDED_CONTEXT_MESSAGES = 3
+
+# Calibration set (plan section 9): messages drawn for human raters per dimension.
+CALIBRATION_ITEMS_PER_DIMENSION = 100
+
+# Calibration set: the share of each dimension's messages drawn from each stratum (shares must add up to 1).
+# no_issue: no planted phrase and no valid Master issue on the dimension. planted_low / planted_high: a planted phrase
+# on the dimension, banded by its intensity. flagged_low / flagged_high: no planted phrase, but a valid Master issue with
+# an intensity; they are 0 because a first calibration set is built before any Master run exists (raise them, and lower
+# the others, to sample real flagged messages once there are some).
+CALIBRATION_STRATUM_SHARES = {
+    "no_issue": 0.40,
+    "planted_low": 0.30,
+    "planted_high": 0.30,
+    "flagged_low": 0.0,
+    "flagged_high": 0.0,
+}
+
+# Calibration set: an intensity up to and including this counts as "low", above it as "high".
+CALIBRATION_LOW_INTENSITY_MAX = 2

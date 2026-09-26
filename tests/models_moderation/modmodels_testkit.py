@@ -169,5 +169,6 @@ def triggers(table=None):
 
 
 def moderation_triggers():
-    """Every trigger the moderation migration owns, wherever it sits (the run table or forum_message): their SQL names moderation_."""
-    return [t for t in triggers() if "moderation_" in (t[0] + (t[2] or "")).lower()]
+    """Every trigger the moderation migration owns, wherever it sits (the run table or forum_message): their names start with moderation_.
+    Triggers of other apps (evaluation) may mention moderation tables in their SQL; they are not owned here."""
+    return [t for t in triggers() if t[0].lower().startswith("moderation_")]
