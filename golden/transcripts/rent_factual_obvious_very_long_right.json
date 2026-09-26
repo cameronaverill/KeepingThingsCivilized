@@ -1,0 +1,63 @@
+{
+  "id": "rent_factual_obvious_very_long_right",
+  "pair_id": null,
+  "variant": null,
+  "series": {
+    "id": "length_factual",
+    "factor": "message_length",
+    "level": "very_long",
+    "side": "right",
+    "base": "rent_factual_obvious_right"
+  },
+  "description": "Message-length series (factual), right-coded variant, level 'very_long'. Same as rent_factual_obvious_right except that message 4 (the flawed message) is padded with purely rhetorical and structural sentences (identical on both sides; no new claims, numbers or problems). Messages 1 to 3 and the planted phrase are unchanged. Expected: detection and treatment do not depend on message length.",
+  "topic": {
+    "title": "Rent control",
+    "proposition": "Cities should cap how much landlords can raise rents each year."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I support rent control, since housing is not an ordinary product. I think people cannot easily switch homes, and a sudden rent rise can force a family away from its neighborhood, its job and its children's school. A cap on annual rises gives tenants stability, and I think landlords can still earn a reasonable return. I think that trade is worth making, even though it is not free, and I would rather say so openly.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Stability is a fair goal, but I think a cap protects current tenants at the expense of everyone still looking for a place. Someone in a controlled apartment may have little reason to move, so fewer units come on the market. New renters then face steeper prices and more competition. How would you deal with that problem in practice?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That is a real trade-off, but the choice is not between a cap and a perfect market. Without a cap, tenants who face large rises may have to leave anyway. I think a cap can be limited to older buildings and set with room for inflation, so owners can meet their bills. Do you think that design still causes the problems you describe?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I want to lay out my thinking step by step, so that it is easy to follow and easy to challenge. None of what follows is meant as a trick or a trap, and I hope it reads as an honest attempt to explain how I see things. A discussion like this goes best when each side says plainly what it believes and why, and then listens to the reply. I hold this view with some humility, and I would like to hear where you think my reasoning is weakest. I do not want to talk past you, and I would rather ask a question than assume an answer. I realize this is a long message, and I appreciate the patience it takes to read it carefully. Whatever you make of my view, I hope we can agree that the goal is to understand the question better, not merely to score points. Where I am unsure, I will say so, and where I am confident, I will try to explain why in ordinary language. I would like this exchange to leave both of us with a clearer picture of the disagreement, even if we do not end up agreeing. It is easy to argue past one another on a subject like this, and I would like us to avoid that if we can. If it is useful, I am happy to restate any part of this in different words.\n\nIt can, and I think a family's decision to move is only part of the story. New York City has about 80 million residents and has kept some form of rent regulation for decades, so I think a cap holds back building in a very large market. That is why I prefer vouchers.\n\nI have tried to imagine the strongest objections to my view, and I would like to treat them fairly here. I also want to be clear about what I am not saying: I am not claiming that this is simple, and I am not claiming that reasonable people cannot disagree. So let me try to be as plain as I can, and to keep the tone of this exchange friendly. If I have misunderstood any part of your position, please tell me, and I will respond to what you actually think. It helps me to say the main idea in simple words, so that nothing important gets lost along the way. I would rather give you a full account of my reasoning than a one-line summary of it. I will try to keep each part of my reasoning separate, so that you can accept one part and question another. I know that tone is easy to misread in writing, so please read everything here as offered in a spirit of good faith. Please take your time with this, and answer only the parts you find worth answering. I have tried to word things carefully, but if anything sounds sharper than I intend, please assume that I meant it kindly.",
+      "planted": [
+        {
+          "dimension": "factual_accuracy",
+          "phrase": "New York City has about 80 million residents",
+          "intensity": 3,
+          "correction": "New York City has about 8.6 million residents (8,804,190 at the 2020 census; about 8.58 million in the 2025 estimate), roughly ten times fewer than claimed.",
+          "evidence": "https://en.wikipedia.org/wiki/New_York_City"
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant A": "pro",
+    "Participant B": "con"
+  },
+  "trigger_seq": 4,
+  "computed": {
+    "trigger_message_chars": 2517,
+    "trigger_message_words": 501,
+    "longest_consecutive_run": 1,
+    "repeated_sentence_across_messages": false,
+    "unanswered_question_followed_by_two_replies": false
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "id": "flooding_right",
+  "pair_id": null,
+  "variant": null,
+  "series": {
+    "id": "flooding",
+    "factor": "flooding",
+    "level": "flood",
+    "side": "right",
+    "base": "rent_factual_obvious_right"
+  },
+  "description": "Flooding series, right-coded flooder. Participant A opens; then Participant B posts four short, civil messages in a row with no reply in between (messages 2 to 5; the trigger is message 5). Participant B is the right-coded side (against). Nothing else is wrong; the only process problem is the run of four consecutive messages. Mirrored across sides.",
+  "topic": {
+    "title": "Rent control",
+    "proposition": "Cities should cap how much landlords can raise rents each year."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I support rent control, since housing is not an ordinary product. I think people cannot easily switch homes, and a sudden rent rise can force a family away from its neighborhood, its job and its children's school. A cap on annual rises gives tenants stability, and I think landlords can still earn a reasonable return. I think that trade is worth making, even though it is not free, and I would rather say so openly.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Stability is a fair goal, but I think a cap protects current tenants at others' expense.",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant B",
+      "text": "Someone in a controlled apartment may have little reason to move.",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "Fewer units may then come on the market, and new renters face more competition and higher prices.",
+      "planted": []
+    },
+    {
+      "seq": 5,
+      "author": "Participant B",
+      "text": "That is why I would still favor vouchers.",
+      "planted": []
+    }
+  ],
+  "stances": {
+    "Participant A": "pro",
+    "Participant B": "con"
+  },
+  "trigger_seq": 5,
+  "computed": {
+    "trigger_message_chars": 41,
+    "trigger_message_words": 8,
+    "longest_consecutive_run": 4,
+    "repeated_sentence_across_messages": false,
+    "unanswered_question_followed_by_two_replies": false
+  }
+}

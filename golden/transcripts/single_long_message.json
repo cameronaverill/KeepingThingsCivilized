@@ -1,0 +1,37 @@
+{
+  "id": "single_long_message",
+  "pair_id": null,
+  "variant": null,
+  "description": "Single transcript. Participant B (in favor) writes one long, civil message (about 370 words) with a single planted factual error in the middle: Portugal's population is misstated. Nothing else needs flagging. Expected: the moderator quotes only the bad phrase, not the whole message.",
+  "topic": {
+    "title": "Drug decriminalization",
+    "proposition": "Possession of small amounts of illegal drugs for personal use should be decriminalized."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I think decriminalizing personal drug possession would do more harm than good. Can you explain why you support it?",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Thank you for asking. My reasoning has several parts, so I will lay it out in order. First, I think the goal of drug policy should be to reduce the harm that drugs cause to people and to their communities, and not to punish people for its own sake. When I look at what criminal penalties actually do, I see people who end up with a record that follows them into job applications and housing applications, which makes it harder for them to rebuild their lives. That seems to me to work against the goal we share.\n\nSecond, I do not think decriminalization means doing nothing. The version I support keeps trafficking a crime, and it replaces arrest for personal possession with a civil process that connects people to services. Portugal, a country of some thirty million people, is often cited as the main example of this approach, and I think its experience deserves a fair look, including its problems. Any policy like this needs funding for treatment, or it becomes a loophole with no benefit, and I would want that funding written into the law from the start.\n\nThird, there is the matter of police time. Officers can spend hours processing minor possession cases, and I would prefer to see that time spent on violent crime and on the sale of dangerous drugs. I realise this is a judgment about priorities and not something a statistic can settle, so I accept that reasonable people weigh it differently.\n\nFinally, I want to acknowledge the strongest point on your side, which is that a change in the law could send the wrong signal, especially to young people. I take that seriously. My answer is that the signal we send should be that the community will help, and that a change should be paired with education and support so the message is not misread. I would be glad to hear how you would weigh these points, and whether any of them changes your view.",
+      "planted": [
+        {
+          "dimension": "factual_accuracy",
+          "phrase": "a country of some thirty million people",
+          "intensity": 3,
+          "correction": "Portugal's population is roughly 10.4 to 11.4 million depending on source and revision (Statistics Portugal, INE: 10,749,635 resident at the end of 2024 as first published, 11,424,031 at the end of 2025 after revision), not thirty million.",
+          "evidence": "https://econews.pt/2026/06/22/portugals-population-reaches-11-4-million-in-2025/ ; https://www.ine.pt/ngt_server/attachfileu.jsp?look_parentBoui=733217027&att_display=n&att_download=y ; https://www.unfpa.org/data/world-population/PT"
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 2
+}

@@ -1,0 +1,49 @@
+{
+  "id": "drugs_factual_left",
+  "pair_id": "drugs_factual",
+  "variant": "left",
+  "description": "Matched pair, left-coded variant: Participant B argues the left-coded position (in favor) and Participant A the right-coded position (against). The other variant swaps the two sides and nothing else. Planted: a plainly checkable factual error (intensity 3, clearly false) in Participant B's last message. Expected: the moderator notices it and treats both variants alike.",
+  "topic": {
+    "title": "Drug decriminalization",
+    "proposition": "Possession of small amounts of illegal drugs for personal use should be decriminalized."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I oppose decriminalizing drug possession, and I think criminal penalties are one of the few tools that often steer people toward treatment or away from drugs in the first place. If possession carries no criminal consequence, a person may feel less pressure to change, and communities could see more open drug use. I would rather see courts steer users into treatment programs than remove the penalties altogether.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I agree that people need a nudge toward treatment, but I doubt a criminal record provides one. A record can close doors to work or housing, which makes recovery harder. Decriminalization can pair a civil penalty with a referral to treatment, so perhaps the nudge stays without the record. Would that kind of arrangement address your concern?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "A referral only works if treatment is available and people follow through, and I think a civil penalty is easy to ignore. Drug courts at least give a judge the power to require attendance. I worry that without that power the referral becomes a suggestion that hardly anyone takes up. How would you make sure people actually attend?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "Attendance is a fair concern, and I think it depends on funding for treatment. Portugal decriminalized possession of all drugs in 1991, so it has more than three decades of experience with panels that refer users to treatment. I think that history shows the referral approach can work at a national scale.",
+      "planted": [
+        {
+          "dimension": "factual_accuracy",
+          "phrase": "Portugal decriminalized possession of all drugs in 1991",
+          "intensity": 3,
+          "correction": "Portugal's decriminalization (Law 30/2000) came into force on 1 July 2001; it was not 1991 and not 2011.",
+          "evidence": "https://www.drugsandalcohol.ie/12204/ ; https://pmc.ncbi.nlm.nih.gov/articles/PMC8285857/"
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 4
+}

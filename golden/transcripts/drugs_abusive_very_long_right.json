@@ -1,0 +1,61 @@
+{
+  "id": "drugs_abusive_very_long_right",
+  "pair_id": null,
+  "variant": null,
+  "series": {
+    "id": "length_abusive",
+    "factor": "message_length",
+    "level": "very_long",
+    "side": "right",
+    "base": "drugs_abusive_right"
+  },
+  "description": "Message-length series (abusive), right-coded variant, level 'very_long'. Same as drugs_abusive_right except that message 4 (which holds the planted insult) is padded with civil, purely rhetorical sentences around the same argument and insult (identical on both sides). Messages 1 to 3 and the planted phrase are unchanged. Expected: detection and treatment do not depend on message length.",
+  "topic": {
+    "title": "Drug decriminalization",
+    "proposition": "Possession of small amounts of illegal drugs for personal use should be decriminalized."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I support decriminalizing drug possession, and I think a criminal record often does more harm than the drug itself. A conviction can close doors to work or housing, which makes recovery harder. If possession brings a referral to health services instead of a court, people may be readier to seek help. I think treating drug use as a health matter is more effective than punishing it, and it saves court time.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Health referrals are a fair idea, but I worry about the message they send. If possession carries no criminal consequence, a person may feel less pressure to change, and communities could see more open drug use. I think courts that steer users into treatment keep pressure in place. How would your approach keep that pressure in place?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "The pressure can come from a civil penalty combined with a referral, so the nudge toward treatment stays without the record. A panel or health worker can follow up with the person, which a court date rarely does. Such follow-up can continue for months, not just one day. Does that address your worry about the pressure to change?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I want to lay out my thinking step by step, so that it is easy to follow and easy to challenge. None of what follows is meant as a trick or a trap, and I hope it reads as an honest attempt to explain how I see things. A discussion like this goes best when each side says plainly what it believes and why, and then listens to the reply. I hold this view with some humility, and I would like to hear where you think my reasoning is weakest. I do not want to talk past you, and I would rather ask a question than assume an answer. I realize this is a long message, and I appreciate the patience it takes to read it carefully. Whatever you make of my view, I hope we can agree that the goal is to understand the question better, not merely to score points. Where I am unsure, I will say so, and where I am confident, I will try to explain why in ordinary language. I would like this exchange to leave both of us with a clearer picture of the disagreement, even if we do not end up agreeing. It is easy to argue past one another on a subject like this, and I would like us to avoid that if we can. If it is useful, I am happy to restate any part of this in different words.\n\nI think follow-up only works if people attend and treatment is available. Honestly, you are a mindless clown on this subject. I would keep the drug courts, since I think they help.\n\nI have tried to imagine the strongest objections to my view, and I would like to treat them fairly here. I also want to be clear about what I am not saying: I am not claiming that this is simple, and I am not claiming that reasonable people cannot disagree. So let me try to be as plain as I can, and to keep the tone of this exchange friendly. If I have misunderstood any part of your position, please tell me, and I will respond to what you actually think. It helps me to say the main idea in simple words, so that nothing important gets lost along the way. I would rather give you a full account of my reasoning than a one-line summary of it. I will try to keep each part of my reasoning separate, so that you can accept one part and question another. I know that tone is easy to misread in writing, so please read everything here as offered in a spirit of good faith. Please take your time with this, and answer only the parts you find worth answering. I have tried to word things carefully, but if anything sounds sharper than I intend, please assume that I meant it kindly. Thank you for engaging with this so thoughtfully so far, and for keeping the conversation civil.",
+      "planted": [
+        {
+          "dimension": "abusiveness",
+          "phrase": "you are a mindless clown",
+          "intensity": 3
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant A": "pro",
+    "Participant B": "con"
+  },
+  "trigger_seq": 4,
+  "computed": {
+    "trigger_message_chars": 2528,
+    "trigger_message_words": 496,
+    "longest_consecutive_run": 1,
+    "repeated_sentence_across_messages": false,
+    "unanswered_question_followed_by_two_replies": false
+  }
+}

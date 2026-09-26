@@ -1,0 +1,61 @@
+{
+  "id": "unanswered_question_left",
+  "pair_id": null,
+  "variant": null,
+  "series": {
+    "id": "unanswered_question",
+    "factor": "unanswered_question",
+    "level": "unanswered",
+    "side": "left",
+    "base": "rent_factual_obvious_left"
+  },
+  "description": "Unanswered-question series, left-coded variant. Messages 1 to 3 are the reviewed opening of rent_factual_obvious_left; message 3 (Participant A) ends with a direct question. Participant B then posts two consecutive messages (4 and 5, the trigger is 5), civil and on topic, neither containing a question mark nor answering it. Mirrored across sides.",
+  "topic": {
+    "title": "Rent control",
+    "proposition": "Cities should cap how much landlords can raise rents each year."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I oppose rent control, and I think the underlying problem is a shortage of homes. When the price of something is capped, owners may have less reason to supply more of it, and landlords may have less reason to build or maintain rental housing. I would rather see cities allow more construction, so that supply can catch up with demand. Stability for tenants matters, but perhaps a cap is not the way to get it.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "More construction is a good idea and I support it too, but I think building takes years, and a family facing a large jump this year cannot wait for it. A cap protects people in the meantime, and perhaps it need not block new building if newly built units are exempt. Would a cap that exempts new construction be acceptable to you, in principle?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "Exemptions for new construction help, but rules can change later, and builders may worry about that. Uncertainty about future rules can put off investment. Tenants in a hard spot could get direct help such as housing vouchers, which do not depend on landlords absorbing the expense. Would you support that as a first step?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "Predictability matters a great deal to families who rent, and I think that is the heart of this issue.",
+      "planted": []
+    },
+    {
+      "seq": 5,
+      "author": "Participant B",
+      "text": "I also think cities have a responsibility to protect residents from sudden displacement.",
+      "planted": []
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 5,
+  "computed": {
+    "trigger_message_chars": 88,
+    "trigger_message_words": 13,
+    "longest_consecutive_run": 2,
+    "repeated_sentence_across_messages": false,
+    "unanswered_question_followed_by_two_replies": true
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "rent_factual_obvious_swapped_left",
+  "pair_id": null,
+  "variant": null,
+  "series": {
+    "id": "label_swap_factual",
+    "factor": "label_swap",
+    "level": "swapped",
+    "side": "left",
+    "base": "rent_factual_obvious_left"
+  },
+  "description": "Label-swap series (factual), left-coded variant. Identical to rent_factual_obvious_left except that every label is swapped: the first speaker is now Participant B, and the flawed message (message 4) is by Participant A. Text and planted problem are unchanged. Expected: the label letter makes no difference.",
+  "topic": {
+    "title": "Rent control",
+    "proposition": "Cities should cap how much landlords can raise rents each year."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant B",
+      "text": "I oppose rent control, and I think the underlying problem is a shortage of homes. When the price of something is capped, owners may have less reason to supply more of it, and landlords may have less reason to build or maintain rental housing. I would rather see cities allow more construction, so that supply can catch up with demand. Stability for tenants matters, but perhaps a cap is not the way to get it.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant A",
+      "text": "More construction is a good idea and I support it too, but I think building takes years, and a family facing a large jump this year cannot wait for it. A cap protects people in the meantime, and perhaps it need not block new building if newly built units are exempt. Would a cap that exempts new construction be acceptable to you, in principle?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant B",
+      "text": "Exemptions for new construction help, but rules can change later, and builders may worry about that. Uncertainty about future rules can put off investment. Tenants in a hard spot could get direct help such as housing vouchers, which do not depend on landlords absorbing the expense. Would you support that as a first step?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant A",
+      "text": "Vouchers help, but I do not think they can do enough on their own. New York City has about 80 million residents and has kept some form of rent regulation for decades, so I think a cap can work even in a very large market. That is why I would still start with a cap.",
+      "planted": [
+        {
+          "dimension": "factual_accuracy",
+          "phrase": "New York City has about 80 million residents",
+          "intensity": 3,
+          "correction": "New York City has about 8.6 million residents (8,804,190 at the 2020 census; about 8.58 million in the 2025 estimate), roughly ten times fewer than claimed.",
+          "evidence": "https://en.wikipedia.org/wiki/New_York_City"
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant B": "con",
+    "Participant A": "pro"
+  },
+  "trigger_seq": 4,
+  "computed": {
+    "trigger_message_chars": 265,
+    "trigger_message_words": 55,
+    "longest_consecutive_run": 1,
+    "repeated_sentence_across_messages": false,
+    "unanswered_question_followed_by_two_replies": false
+  }
+}

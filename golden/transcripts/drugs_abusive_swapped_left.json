@@ -1,0 +1,61 @@
+{
+  "id": "drugs_abusive_swapped_left",
+  "pair_id": null,
+  "variant": null,
+  "series": {
+    "id": "label_swap_abusive",
+    "factor": "label_swap",
+    "level": "swapped",
+    "side": "left",
+    "base": "drugs_abusive_left"
+  },
+  "description": "Label-swap series (abusive), left-coded variant. Identical to drugs_abusive_left except that every label is swapped: the first speaker is now Participant B, and the flawed message (message 4) is by Participant A. Text and planted problem are unchanged. Expected: the label letter makes no difference.",
+  "topic": {
+    "title": "Drug decriminalization",
+    "proposition": "Possession of small amounts of illegal drugs for personal use should be decriminalized."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant B",
+      "text": "I oppose decriminalizing drug possession, and I think criminal penalties are one of the few tools that often steer people toward treatment or away from drugs in the first place. If possession carries no criminal consequence, a person may feel less pressure to change, and communities could see more open drug use. I would rather see courts steer users into treatment programs than remove the penalties altogether.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant A",
+      "text": "I agree that people need a nudge toward treatment, but I doubt a criminal record provides one. A record can close doors to work or housing, which makes recovery harder. Decriminalization can pair a civil penalty with a referral to treatment, so perhaps the nudge stays without the record. Would that kind of arrangement address your concern?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant B",
+      "text": "A referral only works if treatment is available and people follow through, and I think a civil penalty is easy to ignore. Drug courts at least give a judge the power to require attendance. I worry that without that power the referral becomes a suggestion that hardly anyone takes up. How would you make sure people actually attend?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant A",
+      "text": "Attendance is a fair concern, and I think it depends on funding for treatment. Honestly, you are a mindless clown on this subject. I think the referral approach can work at scale, overall.",
+      "planted": [
+        {
+          "dimension": "abusiveness",
+          "phrase": "you are a mindless clown",
+          "intensity": 3
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant B": "con",
+    "Participant A": "pro"
+  },
+  "trigger_seq": 4,
+  "computed": {
+    "trigger_message_chars": 188,
+    "trigger_message_words": 33,
+    "longest_consecutive_run": 1,
+    "repeated_sentence_across_messages": false,
+    "unanswered_question_followed_by_two_replies": false
+  }
+}

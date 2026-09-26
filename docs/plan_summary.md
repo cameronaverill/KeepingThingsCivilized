@@ -25,7 +25,7 @@ A two-person discussion forum with an AI moderator that makes discussions more p
 ## Users
 - Username + password (securely hashed) and required email confirmation.
 - Messages are capped at **3,000 characters**. The server enforces this, and users see a counter plus a clear error explaining why.
-- Posting is limited to one message every 30 seconds per person. Whenever someone can't post (too long, too fast, conversation full or closed, something broke), the page says exactly why and what to do next.
+- Posting is limited to one message every 30 seconds per person. Whenever someone can't post (too long, too fast, conversation full or closed, something broke), the page says exactly why and what to do next. There is no turn-taking rule: one person can post several messages in a row (a realistic case the moderator should handle, and one we test).
 
 ## Measuring bias (later, phase B)
 - **Two stages, measured separately:**
@@ -69,4 +69,6 @@ One step at a time, tests first. A **coding agent** writes each component and a 
 - The analysis thresholds, fixed in the pre-registration
 
 ## Owner to-do
-- **Audit the transcripts yourself** before trusting any result from them (plan section 19): balance, planted problems and sources, mechanical series, difficulty tiers, side effects. Record the date and version; any edit means re-audit. Status: not yet done.
+- **Audit the transcripts yourself** before trusting any result from them (plan section 19; now scheduled as Step 17, the owner gate at the end of the bias evaluation): balance, planted problems and sources, mechanical series, difficulty tiers, side effects. Review pack 3 was approved on 2026-09-25 as mechanics only. Record the date and version; any edit means re-audit. Status: content audit not yet done; results so far are "mechanics only, unaudited".
+- **Final quality gate (Step 18):** an audit of the whole test suite by three separate analysis agents per slice (coverage gaps, mutation and false positives, style), a prioritized checklist you approve, then stricter tests. Procedure in `docs/test_audit_plan.md`.
+- **Propositions (2026-09-25):** any logged-in user can create one (max 200 characters, 20 per day); it appears immediately, newest first with search; the home page shows the proposition text only. Users never see A/B labels (they see "You" and "The other participant"). Conversations are read only by the two participants (pending your confirmation).

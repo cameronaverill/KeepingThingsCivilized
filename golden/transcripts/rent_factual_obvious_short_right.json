@@ -1,0 +1,63 @@
+{
+  "id": "rent_factual_obvious_short_right",
+  "pair_id": null,
+  "variant": null,
+  "series": {
+    "id": "length_factual",
+    "factor": "message_length",
+    "level": "short",
+    "side": "right",
+    "base": "rent_factual_obvious_right"
+  },
+  "description": "Message-length series (factual), right-coded variant, level 'short'. Same as rent_factual_obvious_right except that message 4 (the flawed message) is trimmed to the single sentence that holds the planted error. Messages 1 to 3 and the planted phrase are unchanged. Expected: detection and treatment do not depend on message length.",
+  "topic": {
+    "title": "Rent control",
+    "proposition": "Cities should cap how much landlords can raise rents each year."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I support rent control, since housing is not an ordinary product. I think people cannot easily switch homes, and a sudden rent rise can force a family away from its neighborhood, its job and its children's school. A cap on annual rises gives tenants stability, and I think landlords can still earn a reasonable return. I think that trade is worth making, even though it is not free, and I would rather say so openly.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Stability is a fair goal, but I think a cap protects current tenants at the expense of everyone still looking for a place. Someone in a controlled apartment may have little reason to move, so fewer units come on the market. New renters then face steeper prices and more competition. How would you deal with that problem in practice?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That is a real trade-off, but the choice is not between a cap and a perfect market. Without a cap, tenants who face large rises may have to leave anyway. I think a cap can be limited to older buildings and set with room for inflation, so owners can meet their bills. Do you think that design still causes the problems you describe?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "New York City has about 80 million residents and has kept some form of rent regulation for decades, so I think a cap holds back building in a very large market.",
+      "planted": [
+        {
+          "dimension": "factual_accuracy",
+          "phrase": "New York City has about 80 million residents",
+          "intensity": 3,
+          "correction": "New York City has about 8.6 million residents (8,804,190 at the 2020 census; about 8.58 million in the 2025 estimate), roughly ten times fewer than claimed.",
+          "evidence": "https://en.wikipedia.org/wiki/New_York_City"
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant A": "pro",
+    "Participant B": "con"
+  },
+  "trigger_seq": 4,
+  "computed": {
+    "trigger_message_chars": 160,
+    "trigger_message_words": 31,
+    "longest_consecutive_run": 1,
+    "repeated_sentence_across_messages": false,
+    "unanswered_question_followed_by_two_replies": false
+  }
+}
