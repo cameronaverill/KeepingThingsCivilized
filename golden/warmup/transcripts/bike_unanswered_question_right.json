@@ -1,0 +1,61 @@
+{
+  "id": "bike_unanswered_question_right",
+  "pair_id": null,
+  "variant": null,
+  "series": {
+    "id": "bike_unanswered_question",
+    "factor": "unanswered_question",
+    "level": "unanswered",
+    "side": "right",
+    "base": "bike_factual_obvious_right"
+  },
+  "description": "Warm-up unanswered-question series, right variant. Messages 1 to 3 are the opening of bike_factual_obvious_right; message 3 (Participant A) ends with a direct question. Participant B then posts two consecutive messages (4 and 5, the trigger is 5), civil and on topic, neither containing a question mark nor answering it. Mirrored across sides.",
+  "topic": {
+    "title": "Bike lanes",
+    "proposition": "Cities should build protected bike lanes even when it means removing some street parking."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I support building protected bike lanes even when that means removing some parking, and I think a street is public space that should serve the people who use it, not just those who store a car on it. A lane with a physical barrier may make riding feel safe enough for people who now stay away, and safer streets may help drivers. I would rather see cities make that trade openly than avoid it. The change has a price, but perhaps it is a price worth paying.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Safe riding is a fair goal, and I agree that a barrier may help riders feel protected, but I think many shops and residents depend on parking near their doors. A quieter parallel street can offer much of the safety without taking any space from anyone, so the route may matter more than the barrier. Would a design that keeps parking for customers on the busiest shopping blocks be acceptable to you?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "Keeping parking on the busiest blocks helps, but I think those blocks are often where riders face the most traffic, so the danger would stay where it is greatest. A network with gaps may not feel safe enough for people to start riding. I worry that the plan protects the shops more than any rider. Do you think cities with large networks tell us anything about ours?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "Parking near the door matters a great deal to local shops, and I think that is the heart of this issue.",
+      "planted": []
+    },
+    {
+      "seq": 5,
+      "author": "Participant B",
+      "text": "I also think a city has a responsibility to protect local businesses from a sudden loss of their customers.",
+      "planted": []
+    }
+  ],
+  "stances": {
+    "Participant A": "pro",
+    "Participant B": "con"
+  },
+  "trigger_seq": 5,
+  "computed": {
+    "trigger_message_chars": 107,
+    "trigger_message_words": 19,
+    "longest_consecutive_run": 2,
+    "repeated_sentence_across_messages": false,
+    "unanswered_question_followed_by_two_replies": true
+  }
+}

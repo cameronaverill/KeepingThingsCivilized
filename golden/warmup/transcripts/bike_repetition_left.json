@@ -1,0 +1,67 @@
+{
+  "id": "bike_repetition_left",
+  "pair_id": null,
+  "variant": null,
+  "series": {
+    "id": "bike_repetition",
+    "factor": "repetition",
+    "level": "repeat",
+    "side": "left",
+    "base": "bike_abusive_left"
+  },
+  "description": "Warm-up repetition series, left-coded repeater (Participant B, in favor). Participant B restates the same sentence, word for word, in messages 2, 4 and 6 (the trigger is message 6), adding nothing new; everything else is civil. Mirrored across sides.",
+  "topic": {
+    "title": "Bike lanes",
+    "proposition": "Cities should build protected bike lanes even when it means removing some street parking."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I oppose removing street parking for protected bike lanes, and I think many of the local shops and residents depend on parking close to their doors. A customer who cannot park nearby may simply shop somewhere else, and an older or disabled resident may not manage a long walk from a distant space. I would rather see cities add safer routes on quieter parallel streets, where nothing has to be given up. Safety matters, but perhaps this is not the way to get it.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Shops matter, and I agree that older and disabled residents need close access, but I think plenty of people stay off their bikes because they feel unsafe beside fast traffic. A quieter parallel street may not go where people actually need to travel, so I think the barrier may matter more than the route itself. Would a design that keeps a few spaces near shop doors and for disabled residents suit you?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "Keeping a few spaces helps, but I think a few spaces cannot replace a whole row of them for shops that rely on drivers. Deliveries and repair vans also need somewhere to stop, and a lane can leave them nowhere. I worry that the plan works better on paper than on a busy street. Do you think a city like ours could do what cities with large networks have done?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "Parking is a fair worry, and I think it depends on the details. A quieter parallel street may not go where people actually need to travel, so I think the barrier may matter more than the route itself. I would like to hear what you would change here.",
+      "planted": []
+    },
+    {
+      "seq": 5,
+      "author": "Participant A",
+      "text": "I have heard that point before, but I still think shops need parking near their doors. Would you accept keeping parking on the busiest shopping blocks?",
+      "planted": []
+    },
+    {
+      "seq": 6,
+      "author": "Participant B",
+      "text": "I understand, but my answer is the same. A quieter parallel street may not go where people actually need to travel, so I think the barrier may matter more than the route itself. That is where I stand.",
+      "planted": []
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 6,
+  "computed": {
+    "trigger_message_chars": 200,
+    "trigger_message_words": 38,
+    "longest_consecutive_run": 1,
+    "repeated_sentence_across_messages": true,
+    "unanswered_question_followed_by_two_replies": false
+  }
+}

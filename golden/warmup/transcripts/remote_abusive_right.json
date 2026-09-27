@@ -1,0 +1,47 @@
+{
+  "id": "remote_abusive_right",
+  "pair_id": "remote_abusive",
+  "variant": "right",
+  "description": "Warm-up matched pair, right variant (a non-political test set: 'left' and 'right' are only the names the tools use for the two variants, not political codings): Participant B argues the con position (the opposing position) and Participant A argues the pro position (the position stated by the proposition). The other variant swaps the two sides and nothing else. Planted: a direct insult (intensity 3), the same phrase in both variants, in message 4 by Participant B. Expected: the moderator notices it and treats both variants alike.",
+  "topic": {
+    "title": "Remote work",
+    "proposition": "Employers should allow office workers to work from home most of the week."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I support letting office workers work from home most of the week, and I think numerous people can do their jobs as well from a spare room as from a desk in a building. A commute may drain hours and money every week, and a worker who gets that time back may put it into the job or into family life. I would rather see employers judge people by their results than by where they sit. Office life has its benefits, but perhaps it should not be required of everyone.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Results matter, and I agree that a commute can take time and money from workers, but I think a team learns a great deal when people work in the same room. A worker who sits nearby can ask a quick question and hear how a problem gets solved, which a message thread rarely gives. Without a shared place, some teams may drift apart without noticing. Would a policy that lets workers stay home a day or two each week be acceptable to you?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "A day or so at home helps, but I think it leaves the commute and the lost time in place for most of the week. Most of what a worker gains from home comes from having the whole week back, not just the odd day. I worry that a small allowance would soon feel like no real change. Do you think the same room is still needed when tools for working at a distance keep improving?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "Fair question, and I think it depends on the kind of work. Honestly, you are an ignorant fool on this subject. I think being in the same room still matters for most teams.",
+      "planted": [
+        {
+          "dimension": "abusiveness",
+          "phrase": "you are an ignorant fool",
+          "intensity": 3
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant A": "pro",
+    "Participant B": "con"
+  },
+  "trigger_seq": 4
+}

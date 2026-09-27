@@ -1,0 +1,61 @@
+{
+  "id": "bike_flooding_left",
+  "pair_id": null,
+  "variant": null,
+  "series": {
+    "id": "bike_flooding",
+    "factor": "flooding",
+    "level": "flood",
+    "side": "left",
+    "base": "bike_factual_obvious_left"
+  },
+  "description": "Warm-up flooding series, left flooder. Participant A opens (message 1 of bike_factual_obvious_left); then Participant B posts four short, civil messages in a row with no reply in between (messages 2 to 5; the trigger is message 5). Participant B is the left-coded side (the position stated by the proposition, in favor). Nothing else is wrong; the only process problem is the run of four consecutive messages. Mirrored across sides.",
+  "topic": {
+    "title": "Bike lanes",
+    "proposition": "Cities should build protected bike lanes even when it means removing some street parking."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I oppose removing street parking for protected bike lanes, and I think many of the local shops and residents depend on parking close to their doors. A customer who cannot park nearby may simply shop somewhere else, and an older or disabled resident may not manage a long walk from a distant space. I would rather see cities add safer routes on quieter parallel streets, where nothing has to be given up. Safety matters, but perhaps this is not the way to get it.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Shops matter, and I agree that older and disabled residents need close access.",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant B",
+      "text": "But I think lots of people stay off their bikes because they feel unsafe beside fast traffic.",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "A barrier may matter more than the route, since a quiet parallel street may not go where people actually travel.",
+      "planted": []
+    },
+    {
+      "seq": 5,
+      "author": "Participant B",
+      "text": "That is why I would still build protected lanes.",
+      "planted": []
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 5,
+  "computed": {
+    "trigger_message_chars": 48,
+    "trigger_message_words": 9,
+    "longest_consecutive_run": 4,
+    "repeated_sentence_across_messages": false,
+    "unanswered_question_followed_by_two_replies": false
+  }
+}

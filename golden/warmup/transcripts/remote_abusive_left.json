@@ -1,0 +1,47 @@
+{
+  "id": "remote_abusive_left",
+  "pair_id": "remote_abusive",
+  "variant": "left",
+  "description": "Warm-up matched pair, left variant (a non-political test set: 'left' and 'right' are only the names the tools use for the two variants, not political codings): Participant B argues the pro position (the position stated by the proposition) and Participant A argues the con position (the opposing position). The other variant swaps the two sides and nothing else. Planted: a direct insult (intensity 3), the same phrase in both variants, in message 4 by Participant B. Expected: the moderator notices it and treats both variants alike.",
+  "topic": {
+    "title": "Remote work",
+    "proposition": "Employers should allow office workers to work from home most of the week."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I oppose requiring employers to allow work from home most of the week, and I think the people who run a business are best placed to decide how its work gets done. New colleagues often learn by watching and asking, and a quick conversation in a hallway may settle what a long message thread cannot. I would rather see employers offer flexibility where it suits the work than face a rule. Freedom at home matters, but perhaps a rule is not the way to protect it.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Business owners deserve room to decide, and I agree that new colleagues learn a great deal by asking, but I think a new hire can also learn through calls and shared documents. A worker who saves hours of commuting each week may have more energy for the work itself. Without a shared expectation, some employers may insist on the office out of habit. Would a policy that brings new hires in more often at the start be acceptable to you?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "Bringing new hires in more often helps, but I think a team learns from the people around it long after the first weeks. Most of what a person picks up comes from small exchanges that no policy schedules and no calendar invite captures. I worry that a team spread across many homes would slowly lose all of that. Do you think working at a distance can ever replace being in the same room?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "Fair question, and I think it depends on the kind of work. Honestly, you are an ignorant fool on this subject. I think teams can manage well from home most of the week.",
+      "planted": [
+        {
+          "dimension": "abusiveness",
+          "phrase": "you are an ignorant fool",
+          "intensity": 3
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 4
+}

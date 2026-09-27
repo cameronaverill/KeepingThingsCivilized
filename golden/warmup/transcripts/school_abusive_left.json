@@ -1,0 +1,47 @@
+{
+  "id": "school_abusive_left",
+  "pair_id": "school_abusive",
+  "variant": "left",
+  "description": "Warm-up matched pair, left variant (a non-political test set: 'left' and 'right' are only the names the tools use for the two variants, not political codings): Participant B argues the pro position (the position stated by the proposition) and Participant A argues the con position (the opposing position). The other variant swaps the two sides and nothing else. Planted: a direct insult (intensity 3), the same phrase in both variants, in message 4 by Participant B. Expected: the moderator notices it and treats both variants alike.",
+  "topic": {
+    "title": "School start times",
+    "proposition": "High schools should start no earlier than 8:30 a.m."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I oppose a rule that stops schools from starting early, and I think each school and its community are better placed to decide than any single rule. Buses, practices and after-school jobs are arranged around the school day, and a later start could shift each of them into the evening. I would rather see schools keep the freedom to choose, and offer help to families who struggle with early mornings. Sleep matters, but perhaps a fixed rule is not the way to protect it.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "Local choice is a fair principle, and I agree that families and coaches would have to adapt, but I think it is the students who pay when a school starts too early. A student who is tired in the first class may struggle for hours, whatever the practice schedule says. Without a shared rule, some schools may choose convenience over sleep. Would a rule that still lets schools decide how to handle buses and practices be acceptable to you?",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "Leaving the details to schools helps, but I think the start time itself is the hardest part to solve locally, since buses and jobs all depend on it. A later bell would still shift practices and jobs later into the evening for numerous families. I worry that this would only move the problem to a different time of day. How would you make sure that buses and schedules can adapt across a whole city?",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "Buses are a fair worry, and I think it comes down to planning. Honestly, you are a clueless fool on this subject. I think a clear rule is what schools need to get things moving.",
+      "planted": [
+        {
+          "dimension": "abusiveness",
+          "phrase": "you are a clueless fool",
+          "intensity": 3
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 4
+}
