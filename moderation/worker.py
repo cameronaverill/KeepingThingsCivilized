@@ -1,13 +1,15 @@
-"""The worker: claims pending live moderation runs and processes them one at a time (docs/plan.md section 11;
-docs/step8_brief.md).
+"""The worker: claims pending live and research moderation runs and processes them one at a time (docs/plan.md
+section 11; docs/step8_brief.md; docs/step20b_brief.md item 5 for the `research` kind).
 
 - `claim_next_run` takes the oldest claimable run with ONE conditional UPDATE, so two workers can never take the same run.
-  A run is claimable when it is a live run, `pending`, and no other run of its conversation is `running` (this serializes
-  the runs of one conversation even with several workers). Replay runs (step 13) are never claimed here.
+  A run is claimable when it is a live or research run, `pending`, and no other run of its conversation is `running`
+  (this serializes the runs of one conversation even with several workers, across both kinds together -- a research run
+  and a live run in the same conversation still never run concurrently). Replay runs (step 13) are never claimed here.
 - `reap_stuck_runs` gives up on runs that have been `running` for longer than `RUN_TIMEOUT_SECONDS`: back to `pending`
-  while `attempts < RUN_MAX_ATTEMPTS`, otherwise `failed` with reason `timeout`.
-- `process_one` claims one run and hands it to `moderation.pipeline.run_moderation`. A crash inside the run is caught and
-  logged (never with user text in the log message), the run is left `failed`, and the worker carries on.
+  while `attempts < RUN_MAX_ATTEMPTS`, otherwise `failed` with reason `timeout`. Applies to live and research runs alike.
+- `process_one` claims one run and hands it to `moderation.pipeline.run_moderation` (`live`/`replay`-shaped work) or
+  `moderation.research.run_research` (`kind == "research"`). A crash inside the run is caught and logged (never with
+  user text in the log message), the run is left `failed`, and the worker carries on.
 - `run_worker` is the loop; `manage.py run_moderator` wires it to the command line and to SIGINT/SIGTERM.
 
 The worker never turns `LLM_ENABLED` on and never reads `.env`; every number comes from `config/tunables.py`.
@@ -21,8 +23,11 @@ from django.db import Error as DatabaseError
 from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
-from moderation import pipeline
+from moderation import pipeline, research
 from moderation.models import ModerationRun
+
+# Kinds the worker claims and reaps. Replay runs (step 13) are driven by their own script, never by this worker.
+_WORKER_KINDS = ("live", "research")
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +69,7 @@ def claim_next_run(*, now=None):
     # claimable now is taken before any later run of its conversation: oldest-first holds within a conversation.
     for _ in range(MAX_CLAIM_ATTEMPTS):
         pk = (
-            ModerationRun.objects.filter(kind="live", status="pending")
+            ModerationRun.objects.filter(kind__in=_WORKER_KINDS, status="pending")
             .filter(~_running_sibling())
             .order_by("created_at", "id")
             .values_list("pk", flat=True)
@@ -73,7 +78,7 @@ def claim_next_run(*, now=None):
         if pk is None:
             return None
         updated = (
-            ModerationRun.objects.filter(pk=pk, kind="live", status="pending")
+            ModerationRun.objects.filter(pk=pk, kind__in=_WORKER_KINDS, status="pending")
             .filter(~_running_sibling())
             .update(status="running", claimed_at=claimed_at)
         )
@@ -93,7 +98,10 @@ def reap_stuck_runs(*, now=None):
     now = _now(now)
     cutoff = now - timedelta(seconds=int(settings.RUN_TIMEOUT_SECONDS))
     max_attempts = int(settings.RUN_MAX_ATTEMPTS)
-    stuck = ModerationRun.objects.filter(kind="live", status="running", claimed_at__lt=cutoff)
+    # docs/step20b_brief.md item 5 said this needs no change ("it works off status/claimed_at, not kind") -- that
+    # assumption was wrong: this filter named `kind="live"` explicitly, so a stuck research run would never be
+    # reaped. Widened to match `claim_next_run`'s candidate kinds; flagged back in the coding report.
+    stuck = ModerationRun.objects.filter(kind__in=_WORKER_KINDS, status="running", claimed_at__lt=cutoff)
 
     failed = stuck.filter(attempts__gte=max_attempts).update(
         status="failed",
@@ -120,7 +128,10 @@ def process_one(*, now=None):
     if run is None:
         return None
     try:
-        pipeline.run_moderation(run)
+        if run.kind == "research":
+            research.run_research(run)
+        else:
+            pipeline.run_moderation(run)
     except Exception as exc:
         # The log message names the run and the exception class only: exception text may quote user text.
         logger.exception("moderation run %s crashed in the worker (%s)", run.pk, type(exc).__name__)

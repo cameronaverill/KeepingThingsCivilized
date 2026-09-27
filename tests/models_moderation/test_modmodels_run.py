@@ -62,7 +62,7 @@ def test_choices_come_from_the_contract():
     from moderation import taxonomy
     from moderation.models import ModerationRun
 
-    assert set(choice_values(ModerationRun, "kind")) == {"live", "replay"}
+    assert set(choice_values(ModerationRun, "kind")) == {"live", "replay", "research"}
     assert set(choice_values(ModerationRun, "status")) == {"pending", "running", "done", "failed", "skipped_budget", "skipped_disabled"}
     assert set(choice_values(ModerationRun, "decision")) == {"", *taxonomy.DECISIONS}
     assert set(taxonomy.DECISIONS) == {"intervene", "no_intervention"}

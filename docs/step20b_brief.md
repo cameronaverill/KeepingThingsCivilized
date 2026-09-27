@@ -130,11 +130,20 @@ and a live run to `pipeline.run_moderation`, unchanged; a stuck research run rea
 
 - **New URL and view**, following `forum/urls.py`'s existing `c/<int:conversation_id>/check/` pattern exactly:
   `path("c/<int:conversation_id>/research/<int:act_id>/", views.request_research, name="request_research")`.
+- **Button eligibility, widened 2026-09-27 (owner decision): not `offer_research`-only.** The button is available on
+  any valid act whose `act_type` is `offer_research`, `correct_factual_error`, or `provide_information` — i.e. any
+  act that addresses a checkable factual claim, whether or not the Master flagged `needs_verification`. Rationale:
+  confident, directly-asserted corrections stay exactly as they are (unchanged, per the earlier design decision),
+  but a participant can still ask for an independently-researched second opinion even when the moderator was
+  confident — this doesn't reopen the free-text or always-on-floating-button ideas already rejected (section 18):
+  it's still attached to a specific moderator act, still moderator-mediated, still a fixed "request background"
+  action with no user-authored input. `research.py` (item 3) needs no change for this — it already builds its
+  query from the act's cited issue(s) (quote/explanation), not from which act type triggered it.
 - **`forum/views.py: request_research`** — `@login_required @require_POST @never_cache`, same shape as `check`/
   `check_edit`: load the conversation (`_load_conversation`, 404 if missing), resolve `_my_participant` (404 if not
   a participant — same "don't reveal whether a conversation exists" posture as every other participant-gated view
-  here), look up the `InterventionAct` by `act_id` (404 if it doesn't belong to a run in this conversation, isn't
-  `act_type="offer_research"`, or isn't `validity="valid"`). Create the `ModerationRun(kind="research",
+  here), look up the `InterventionAct` by `act_id` (404 if it doesn't belong to a run in this conversation, its
+  `act_type` isn't one of the three above, or it isn't `validity="valid"`). Create the `ModerationRun(kind="research",
   source_act=act, requested_by=participant, trigger_message=<item 1's rule>, conversation=found)` inside a
   `transaction.atomic()` block (per `moderation/llm.py`'s own hard rule, this creation must NOT be inside the same
   transaction as any LLM call — it isn't; only the run row is created here, the worker calls `research.run_research`
@@ -142,8 +151,9 @@ and a live run to `pipeline.run_moderation`, unchanged; a stuck research run rea
   run already exists, return its state, do not create a duplicate or show an error. Return the same
   `_check_json`-style JSON shape used elsewhere (`{"status": ..., ...}`) — the exact fields are your call, but the
   front end (below) needs enough to show "pending" immediately after a successful click.
-- **Template (`forum/templates/forum/_message.html`)**: for an `offer_research` act with no existing research run
-  for it yet, render the "Provide factual background" button (matching the mockup's visual style — plain, calm,
+- **Template (`forum/templates/forum/_message.html`)**: for an eligible act (see above — `offer_research`,
+  `correct_factual_error`, or `provide_information`) with no existing research run for it yet, render the "Provide
+  factual background" button (matching the mockup's visual style — plain, calm,
   matching `.btn`'s existing classes in `site.css`, not a new visual language); once a research run exists for that
   act (any status), render "Checking — this may take a moment" if not yet `done`/`failed`, or nothing extra once
   `done` (the resulting note is just the next moderator message in the normal list — no special rendering needed
@@ -158,7 +168,9 @@ and a live run to `pipeline.run_moderation`, unchanged; a stuck research run rea
 - **No cost language anywhere** (owner decision, section 2): the pending state says only that it may take a moment,
   never anything about spend, exactly like every other "moderation paused"-style message in this app already does.
 
-Test: the button renders only for a valid `offer_research` act with no existing research run; clicking creates
+Test: the button renders for a valid act of any of the three eligible types with no existing research run, and not
+for any other act type (`request_information`, `enforce_conduct`, etc.), nor for a rejected act of an eligible type;
+clicking creates
 exactly one `ModerationRun(kind="research")`; a second click (or two concurrent requests) never creates a second
 one (the `IntegrityError` path); a non-participant gets 404, not the button's behavior; the pending state shows
 correctly once a run exists and clears once the resulting message is visible; no page or response text anywhere in

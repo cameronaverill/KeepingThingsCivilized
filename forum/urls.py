@@ -17,6 +17,7 @@ urlpatterns = [
     path("c/<int:conversation_id>/post/", views.post, name="post"),
     path("c/<int:conversation_id>/check/", views.check, name="check"),
     path("c/<int:conversation_id>/check/<int:check_id>/edit/", views.check_edit, name="check_edit"),
+    path("c/<int:conversation_id>/research/<int:act_id>/", views.request_research, name="request_research"),
     path("c/<int:conversation_id>/end/", views.end, name="end"),
     path("c/<int:conversation_id>/messages/", views.messages, name="messages"),
     path("how-it-works/", views.how_it_works, name="how_it_works"),

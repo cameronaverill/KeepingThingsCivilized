@@ -16,7 +16,7 @@ from django.conf import settings
 from django.contrib import messages as flash
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -393,8 +393,8 @@ def _resolve_posted_check(request, conversation, message):
         logger.exception("could not resolve preview check for conversation %s", conversation.pk)
 
 
-def _check_json(payload):
-    response = JsonResponse(payload)
+def _check_json(payload, status=200):
+    response = JsonResponse(payload, status=status)
     response["Cache-Control"] = "no-store"
     return response
 
@@ -453,6 +453,61 @@ def check_edit(request, conversation_id, check_id):
     except Exception:
         logger.exception("could not record the edit of check %s", check_id)
     return _check_json({"ok": True})
+
+
+@login_required
+@require_POST
+@never_cache
+def request_research(request, conversation_id, act_id):
+    """The click on "Provide factual background": queues a research run for one eligible act (`viewmodels.
+    RESEARCH_ELIGIBLE_ACT_TYPES` -- widened 2026-09-27 past just `offer_research`, see docs/step20b_brief.md item 6).
+
+    Same shape as `check`/`check_edit`. The row is a plain, un-wrapped `.objects.create()` (per `moderation/llm.py`'s
+    rule, this must not share a transaction with any LLM call; it doesn't, the worker calls `research.run_research`
+    later, out of process). The first click claims the run: a second click (or two concurrent ones) hits the unique
+    constraint on `source_act` and is treated as "already requested", not an error, returning the existing run's
+    state. No response here ever mentions cost, spend or budget.
+    """
+    found = _load_conversation(conversation_id)
+    if found is None:
+        return _not_found(request)
+    participant = _my_participant(request, found)
+    if participant is None:
+        return _not_found(request)
+    from moderation.models import InterventionAct, ModerationRun
+
+    act = InterventionAct.objects.filter(
+        pk=act_id, run__conversation_id=found.pk, act_type__in=viewmodels.RESEARCH_ELIGIBLE_ACT_TYPES,
+        validity="valid",
+    ).first()
+    if act is None:
+        return _not_found(request)
+    trigger_message = act.source_messages.order_by("seq_no").first()
+    if trigger_message is None:
+        # Defensive: the pipeline never stores an eligible act without a source message (step 20a's validation
+        # requires one for offer_research; correct_factual_error/provide_information always cite one too), so this
+        # should not happen. Nothing to queue against; refuse quietly.
+        return _check_json({"status": "unavailable", "act_id": act.pk}, status=500)
+    try:
+        with transaction.atomic():
+            # Only this row is created here; the LLM call happens later, out of process, in the worker
+            # (moderation/llm.py's rule that a call must never share a transaction with a row-creating one is
+            # unaffected: no call is made in this view at all).
+            run = ModerationRun.objects.create(
+                conversation=found,
+                trigger_message=trigger_message,
+                snapshot_seq=trigger_message.seq_no,
+                kind="research",
+                source_act=act,
+                requested_by=participant,
+            )
+    except IntegrityError:
+        run = ModerationRun.objects.filter(source_act_id=act.pk, kind="research").first()
+        if run is None:  # the constraint fired for some other reason; nothing to report back
+            logger.exception("request_research: IntegrityError creating a research run but none found afterwards")
+            return _check_json({"status": "unavailable", "act_id": act.pk}, status=500)
+    state = "pending" if run.status in ("pending", "running") else "done"
+    return _check_json({"status": state, "act_id": act.pk, "run_id": run.pk})
 
 
 @login_required

@@ -141,7 +141,7 @@ class ModerationRun(models.Model):
     save() and by database triggers. `LLMCall` keeps plain integer `run_id`, so `llm_calls()` filters by number.
     """
 
-    KIND_CHOICES = _choices(("live", "replay"))
+    KIND_CHOICES = _choices(("live", "replay", "research"))
     STATUS_CHOICES = _choices(("pending", "running", "done", "failed", "skipped_budget", "skipped_disabled"))
     DECISION_CHOICES = [("", "")] + _choices(taxonomy.DECISIONS)
 
@@ -151,6 +151,12 @@ class ModerationRun(models.Model):
     kind = models.CharField(max_length=10, choices=KIND_CHOICES, default="live")
     replay_of = models.ForeignKey("self", null=True, blank=True, on_delete=models.PROTECT, related_name="replays")
     replicate = models.IntegerField(default=1)
+    source_act = models.ForeignKey(
+        "moderation.InterventionAct", null=True, blank=True, on_delete=models.PROTECT, related_name="research_runs"
+    )
+    requested_by = models.ForeignKey(
+        "forum.Participant", null=True, blank=True, on_delete=models.PROTECT, related_name="research_requests"
+    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     attempts = models.IntegerField(default=0)
     is_stale = models.BooleanField(default=False)
@@ -178,6 +184,9 @@ class ModerationRun(models.Model):
             ),
             models.CheckConstraint(condition=Q(attempts__gte=0), name="moderationrun_attempts_nonnegative"),
             models.CheckConstraint(condition=Q(replicate__gte=1), name="moderationrun_replicate_positive"),
+            models.UniqueConstraint(
+                fields=["source_act"], condition=Q(kind="research"), name="moderationrun_one_research_per_act"
+            ),
         ]
 
     def __str__(self):
@@ -198,6 +207,10 @@ class ModerationRun(models.Model):
             raise _invalid("replay_of", "A live run cannot be a replay of another run.")
         if self.kind == "replay" and self.posted_message_id is not None:
             raise _invalid("posted_message", "A replay never posts a message.")
+        if self.kind == "research" and self.source_act_id is None:
+            raise _invalid("source_act", "A research run must have a source act.")
+        if self.kind != "research" and self.source_act_id is not None:
+            raise _invalid("source_act", "Only a research run may have a source act.")
         if self.posted_message_id is not None:
             posted = self.posted_message
             if posted.author_type != "moderator":

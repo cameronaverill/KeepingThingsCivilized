@@ -126,3 +126,17 @@ class IntervenorOutput(_Strict):
     rationale: str
     issue_dispositions: list[IssueDisposition]
     acts: list[Act]
+
+
+# --- Research (Step 20b) --------------------------------------------------------------------------------------------
+
+class ResearchNote(_Strict):
+    text: str  # the brief, neutral note reporting what independent sources say about the claim
+    confidence: float  # 0.0 to 1.0: how confident the model is in the note, given what its search turned up
+
+    @field_validator("confidence")
+    @classmethod
+    def _confidence_in_range(cls, value):
+        if not 0.0 <= value <= 1.0:
+            raise ValueError("confidence must be between 0 and 1")
+        return value

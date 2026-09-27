@@ -8,14 +8,22 @@ viewer from the acts that produced it.
 from moderation.models import InterventionAct, ModerationRun
 
 from django.conf import settings
+from django.urls import reverse
 
 from .models import Conversation, Message, Participant
 from .services import PostRejected, effective_side, opposite_side, standing_block
 
-__all__ = ["conversation_view", "moderation_heading", "moderation_notice_for"]
+__all__ = ["conversation_view", "moderation_heading", "moderation_notice_for", "RESEARCH_ELIGIBLE_ACT_TYPES"]
 
 HEADING_BOTH = "For both of you"
 HEADING_CONVERSATION = "About the conversation"
+
+# Step 20b, widened 2026-09-27 (owner decision, docs/step20b_brief.md item 6): the "Provide factual background"
+# button is available on any valid act addressing a checkable factual claim, not only offer_research -- a
+# participant may ask for an independent second opinion even on a confident, directly-asserted correction. Shared
+# with forum/views.py's request_research so the button's rendering and the endpoint's own act lookup never drift
+# apart.
+RESEARCH_ELIGIBLE_ACT_TYPES = ("offer_research", "correct_factual_error", "provide_information")
 
 _PAUSED_GENERIC = "AI moderation is paused right now and will resume when it can; messages are still posted."
 _PAUSED_DAY = "AI moderation is paused for today and will resume tomorrow; messages are still posted."
@@ -100,6 +108,39 @@ def moderation_heading(message, viewer):
     return headings.pop() if len(headings) == 1 else HEADING_BOTH
 
 
+def _research_state(act):
+    """"none" (no research run yet, offer the button), "pending" (a run exists, not finished) or "done" (finished
+    or failed, nothing extra to show: the resulting note, if any, is just the next moderator message)."""
+    run = ModerationRun.objects.filter(source_act_id=act.pk, kind="research").order_by("-id").first()
+    if run is None:
+        return "none"
+    if run.status in ("pending", "running"):
+        return "pending"
+    return "done"
+
+
+def _act_paragraphs(run, conversation, texts):
+    """Pairs each paragraph of a moderator message's content with the `InterventionAct` that produced it (the acts
+    are joined with "\\n\\n" in the same order, in `moderation/pipeline.py`), following the same "computed field
+    reaches the template on `m`" pattern as the rest of this function (e.g. `paragraphs` itself, wave16). Research
+    state is attached only for an act whose type is in `RESEARCH_ELIGIBLE_ACT_TYPES`. A count mismatch between acts
+    and paragraphs (some test fixtures build a moderator message without one act per paragraph) degrades to no
+    research info for the unmatched paragraphs rather than raising."""
+    acts = list(InterventionAct.objects.filter(run_id=run.pk, validity="valid").order_by("order")) if run else []
+    items = []
+    for i, text in enumerate(texts):
+        act = acts[i] if i < len(acts) else None
+        research = None
+        if act is not None and act.act_type in RESEARCH_ELIGIBLE_ACT_TYPES:
+            research = {
+                "act_id": act.pk,
+                "state": _research_state(act),
+                "url": reverse("forum:request_research", args=[conversation.pk, act.pk]),
+            }
+        items.append({"text": text, "research": research})
+    return items
+
+
 def conversation_view(user, conversation, after_seq=0):
     """The page data for ``user`` in ``conversation``; raises PostRejected("not_participant") for anyone else."""
     viewer = None
@@ -123,15 +164,13 @@ def conversation_view(user, conversation, after_seq=0):
     queryset = Message.objects.filter(conversation_id=conversation.pk, seq_no__gt=after_seq or 0).order_by("seq_no")
     for message in queryset:
         if message.author_type == "moderator":
+            run = ModerationRun.objects.filter(posted_message_id=message.pk).first()
+            texts = [para.strip() for para in message.content.split("\n\n") if para.strip()]
             item = {
                 "seq_no": message.seq_no,
                 "kind": "moderator",
                 "text": message.content,
-                "paragraphs": [
-                    para.strip()
-                    for para in message.content.split("\n\n")
-                    if para.strip()
-                ],
+                "paragraphs": _act_paragraphs(run, conversation, texts),
                 "created_at": message.created_at,
                 "heading": moderation_heading(message, viewer),
                 "author_name": None,

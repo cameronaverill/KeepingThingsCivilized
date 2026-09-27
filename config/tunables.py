@@ -56,6 +56,22 @@ MASTER_MAX_TOKENS = 1500
 # Longest reply (in tokens) the Intervenor may produce. Re-tuned after the prompt spike (step 3).
 INTERVENOR_MAX_TOKENS = 1000
 
+# Model that turns an offer_research act into a sourced, web-search-backed note (step 20b).
+# Same tier as Master/Intervenor (owner decision).
+RESEARCH_MODEL = "claude-sonnet-5"
+
+# Longest reply (in tokens) the research call may produce. Raised from an initial 1024 after the step 20b spike
+# (2026-09-27): once several searches' results are in context, 1024 was too low and one real call hit max_tokens
+# and got cut off.
+RESEARCH_MAX_TOKENS = 2048
+
+# Largest `max_uses` passed to the research call's web_search tool. The step 20b spike observed the model visibly
+# bump against a ceiling of 4, so 3-4 is a reasonable starting point, not a precisely justified number.
+RESEARCH_MAX_USES = 3
+
+# Most sources shown under a research note (the rest are still used to write the note, just not listed).
+RESEARCH_MAX_SOURCES_SHOWN = 3
+
 # How many times the Anthropic SDK retries a failed request. Kept at 1: spend-limit errors never succeed on retry.
 LLM_MAX_RETRIES = 1
 
@@ -191,7 +207,11 @@ MODERATION_RUN_MODE = "worker"
 WORKER_POLL_SECONDS = 2
 
 # A run stuck in "running" longer than this many seconds is considered abandoned and is retried.
-RUN_TIMEOUT_SECONDS = 300
+# Raised from 300 (2026-09-27, step 20b): a real research call was measured up to ~160s for 4 web_search rounds, and
+# a retry-once-on-LLMOutputError could approach 2x that -- 300s left too little headroom before the reaper could
+# requeue a call that was actually still running server-side (risking a second real, paid attempt at the same
+# request). Shared by live and research runs; a genuinely stuck live run just takes a little longer to reap.
+RUN_TIMEOUT_SECONDS = 600
 
 # A run is retried at most this many times before it is marked failed.
 RUN_MAX_ATTEMPTS = 3
