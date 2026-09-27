@@ -275,6 +275,13 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .badge { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; color: var(--note-text); border: 1px solid #b99b4a; border-radius: 999px; padding: 1px 10px; }
 .msg-link { font-size: 0.95rem; color: var(--note-text); }
 
+/* A moderation run genuinely in progress (a research request; a live run isn't shown pending) can take well over a
+   minute, so this needs visible motion, not static text -- a completely still line reads as stuck, not working. */
+.research-pending { display: flex; align-items: center; gap: 10px; }
+.spinner { width: 14px; height: 14px; flex: 0 0 auto; border-radius: 50%; border: 2px solid var(--note-line); border-top-color: var(--note-text); animation: spin 0.8s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: var(--note-line); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* --- prose (How this works) and accounts pages ------------------------------------------------------------- */
 .prose { margin-bottom: 24px; max-width: 46rem; }
 .prose ul { padding-left: 22px; }

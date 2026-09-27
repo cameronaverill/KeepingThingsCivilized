@@ -23,7 +23,7 @@ HEADING_CONVERSATION = "About the conversation"
 # participant may ask for an independent second opinion even on a confident, directly-asserted correction. Shared
 # with forum/views.py's request_research so the button's rendering and the endpoint's own act lookup never drift
 # apart.
-RESEARCH_ELIGIBLE_ACT_TYPES = ("offer_research", "correct_factual_error", "provide_information")
+RESEARCH_ELIGIBLE_ACT_TYPES = ("offer_research", "correct_factual_error", "provide_information", "request_information")
 
 _PAUSED_GENERIC = "AI moderation is paused right now and will resume when it can; messages are still posted."
 _PAUSED_DAY = "AI moderation is paused for today and will resume tomorrow; messages are still posted."

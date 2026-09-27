@@ -12,7 +12,8 @@
 (function () {
   "use strict";
 
-  var PENDING_HTML = '<p class="msg-meta research-pending">Checking — this may take a moment</p>';
+  var PENDING_HTML = '<p class="msg-meta research-pending"><span class="spinner" aria-hidden="true"></span>'
+    + '<span>Checking — this may take a moment</span></p>';
 
   function token(form) {
     var field = form.querySelector("input[name=csrfmiddlewaretoken]");
