@@ -113,6 +113,7 @@ class WebSearchResult:
     cache_read_tokens: int
     cost_usd: Decimal
     latency_ms: int
+    parsed: object = None  # set only when `output_schema` was given; None for a plain (unstructured) tool call
 
 
 # --- Client access ------------------------------------------------------------------------------
@@ -512,6 +513,7 @@ def call_with_web_search(
     messages,
     max_tokens,
     max_uses=3,
+    output_schema=None,
     prompt_version="",
     attempt=1,
     conversation_id=None,
@@ -519,36 +521,57 @@ def call_with_web_search(
     session=None,
     cache_system=True,
 ):
-    """Make one guarded, `web_search`-enabled call and return a `WebSearchResult`. Built to support the Step 20b
-    spike (docs/step20b_spike_brief.md) -- PROVISIONAL, not the final Research component's API: it has no structured
-    output (no `output_schema`), returns plain text plus any `web_search_tool_result` blocks untouched, so the spike
-    can inspect exactly what the API gives back before Step 20b commits to a final shape.
+    """Make one guarded, `web_search`-enabled call and return a `WebSearchResult`.
 
-    Same guarantees as `call()`, via the same `_preflight()` helper: the kill switch, circuit breaker, model
-    allow-list and every budget cap apply identically, and a refusal or a provider error still writes a ledger row
-    (nothing is ever attempted un-logged). Raises the same exception classes as `call()`, at the same points
+    Confirmed by a real, guarded spike (docs/step20b_spike_brief.md, 2026-09-27, ~$0.11 spent): structured output
+    composes with `tools` in a single `messages.parse()` call -- no second call and no client-side search loop are
+    needed (Anthropic's infrastructure runs the search loop server-side; `stop_reason` comes back `end_turn` with
+    every search already resolved). So this function does double duty:
+
+    - `output_schema=None` (the shape this function shipped with, still used by ad hoc/exploratory callers): plain
+      `client.messages.create(tools=...)`, no structured output. `result.parsed` is `None`.
+    - `output_schema=<a Pydantic model class>` (the shape the real Research component uses): `client.messages.parse(
+      output_format=output_schema, tools=...)`, exactly like `call()` does today but with `tools` added. Failure
+      handling mirrors `call()`'s structured-output path: a truncated (`max_tokens`), refused, or schema-mismatched
+      response raises `LLMOutputError` after still billing and logging it (never silently under-counted); the SDK's
+      `ValidationError` on unparseable JSON is billed at the reservation, same as `call()`.
+
+    Same guarantees as `call()` either way, via the same `_preflight()` helper: the kill switch, circuit breaker,
+    model allow-list and every budget cap apply identically, and a refusal or a provider error still writes a ledger
+    row (nothing is ever attempted un-logged). Raises the same exception classes as `call()`, at the same points
     (ValueError, RuntimeError, LLMDisabled, BreakerOpen, ModelNotAllowed, BudgetExceeded, BudgetUnavailable,
-    LLMAPIError). NEVER call this inside `transaction.atomic()`, for the same reason as `call()`.
+    LLMAPIError, LLMOutputError). NEVER call this inside `transaction.atomic()`, for the same reason as `call()`.
 
-    No `temperature` parameter: the spike has no need for one, and every model this project allows defaults to
-    no temperature anyway. `max_uses`: the most searches the model may make within this one call (a server-side
-    tool -- Anthropic's infrastructure runs the search loop internally; this is not a client-side agentic loop)."""
+    No `temperature` parameter: not needed for this project's models, all of which default to no temperature.
+    `max_uses`: the most searches the model may make within this one call (a server-side tool). `result.raw_usage`
+    always carries the full SDK usage object (not just the four priced token counts), including
+    `server_tool_use.web_search_requests` -- a search-request COUNT, not a dollar figure; `pricing.py` does not yet
+    price it (see docs/plan.md section 2), so a heavy multi-search call's true cost may exceed `result.cost_usd`
+    until that lands. `result.tool_blocks` carries every `web_search_tool_result` block untouched, for citations."""
     tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": int(max_uses)}]
+    schema_json = output_schema.model_json_schema() if output_schema is not None else None
+    structural = {"tools": tools, "output_schema": schema_json} if output_schema is not None else tools
+    request_extra = {"tools": tools}
+    if output_schema is not None:
+        request_extra["output_schema"] = schema_json
     row, probe, reserved = _preflight(
         purpose=purpose, agent=agent, model=model, system=system, messages=messages, max_tokens=max_tokens,
         prompt_version=prompt_version, attempt=attempt, temperature=None, conversation_id=conversation_id,
         run_id=run_id, session=session, cache_system=cache_system,
-        request_extra={"tools": tools}, structural_for_estimate=tools,
+        request_extra=request_extra, structural_for_estimate=structural,
     )
 
-    create_kwargs = {
-        "model": model,
-        "max_tokens": max_tokens,
-        "system": [{"type": "text", "text": system, "cache_control": _CACHE_BREAKPOINT}] if cache_system else system,
-        "messages": messages,
-        "tools": tools,
-        "thinking": _THINKING_OFF,
-    }
+    rendered_system = [{"type": "text", "text": system, "cache_control": _CACHE_BREAKPOINT}] if cache_system else system
+    if output_schema is not None:
+        call_kwargs = {
+            "model": model, "max_tokens": max_tokens, "system": rendered_system, "messages": messages,
+            "tools": tools, "output_format": output_schema, "thinking": _THINKING_OFF,
+        }
+    else:
+        call_kwargs = {
+            "model": model, "max_tokens": max_tokens, "system": rendered_system, "messages": messages,
+            "tools": tools, "thinking": _THINKING_OFF,
+        }
 
     try:
         client = get_client()
@@ -563,7 +586,10 @@ def call_with_web_search(
 
     started = time.monotonic()
     try:
-        message = client.messages.create(**create_kwargs)
+        if output_schema is not None:
+            message = client.messages.parse(**call_kwargs)
+        else:
+            message = client.messages.create(**call_kwargs)
     except (anthropic.APIError, FakeProviderError) as err:
         latency_ms = int((time.monotonic() - started) * 1000)
         status_code, error_type, error_code, text, request_id = _normalize_provider_error(err)
@@ -577,9 +603,23 @@ def call_with_web_search(
         raise LLMAPIError(
             text, status_code=status_code, error_type=error_type, error_code=error_code, call_id=row.pk
         ) from err
+    except ValidationError as err:
+        # Structured output only: the SDK could not parse the text (invalid or truncated JSON). Usage is lost, so
+        # billed at the reservation (the worst case), same as call()'s equivalent path.
+        latency_ms = int((time.monotonic() - started) * 1000)
+        _finish_row(
+            row, session, reserved, reserved,
+            status="ok", error=f"output could not be parsed (possibly truncated): {err}", error_code="invalid_output",
+            latency_ms=latency_ms,
+        )
+        breaker.record_success()
+        raise LLMOutputError(
+            "output could not be parsed into the schema (possibly truncated at max_tokens)",
+            reason="invalid_output", stop_reason="", call_id=row.pk,
+        ) from err
     except Exception as err:
-        # An unexpected failure inside create(): the request may have been sent, so fail closed on money and keep
-        # the reservation counted. Not fed to the breaker (a probe is given back so the next caller may try).
+        # An unexpected failure inside parse()/create(): the request may have been sent, so fail closed on money
+        # and keep the reservation counted. Not fed to the breaker (a probe is given back so the next caller may try).
         _release_probe(probe)
         _finish_row(
             row, session, reserved, reserved,
@@ -589,8 +629,8 @@ def call_with_web_search(
         raise
     latency_ms = int((time.monotonic() - started) * 1000)
 
-    # Success: price the real usage. NOTE: this does not yet include any web_search-specific fee -- Step 20b prices
-    # that once the spike has established the facts (the exact usage field name and how it should be billed).
+    # Success: price the real usage. NOTE: this does not yet include any web_search-specific fee -- see the
+    # docstring and docs/plan.md section 2; result.raw_usage carries the full usage object regardless.
     usage = message.usage
     tokens_in = int(getattr(usage, "input_tokens", 0) or 0)
     tokens_out = int(getattr(usage, "output_tokens", 0) or 0)
@@ -607,14 +647,34 @@ def call_with_web_search(
         if getattr(block, "type", "") == "web_search_tool_result"
     ]
 
+    parsed = None
+    failure = None
+    if output_schema is not None:
+        parsed = getattr(message, "parsed_output", None)
+        if stop_reason == "max_tokens":
+            failure = ("truncated", "the output was cut off at max_tokens")
+        elif stop_reason == "refusal":
+            failure = ("refusal", "the model refused")
+        elif parsed is None:
+            failure = ("invalid_output", "the response contained no parsed output")
+        elif not isinstance(parsed, output_schema):
+            try:
+                parsed = output_schema.model_validate(parsed)
+            except ValidationError as err:
+                failure = ("invalid_output", f"the output does not fit the schema: {err}")
+    parsed_json = parsed.model_dump(mode="json") if (output_schema is not None and failure is None) else None
+
     _finish_row(
         row, session, reserved, cost,
-        status="ok", raw_response=text, parsed=None,
+        status="ok", raw_response=text, parsed=parsed_json,
         tokens_in=tokens_in, tokens_out=tokens_out, cache_write_tokens=cache_write, cache_read_tokens=cache_read,
         latency_ms=latency_ms, stop_reason=stop_reason,
         provider_request_id=getattr(message, "_request_id", None) or getattr(message, "id", "") or "",
+        error=failure[1] if failure else "", error_code=failure[0] if failure else "",
     )
     breaker.record_success()
+    if failure:
+        raise LLMOutputError(failure[1], reason=failure[0], stop_reason=stop_reason, call_id=row.pk)
     return WebSearchResult(
         call_id=row.pk,
         text=text,
@@ -627,4 +687,5 @@ def call_with_web_search(
         cache_read_tokens=cache_read,
         cost_usd=cost,
         latency_ms=latency_ms,
+        parsed=parsed,
     )
