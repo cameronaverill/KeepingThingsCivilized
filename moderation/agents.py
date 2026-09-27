@@ -49,11 +49,14 @@ def _topic_parts(topic):
 
 def _call_with_retry(*, agent, prompt, model, max_tokens, output_schema, user, run):
     call_ids = []
+    # A caller with no run row (the draft check, moderation/preview.py) may pass a stand-in `run` that has an
+    # `llm_call_ids` list; the id of every ledger row written here is appended to it. A real run has no such attribute.
+    collector = getattr(run, "llm_call_ids", None)
     last = None
     for attempt in (1, 2):
         try:
             result = llm.call(
-                purpose="moderation",
+                purpose="replay" if run.kind == "replay" else "moderation",  # replays are paid from the evaluation budget
                 agent=agent,
                 model=model,
                 system=prompt.text,
@@ -70,7 +73,11 @@ def _call_with_retry(*, agent, prompt, model, max_tokens, output_schema, user, r
             last = err
             if getattr(err, "call_id", None) is not None:
                 call_ids.append(err.call_id)
+                if collector is not None:
+                    collector.append(err.call_id)
             continue
+        if collector is not None:
+            collector.append(result.call_id)
         return result.parsed
     raise StructuralFailure(
         f"the {agent} output was unusable after 2 attempts: {last}",
