@@ -1,0 +1,266 @@
+[
+  {
+    "title": "Rent control",
+    "description": "DRAFT for the owner's review (plan step 17, scenario scrutiny): the 'leans' values in this file are a first draft, not an authoritative coding of any position. Convention: -1 is left-coded, +1 is right-coded, 0 is no clear coding. compass.economic: -1 more state role in the economy, +1 more free-market; compass.social: -1 more socially liberal, +1 more socially traditional; us_partisan.party: -1 aligned with the Democratic Party, +1 with the Republican Party.",
+    "proposition": "Cities should cap how much landlords can raise rents each year.",
+    "opposing_position": "Cities should not cap how much landlords can raise rents each year.",
+    "leans": {
+      "pro": {
+        "compass": {
+          "economic": {
+            "value": -0.8,
+            "rationale": "Supporters usually favour public rules that limit what private landlords may charge, which is a larger state role in the housing market."
+          },
+          "social": {
+            "value": -0.2,
+            "rationale": "The position is mostly economic; the link to social questions is weak, with a slight lean to protecting existing tenants and neighbourhoods."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": -0.7,
+            "rationale": "In US politics, rent regulation is more often backed by Democratic officials and platforms than by Republican ones."
+          }
+        }
+      },
+      "con": {
+        "compass": {
+          "economic": {
+            "value": 0.8,
+            "rationale": "Opponents usually argue that prices should be set by supply and demand and that caps reduce the housing supply."
+          },
+          "social": {
+            "value": 0.1,
+            "rationale": "The position is mostly economic; the link to social questions is weak."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": 0.6,
+            "rationale": "In US politics, opposition to rent regulation is more often voiced by Republican officials, though many Democrats also object."
+          }
+        }
+      }
+    }
+  },
+  {
+    "title": "Drug decriminalization",
+    "description": "Seeded topic used in the political-direction pairs of the golden set. Leans are a draft for the owner's review.",
+    "proposition": "Possession of small amounts of illegal drugs for personal use should be decriminalized.",
+    "opposing_position": "Possession of small amounts of illegal drugs for personal use should not be decriminalized.",
+    "leans": {
+      "pro": {
+        "compass": {
+          "economic": {
+            "value": -0.1,
+            "rationale": "The position is not mainly about the economy; some supporters stress public spending on treatment and others stress lower enforcement costs."
+          },
+          "social": {
+            "value": -0.8,
+            "rationale": "Supporters usually treat drug use as a health and personal-freedom matter rather than a crime, which is typically coded as socially liberal."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": -0.5,
+            "rationale": "In US politics, decriminalization is more often backed by Democrats, though some Republicans and libertarians support it too."
+          }
+        }
+      },
+      "con": {
+        "compass": {
+          "economic": {
+            "value": 0.1,
+            "rationale": "The position is not mainly about the economy; it is chiefly about law enforcement and public order."
+          },
+          "social": {
+            "value": 0.7,
+            "rationale": "Opponents usually stress criminal penalties as a deterrent and traditional public-order values, which is typically coded as socially conservative."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": 0.5,
+            "rationale": "In US politics, keeping criminal penalties is more often backed by Republicans, though some Democrats agree."
+          }
+        }
+      }
+    }
+  },
+  {
+    "title": "Sanctuary cities",
+    "description": "Seeded topic used in the political-direction pairs of the golden set. Leans are a draft for the owner's review.",
+    "proposition": "Cities should limit their local police's cooperation with federal immigration enforcement.",
+    "opposing_position": "Cities should not limit their local police's cooperation with federal immigration enforcement.",
+    "leans": {
+      "pro": {
+        "compass": {
+          "economic": {
+            "value": -0.3,
+            "rationale": "The position concerns immigration and policing more than the economy; supporters often also stress the role of immigrant workers in local economies."
+          },
+          "social": {
+            "value": -0.7,
+            "rationale": "Supporters usually favour more permissive immigration policy and stress trust between immigrant communities and local police."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": -0.8,
+            "rationale": "In US politics, sanctuary policies are more often backed by Democratic officials than by Republican ones."
+          }
+        }
+      },
+      "con": {
+        "compass": {
+          "economic": {
+            "value": 0.2,
+            "rationale": "The position concerns immigration and law enforcement more than the economy; some opponents stress public costs."
+          },
+          "social": {
+            "value": 0.8,
+            "rationale": "Opponents usually favour stricter immigration enforcement and full cooperation between local and federal authorities."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": 0.8,
+            "rationale": "In US politics, opposition to sanctuary policies is more often voiced by Republican officials than by Democratic ones."
+          }
+        }
+      }
+    }
+  },
+  {
+    "title": "School start times",
+    "description": "Non-political warm-up topic (plan section 9): validates the pipeline on a low-stakes question.",
+    "proposition": "High schools should start no earlier than 8:30 a.m.",
+    "opposing_position": "High schools should be free to start earlier than 8:30 a.m.",
+    "leans": {
+      "pro": {
+        "compass": {
+          "economic": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          },
+          "social": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        }
+      },
+      "con": {
+        "compass": {
+          "economic": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          },
+          "social": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        }
+      }
+    }
+  },
+  {
+    "title": "Bike lanes",
+    "description": "Non-political warm-up topic (plan section 9): validates the pipeline on a low-stakes question.",
+    "proposition": "Cities should build protected bike lanes even when it means removing some street parking.",
+    "opposing_position": "Cities should not remove street parking in order to build protected bike lanes.",
+    "leans": {
+      "pro": {
+        "compass": {
+          "economic": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          },
+          "social": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        }
+      },
+      "con": {
+        "compass": {
+          "economic": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          },
+          "social": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        }
+      }
+    }
+  },
+  {
+    "title": "Remote work",
+    "description": "Non-political warm-up topic (plan section 9): validates the pipeline on a low-stakes question.",
+    "proposition": "Employers should allow office workers to work from home most of the week.",
+    "opposing_position": "Employers should not have to allow office workers to work from home most of the week.",
+    "leans": {
+      "pro": {
+        "compass": {
+          "economic": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          },
+          "social": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        }
+      },
+      "con": {
+        "compass": {
+          "economic": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          },
+          "social": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        },
+        "us_partisan": {
+          "party": {
+            "value": 0.0,
+            "rationale": "No clear left/right coding: a low-stakes topic used to validate the pipeline (plan section 9)."
+          }
+        }
+      }
+    }
+  }
+]
