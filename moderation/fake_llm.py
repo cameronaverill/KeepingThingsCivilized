@@ -61,12 +61,42 @@ def make_message(
     )
 
 
+def make_tool_message(
+    *,
+    text="",
+    tool_results=(),
+    input_tokens=100,
+    output_tokens=50,
+    cache_creation_input_tokens=0,
+    cache_read_input_tokens=0,
+    stop_reason="end_turn",
+    id="msg_fake_0002",
+    extra_usage=None,
+):
+    """A fake response to `client.messages.create(tools=[...])` (no structured output -- used by
+    `llm.call_with_web_search`, docs/step20b_spike_brief.md). `tool_results` is a list of plain objects (build them
+    with `SimpleNamespace(type="web_search_tool_result", ...)`) appended after the text block. `extra_usage`: a dict
+    of extra attributes to set on `.usage` (e.g. a scripted server-tool-use field), for tests exploring what a real
+    response's usage object might carry."""
+    content = [SimpleNamespace(type="text", text=text)]
+    content.extend(tool_results)
+    usage_kwargs = dict(
+        input_tokens=input_tokens, output_tokens=output_tokens,
+        cache_creation_input_tokens=cache_creation_input_tokens, cache_read_input_tokens=cache_read_input_tokens,
+    )
+    if extra_usage:
+        usage_kwargs.update(extra_usage)
+    return SimpleNamespace(id=id, parsed_output=None, stop_reason=stop_reason, content=content,
+                            usage=SimpleNamespace(**usage_kwargs))
+
+
 class _FakeMessages:
     def __init__(self, owner):
         self._owner = owner
 
     def parse(self, **kwargs):
         owner = self._owner
+        owner.call_methods.append("parse")
         owner.calls.append(kwargs)
         if not owner.script:
             raise AssertionError("FakeLLM script is exhausted: the code made more calls than were scripted")
@@ -85,9 +115,24 @@ class _FakeMessages:
                 message.parsed_output = None
         return message
 
+    def create(self, **kwargs):
+        """Backs `llm.call_with_web_search` (no structured output, so no schema to validate against). A scripted
+        item is an exception (raised), a callable `(kwargs) -> message`, or a message object built with
+        `make_tool_message` directly -- never a bare dict, since there's no schema here to validate one into."""
+        owner = self._owner
+        owner.call_methods.append("create")
+        owner.calls.append(kwargs)
+        if not owner.script:
+            raise AssertionError("FakeLLM script is exhausted: the code made more calls than were scripted")
+        item = owner.script.pop(0)
+        if isinstance(item, BaseException):
+            raise item
+        return item(kwargs) if callable(item) else item
+
 
 class FakeLLM:
     def __init__(self, script=()):
         self.script = list(script)
         self.calls = []
+        self.call_methods = []  # "parse" or "create" per entry, same order/length as `calls` (step 20b)
         self.messages = _FakeMessages(self)

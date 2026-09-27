@@ -92,6 +92,29 @@ class LLMResult:
     latency_ms: int
 
 
+@dataclass(frozen=True)
+class WebSearchResult:
+    """Returned by `call_with_web_search` (docs/step20b_spike_brief.md). Provisional shape for the spike, not a
+    locked API: Step 20b's real Research component may return something different once the spike's findings are in.
+
+    `tool_blocks`: the response's `web_search_tool_result` content blocks, untouched, so the spike can inspect
+    exactly what the API gave back. `raw_usage`: the SDK's `message.usage` object as-is (not just the four token
+    counts `cost_usd` was priced from), so the spike can find and print whatever field reports web_search's own
+    metered fee, if any -- that field is not yet known and is deliberately not parsed into a named attribute here."""
+
+    call_id: int
+    text: str
+    tool_blocks: list
+    raw_usage: object
+    stop_reason: str
+    input_tokens: int
+    output_tokens: int
+    cache_write_tokens: int
+    cache_read_tokens: int
+    cost_usd: Decimal
+    latency_ms: int
+
+
 # --- Client access ------------------------------------------------------------------------------
 
 def _build_real_client():
@@ -200,29 +223,24 @@ def _finish_row(row, session, reserved, cost, **fields):
         session.spent += cost - reserved
 
 
-def call(
-    *,
-    purpose,
-    agent,
-    model,
-    system,
-    messages,
-    output_schema,
-    max_tokens,
-    prompt_version="",
-    attempt=1,
-    temperature=None,
-    conversation_id=None,
-    run_id=None,
-    session=None,
-    cache_system=True,
+def _preflight(
+    *, purpose, agent, model, system, messages, max_tokens, prompt_version, attempt, temperature,
+    conversation_id, run_id, session, cache_system, request_extra, structural_for_estimate,
 ):
-    """Make one guarded call and return an LLMResult. Raises ValueError (unknown purpose, bad max_tokens, temperature on a model that rejects it), an
-    LLMRefused subclass (no request was made), BudgetUnavailable (no request was made), LLMAPIError (provider failure)
-    or LLMOutputError (the call is billed but the output is unusable). One attempt only; retrying is the pipeline's job.
+    """Steps 1-4 shared by every guarded call (extracted from `call()` for `call_with_web_search`, docs/
+    step20b_spike_brief.md; `call()`'s own behavior is unchanged by this extraction): validate the common inputs,
+    check the kill switch, circuit breaker and model allow-list, then reserve budget and write a `pending` LLMCall
+    row. Returns `(row, probe, reserved)`.
 
-    NEVER call this inside a database transaction (`transaction.atomic`): a rollback in the caller would erase the
-    cost record and shrink the budget. The pipeline (step 5) must call it outside any transaction."""
+    `request_extra`: fields merged into the logged `request` dict beyond model/max_tokens/system/messages/
+    cache_system/thinking (e.g. `{"output_schema": schema_json}` for a structured-output call, `{"tools": tools}`
+    for a tool-enabled one). `structural_for_estimate`: the JSON-serializable structure (a schema dict or a tools
+    list) that both the input-token estimate and the prompt fingerprint (`_prompt_sha256`) count alongside `system`.
+
+    Raises exactly what `call()` has always raised at each of these steps: ValueError (unknown purpose, bad
+    max_tokens, malformed messages, oversized estimated input, a model that rejects disabled thinking or a given
+    temperature), RuntimeError (called inside a transaction), LLMDisabled (kill switch or missing key), BreakerOpen,
+    ModelNotAllowed, BudgetExceeded, or BudgetUnavailable. NEVER call this inside `transaction.atomic()`."""
     if purpose not in ALL_PURPOSES:
         raise ValueError(f"unknown purpose {purpose!r}; expected one of {ALL_PURPOSES}")
     if isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or max_tokens < 1:
@@ -236,13 +254,14 @@ def call(
         or messages[0].get("role") != "user"
     ):
         raise ValueError("messages must be a non-empty list whose first element is a dict with role 'user'")
-    schema_json = output_schema.model_json_schema()
-    estimated_input = budget.estimate_input_tokens(system=system, messages=messages, schema=schema_json)
+    estimated_input = budget.estimate_input_tokens(system=system, messages=messages, schema=structural_for_estimate)
     if estimated_input > settings.LLM_MAX_INPUT_TOKENS:
         raise ValueError(
             f"estimated input of {estimated_input} tokens is above LLM_MAX_INPUT_TOKENS ({settings.LLM_MAX_INPUT_TOKENS})"
         )
     if settings.LLM_FORBID_ATOMIC_CALLS and connection.in_atomic_block:
+        # Kept byte-for-byte identical to call()'s original message (it names "llm.call()" even when the caller is
+        # call_with_web_search) so no existing test asserting on this exact text can regress.
         raise RuntimeError(
             "llm.call() was called inside a database transaction (transaction.atomic). If the caller's transaction "
             "rolled back, the ledger row and any breaker trip written here would be erased and the budget would "
@@ -259,9 +278,9 @@ def call(
         "max_tokens": max_tokens,
         "system": system,
         "messages": messages,
-        "output_schema": schema_json,
         "cache_system": bool(cache_system),
         "thinking": _THINKING_OFF,
+        **request_extra,
     }
     if cache_system:
         request["cache_control"] = _CACHE_BREAKPOINT  # logged for readability: it is applied to the system block only
@@ -275,7 +294,7 @@ def call(
         attempt=attempt,
         model=model,
         prompt_version=prompt_version,
-        prompt_sha256=_prompt_sha256(system, schema_json),
+        prompt_sha256=_prompt_sha256(system, structural_for_estimate),
         temperature=temperature,
         max_tokens=max_tokens,
         request=request,
@@ -328,6 +347,40 @@ def call(
         raise BudgetUnavailable(f"ledger could not be read or written: {err}") from err
     if session is not None:
         session.spent += reserved
+
+    return row, probe, reserved
+
+
+def call(
+    *,
+    purpose,
+    agent,
+    model,
+    system,
+    messages,
+    output_schema,
+    max_tokens,
+    prompt_version="",
+    attempt=1,
+    temperature=None,
+    conversation_id=None,
+    run_id=None,
+    session=None,
+    cache_system=True,
+):
+    """Make one guarded call and return an LLMResult. Raises ValueError (unknown purpose, bad max_tokens, temperature on a model that rejects it), an
+    LLMRefused subclass (no request was made), BudgetUnavailable (no request was made), LLMAPIError (provider failure)
+    or LLMOutputError (the call is billed but the output is unusable). One attempt only; retrying is the pipeline's job.
+
+    NEVER call this inside a database transaction (`transaction.atomic`): a rollback in the caller would erase the
+    cost record and shrink the budget. The pipeline (step 5) must call it outside any transaction."""
+    schema_json = output_schema.model_json_schema()
+    row, probe, reserved = _preflight(
+        purpose=purpose, agent=agent, model=model, system=system, messages=messages, max_tokens=max_tokens,
+        prompt_version=prompt_version, attempt=attempt, temperature=temperature, conversation_id=conversation_id,
+        run_id=run_id, session=session, cache_system=cache_system,
+        request_extra={"output_schema": schema_json}, structural_for_estimate=schema_json,
+    )
 
     # 5. The call itself.
     parse_kwargs = {
@@ -440,6 +493,133 @@ def call(
     return LLMResult(
         parsed=parsed,
         call_id=row.pk,
+        stop_reason=stop_reason,
+        input_tokens=tokens_in,
+        output_tokens=tokens_out,
+        cache_write_tokens=cache_write,
+        cache_read_tokens=cache_read,
+        cost_usd=cost,
+        latency_ms=latency_ms,
+    )
+
+
+def call_with_web_search(
+    *,
+    purpose,
+    agent,
+    model,
+    system,
+    messages,
+    max_tokens,
+    max_uses=3,
+    prompt_version="",
+    attempt=1,
+    conversation_id=None,
+    run_id=None,
+    session=None,
+    cache_system=True,
+):
+    """Make one guarded, `web_search`-enabled call and return a `WebSearchResult`. Built to support the Step 20b
+    spike (docs/step20b_spike_brief.md) -- PROVISIONAL, not the final Research component's API: it has no structured
+    output (no `output_schema`), returns plain text plus any `web_search_tool_result` blocks untouched, so the spike
+    can inspect exactly what the API gives back before Step 20b commits to a final shape.
+
+    Same guarantees as `call()`, via the same `_preflight()` helper: the kill switch, circuit breaker, model
+    allow-list and every budget cap apply identically, and a refusal or a provider error still writes a ledger row
+    (nothing is ever attempted un-logged). Raises the same exception classes as `call()`, at the same points
+    (ValueError, RuntimeError, LLMDisabled, BreakerOpen, ModelNotAllowed, BudgetExceeded, BudgetUnavailable,
+    LLMAPIError). NEVER call this inside `transaction.atomic()`, for the same reason as `call()`.
+
+    No `temperature` parameter: the spike has no need for one, and every model this project allows defaults to
+    no temperature anyway. `max_uses`: the most searches the model may make within this one call (a server-side
+    tool -- Anthropic's infrastructure runs the search loop internally; this is not a client-side agentic loop)."""
+    tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": int(max_uses)}]
+    row, probe, reserved = _preflight(
+        purpose=purpose, agent=agent, model=model, system=system, messages=messages, max_tokens=max_tokens,
+        prompt_version=prompt_version, attempt=attempt, temperature=None, conversation_id=conversation_id,
+        run_id=run_id, session=session, cache_system=cache_system,
+        request_extra={"tools": tools}, structural_for_estimate=tools,
+    )
+
+    create_kwargs = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "system": [{"type": "text", "text": system, "cache_control": _CACHE_BREAKPOINT}] if cache_system else system,
+        "messages": messages,
+        "tools": tools,
+        "thinking": _THINKING_OFF,
+    }
+
+    try:
+        client = get_client()
+    except Exception as err:
+        # No client, so nothing was sent and nothing is billed: release the reservation. Not fed to the breaker.
+        _release_probe(probe)
+        _finish_row(
+            row, session, reserved, _ZERO,
+            status="error", error=f"{type(err).__name__}: {err}", error_code="client_error", latency_ms=0,
+        )
+        raise
+
+    started = time.monotonic()
+    try:
+        message = client.messages.create(**create_kwargs)
+    except (anthropic.APIError, FakeProviderError) as err:
+        latency_ms = int((time.monotonic() - started) * 1000)
+        status_code, error_type, error_code, text, request_id = _normalize_provider_error(err)
+        cost = _ZERO if status_code is not None else reserved
+        _finish_row(
+            row, session, reserved, cost,
+            status="error", error=text, error_code=error_code or error_type,
+            latency_ms=latency_ms, provider_request_id=request_id or "",
+        )
+        breaker.record_error(status_code=status_code, error_type=error_type, error_code=error_code, message=text)
+        raise LLMAPIError(
+            text, status_code=status_code, error_type=error_type, error_code=error_code, call_id=row.pk
+        ) from err
+    except Exception as err:
+        # An unexpected failure inside create(): the request may have been sent, so fail closed on money and keep
+        # the reservation counted. Not fed to the breaker (a probe is given back so the next caller may try).
+        _release_probe(probe)
+        _finish_row(
+            row, session, reserved, reserved,
+            status="error", error=f"{type(err).__name__}: {err}", error_code="client_error",
+            latency_ms=int((time.monotonic() - started) * 1000),
+        )
+        raise
+    latency_ms = int((time.monotonic() - started) * 1000)
+
+    # Success: price the real usage. NOTE: this does not yet include any web_search-specific fee -- Step 20b prices
+    # that once the spike has established the facts (the exact usage field name and how it should be billed).
+    usage = message.usage
+    tokens_in = int(getattr(usage, "input_tokens", 0) or 0)
+    tokens_out = int(getattr(usage, "output_tokens", 0) or 0)
+    cache_write = int(getattr(usage, "cache_creation_input_tokens", 0) or 0)
+    cache_read = int(getattr(usage, "cache_read_input_tokens", 0) or 0)
+    cost = pricing.compute_cost(
+        model, input_tokens=tokens_in, output_tokens=tokens_out,
+        cache_write_tokens=cache_write, cache_read_tokens=cache_read,
+    )
+    stop_reason = getattr(message, "stop_reason", "") or ""
+    text = _message_text(message)
+    tool_blocks = [
+        block for block in (getattr(message, "content", None) or [])
+        if getattr(block, "type", "") == "web_search_tool_result"
+    ]
+
+    _finish_row(
+        row, session, reserved, cost,
+        status="ok", raw_response=text, parsed=None,
+        tokens_in=tokens_in, tokens_out=tokens_out, cache_write_tokens=cache_write, cache_read_tokens=cache_read,
+        latency_ms=latency_ms, stop_reason=stop_reason,
+        provider_request_id=getattr(message, "_request_id", None) or getattr(message, "id", "") or "",
+    )
+    breaker.record_success()
+    return WebSearchResult(
+        call_id=row.pk,
+        text=text,
+        tool_blocks=tool_blocks,
+        raw_usage=usage,
         stop_reason=stop_reason,
         input_tokens=tokens_in,
         output_tokens=tokens_out,
