@@ -1,5 +1,5 @@
 """evaluation.Rating: one rater's pass over one target. Generic target reference validated to exist, replicate >= 1,
-llm_call_id a plain integer for LLM raters only, status choices, covered dimensions."""
+llm_call a foreign key (column llm_call_id) for LLM raters only, status choices, covered dimensions."""
 import evalmodels_testkit as kit
 import pytest
 from django.core.exceptions import ValidationError
@@ -22,7 +22,7 @@ def test_the_model_has_the_contract_fields():
     from evaluation.models import Rating
 
     names = kit.field_names(Rating)
-    assert {"rater", "target_type", "target_id", "replicate", "llm_call_id", "guideline_version", "status", "started_at", "finished_at"} <= names
+    assert {"rater", "target_type", "target_id", "replicate", "llm_call", "guideline_version", "status", "started_at", "finished_at"} <= names
     assert kit.covered_field_name() in names
 
 
@@ -46,13 +46,16 @@ def test_defaults(world):
     assert rating.started_at is None and rating.finished_at is None
 
 
-def test_llm_call_id_is_a_plain_integer_not_a_relation():
+def test_llm_call_is_a_nullable_protected_foreign_key_to_the_ledger_with_the_old_column_name():
+    from django.db import models
+
     from evaluation.models import Rating
 
-    field = Rating._meta.get_field("llm_call_id")
-    assert not field.is_relation
-    assert isinstance(field, models.IntegerField)
-    assert field.null is True
+    field = Rating._meta.get_field("llm_call")
+    assert field.is_relation and isinstance(field, models.ForeignKey)
+    assert field.related_model._meta.label == "moderation.LLMCall"
+    assert field.null is True and field.remote_field.on_delete is models.PROTECT
+    assert field.column == "llm_call_id" and field.attname == "llm_call_id"
 
 
 def test_the_covered_dimensions_field_is_json_and_round_trips(world):
@@ -183,15 +186,73 @@ def test_a_human_rating_without_an_llm_call_id_is_fine(world):
     assert kit.make_rating(world.human, world.message).llm_call_id is None
 
 
-def test_the_ledger_row_can_be_deleted_without_touching_the_rating(world):
-    """llm_call_id is a plain integer so spend history and ratings survive each other (plan section 8, step 4 decision 1)."""
+def test_the_ledger_row_a_rating_points_at_cannot_be_deleted(world):
+    """PROTECT: a spend-ledger row that a rating cites stays until the rating is gone."""
+    from django.db.models import ProtectedError
+
+    from evaluation.models import Rating
+    from moderation.models import LLMCall
+
+    call = kit.make_llm_call()
+    rating = kit.make_rating(world.llm, world.message, llm_call=call)
+    with pytest.raises(ProtectedError):
+        call.delete()
+    assert LLMCall.objects.filter(pk=call.pk).exists() and Rating.objects.get(pk=rating.pk).llm_call_id == call.pk
+
+
+def test_a_ledger_row_no_rating_cites_can_still_be_deleted(world):
+    from moderation.models import LLMCall
+
+    kit.make_rating(world.llm, world.message, llm_call=kit.make_llm_call())
+    free = kit.make_llm_call()
+    free.delete()
+    assert LLMCall.objects.count() == 1
+
+
+def test_the_ledger_row_is_reachable_through_the_relation_and_the_reverse_accessor(world):
+    call = kit.make_llm_call()
+    rating = kit.make_rating(world.llm, world.message, llm_call=call)
+    assert rating.llm_call == call
+    accessor = type(rating)._meta.get_field("llm_call").remote_field.get_accessor_name()
+    assert list(getattr(call, accessor).all()) == [rating]
+
+
+def test_a_made_up_ledger_id_is_refused_by_the_database(world):
+    from django.db import IntegrityError, connection, transaction
+
+    from evaluation.models import Rating
+
+    made_up = kit.make_llm_call().pk + 5000
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Rating.objects.bulk_create([kit.unsaved_rating(world.llm, world.message, llm_call_id=made_up)])
+        connection.check_constraints()
+    assert Rating.objects.count() == 0
+
+
+def test_a_queryset_update_cannot_point_a_rating_at_a_made_up_ledger_id(world):
+    from django.db import IntegrityError, connection, transaction
+
     from evaluation.models import Rating
 
     call = kit.make_llm_call()
-    call_pk = call.pk
-    rating = kit.make_rating(world.llm, world.message, llm_call_id=call_pk)
-    call.delete()
-    assert Rating.objects.get(pk=rating.pk).llm_call_id == call_pk
+    rating = kit.make_rating(world.llm, world.message, llm_call=call)
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Rating.objects.filter(pk=rating.pk).update(llm_call_id=call.pk + 5000)
+        connection.check_constraints()
+    assert Rating.objects.get(pk=rating.pk).llm_call_id == call.pk
+
+
+def test_a_made_up_ledger_id_is_refused_by_save_or_the_database_never_stored(world):
+    """Through save() the refusal may be the friendly ValidationError or, at the latest, the database check."""
+    from django.db import connection, transaction
+
+    from evaluation.models import Rating
+
+    made_up = kit.make_llm_call().pk + 5000
+    with pytest.raises(kit.REFUSED), transaction.atomic():
+        kit.make_rating(world.llm, world.message, llm_call_id=made_up)
+        connection.check_constraints()
+    assert Rating.objects.count() == 0
 
 
 # --- covered dimensions ------------------------------------------------------------------------------------------------

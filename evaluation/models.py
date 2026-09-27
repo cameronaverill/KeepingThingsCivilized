@@ -4,9 +4,8 @@ The site never imports this app; this app may import `forum` and `moderation`. H
 
 Rules that matter are enforced twice, as in steps 4a and 4b: in `save()` (friendly `ValidationError`) and by database
 constraints or triggers (`IntegrityError`) where SQLite can express them, so `bulk_create`, queryset updates and raw SQL
-cannot bypass them. Relations are PROTECT: nothing cascades silently. The only references that are not foreign keys
-are the ones the plan says must survive: a rating's `llm_call_id` (the spend ledger keeps plain integers) and the
-`target_type` / `target_id` pair that points at a message or an intervention act.
+cannot bypass them. Relations are PROTECT: nothing cascades silently. The only reference that is not a foreign key is
+the `target_type` / `target_id` pair that points at a message or an intervention act.
 
 Not enforced in the database (so that adding a dimension needs no schema change): that a dimension name is one of
 `moderation.taxonomy.DIMENSIONS`; `save()` checks it.
@@ -207,8 +206,10 @@ class Rating(TargetReference):
     # The dimensions this pass covered: a list of dimension names.
     dimensions = models.JSONField(default=list, blank=True)
     replicate = models.PositiveIntegerField(default=1)
-    # A plain integer, not a foreign key: LLMCall rows are the spend ledger and must survive whatever happens here.
-    llm_call_id = models.BigIntegerField(null=True, blank=True)
+    # PROTECT: a ledger row that a rating cites cannot be deleted from under it. Column name: llm_call_id.
+    llm_call = models.ForeignKey(
+        "moderation.LLMCall", null=True, blank=True, on_delete=models.PROTECT, related_name="evaluation_ratings"
+    )
     guideline_version = models.CharField(max_length=100, blank=True, default="")
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
     started_at = models.DateTimeField(null=True, blank=True)
@@ -490,8 +491,8 @@ class Annotation(TargetReference):
 
     dimension = models.CharField(max_length=50)
     value = models.CharField(max_length=200)
-    # "self" or "rater:<name>".
-    source = models.CharField(max_length=110)
+    # The rater who gave the label; null means the researcher's own label (formerly source "self").
+    rater = models.ForeignKey(Rater, null=True, blank=True, on_delete=models.PROTECT, related_name="annotations")
     rating = models.ForeignKey(Rating, null=True, blank=True, on_delete=models.PROTECT, related_name="annotations")
     confidence = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -499,20 +500,14 @@ class Annotation(TargetReference):
     class Meta:
         constraints = [
             _target_check("evaluation_annotation"),
-            models.CheckConstraint(
-                condition=Q(source="self") | (Q(source__startswith="rater:") & ~Q(source="rater:")),
-                name="evaluation_annotation_source_valid",
-            ),
         ]
         indexes = [models.Index(fields=["target_type", "target_id"], name="evaluation_annot_target_idx")]
 
     def __str__(self):
-        return f"{self.dimension}={self.value} ({self.source})"
+        return f"{self.dimension}={self.value} ({self.rater.name if self.rater_id else 'self'})"
 
     def validate_rules(self):
         validate_target(self.target_type, self.target_id)
-        if not (self.source == "self" or (self.source.startswith("rater:") and len(self.source) > len("rater:"))):
-            raise _invalid("source", "The source must be 'self' or 'rater:<name>'.")
 
     def save(self, *args, **kwargs):
         self.validate_rules()

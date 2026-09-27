@@ -60,21 +60,40 @@ def test_the_tunables_the_wave_needs_exist():
     assert tunables.INTENSITY_DISAGREEMENT_THRESHOLD == 2
 
 
-def test_evaluation_makes_no_llm_call_in_this_wave():
-    """No API client and no gateway import anywhere in the app: this wave is tables and pure functions."""
-    offenders = []
-    for path in evaluation_path().rglob("*.py"):
-        if "migrations" in path.parts:
-            continue
-        for node in ast.walk(ast.parse(path.read_text())):
-            names = []
-            if isinstance(node, ast.Import):
-                names = [a.name for a in node.names]
-            elif isinstance(node, ast.ImportFrom):
-                names = [(node.module or "") + "." + a.name for a in node.names] + [node.module or ""]
-            if any(re.match(r"(anthropic|httpx|requests|urllib3?|moderation\.(llm|fake_llm|budget|breaker))\b", n) for n in names):
-                offenders.append((path.name, names))
-    assert offenders == []
+def imported_names(path):
+    """Every dotted name a module imports: `import a.b` gives a.b, `from a import b, c` gives a, a.b and a.c."""
+    names = []
+    for node in ast.walk(ast.parse(path.read_text())):
+        if isinstance(node, ast.Import):
+            names += [a.name for a in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            names += [node.module or ""] + [(node.module or "") + "." + a.name for a in node.names]
+    return names
+
+
+def evaluation_sources():
+    for path in sorted(evaluation_path().rglob("*.py")):
+        if "migrations" not in path.parts and "__pycache__" not in path.parts:
+            yield path.relative_to(evaluation_path()).as_posix(), path
+
+
+CLIENTS = r"(anthropic|httpx|requests|urllib3?)\b"
+GATEWAY = r"moderation\.(llm|errors|quotes)\b"
+
+
+def test_only_llm_rater_talks_to_the_gateway():
+    """Step 14 (docs/step14_brief.md, architect ruling): exactly one module, evaluation/llm_rater.py, may import moderation.llm,
+    moderation.errors and moderation.quotes; nothing else in evaluation may. (moderation.budget, .clock, .pricing and .taxonomy
+    are ordinary helpers and are not restricted.) No module of the app imports an API client or an HTTP library. The fuller pins
+    are in tests/llm_raters/test_llmr_import_rule.py."""
+    offenders = {"clients": [], "gateway": []}
+    for relative, path in evaluation_sources():
+        names = imported_names(path)
+        if any(re.match(CLIENTS, n) for n in names):
+            offenders["clients"].append(relative)
+        if relative != "llm_rater.py" and any(re.match(GATEWAY, n) for n in names):
+            offenders["gateway"].append(relative)
+    assert offenders == {"clients": [], "gateway": []}
 
 
 # --- migrations --------------------------------------------------------------------------------------------------------
@@ -121,7 +140,7 @@ def test_migrating_evaluation_to_zero_drops_its_tables_and_triggers_and_forward_
         assert kit.triggers_matching("evaluation_") == []
         assert {"forum_message", "moderation_issue"} <= kit.db_tables()
         executor = MigrationExecutor(connection)
-        executor.migrate([("evaluation", "0001_initial")])
+        executor.migrate([n for n in executor.loader.graph.leaf_nodes() if n[0] == "evaluation"])
         assert len(evaluation_tables()) >= 9
         assert len(kit.triggers_matching("evaluation_")) == len(with_triggers)
     finally:
@@ -139,7 +158,7 @@ def test_the_rules_still_hold_after_a_round_trip_of_the_migration():
     try:
         executor.migrate([("evaluation", None)])
         executor = MigrationExecutor(connection)
-        executor.migrate([("evaluation", "0001_initial")])
+        executor.migrate([n for n in executor.loader.graph.leaf_nodes() if n[0] == "evaluation"])
     finally:
         executor = MigrationExecutor(connection)
         executor.migrate(executor.loader.graph.leaf_nodes())

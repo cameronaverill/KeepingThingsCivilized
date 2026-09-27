@@ -47,14 +47,6 @@ def test_a_panel_with_a_zero_disagreement_threshold_gets_a_validation_error():
         kit.make_panel(intensity_disagreement_threshold=0)
 
 
-@pytest.mark.parametrize("source", ["bogus", "", "rater:", "rater"])
-def test_an_annotation_with_a_malformed_source_gets_a_validation_error(world, source):
-    from evaluation.models import Annotation
-
-    with pytest.raises(ValidationError):
-        Annotation(dimension="stance", value="pro", source=source, **kit.target_ref(world.message)).save()
-
-
 def test_a_finding_on_a_dimension_outside_the_taxonomy_gets_a_validation_error_even_if_the_rating_lists_it(world):
     """Rating rows made without validation may list any dimension; the finding still must use a taxonomy dimension."""
     from evaluation.models import Rating
@@ -113,7 +105,7 @@ def test_a_queryset_update_cannot_point_other_target_tables_at_a_missing_target(
 
     ghost = world.message.pk + 1000
     consensus = kit.make_consensus(kit.make_panel([world.llm]), world.message)
-    annotation = Annotation.objects.create(dimension="stance", value="pro", source="self", **kit.target_ref(world.message))
+    annotation = Annotation.objects.create(dimension="stance", value="pro", **kit.target_ref(world.message))
     cset = CalibrationSet.objects.create(name="upd-set", seed=1)
     item = CalibrationItem.objects.create(**{kit.item_set_field_name(): cset, "stratum": "x", "order": 1, **kit.target_ref(world.message)})
     for model, row in ((ConsensusFinding, consensus), (Annotation, annotation), (CalibrationItem, item)):

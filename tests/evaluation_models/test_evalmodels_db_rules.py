@@ -67,7 +67,7 @@ def test_the_other_target_tables_check_existence_in_the_database_too(world):
     ghost = missing_ids(world)[0]
     panel = kit.make_panel([world.llm])
     cset = CalibrationSet.objects.create(name="ghost-set", seed=1)
-    refused(lambda: Annotation.objects.bulk_create([Annotation(target_type="message", target_id=ghost, dimension="stance", value="pro", source="self")]))
+    refused(lambda: Annotation.objects.bulk_create([Annotation(target_type="message", target_id=ghost, dimension="stance", value="pro")]))
     refused(
         lambda: CalibrationItem.objects.bulk_create(
             [CalibrationItem(**{kit.item_set_field_name(): cset, "target_type": "message", "target_id": ghost, "stratum": "x", "order": 1})]

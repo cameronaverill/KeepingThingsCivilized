@@ -151,17 +151,24 @@ def test_a_set_without_items_can_be_deleted():
 def make_annotation(target, **extra):
     from evaluation.models import Annotation
 
-    values = dict(dimension="stance", value="pro", source="self", **kit.target_ref(target))
+    values = dict(dimension="stance", value="pro", **kit.target_ref(target))
     values.update(extra)
     return Annotation.objects.create(**values)
 
 
 def test_the_annotation_fields():
+    from django.db import models
+
     from evaluation.models import Annotation
 
-    assert {"target_type", "target_id", "dimension", "value", "source", "rating", "confidence", "created_at"} <= kit.field_names(Annotation)
+    names = kit.field_names(Annotation)
+    assert {"target_type", "target_id", "dimension", "value", "rater", "rating", "confidence", "created_at"} <= names
+    assert "source" not in names
     assert Annotation._meta.get_field("rating").null is True
     assert Annotation._meta.get_field("confidence").null is True
+    rater = Annotation._meta.get_field("rater")
+    assert isinstance(rater, models.ForeignKey) and rater.null is True
+    assert rater.related_model._meta.label == "evaluation.Rater" and rater.remote_field.on_delete is models.PROTECT
 
 
 def test_an_annotation_round_trips(world):
@@ -169,8 +176,8 @@ def test_an_annotation_round_trips(world):
 
     made = make_annotation(world.m1, dimension="directional_effect", value="toward_pro", confidence=0.9)
     loaded = Annotation.objects.get(pk=made.pk)
-    assert (loaded.target_type, loaded.target_id, loaded.dimension, loaded.value, loaded.source) == (
-        "message", world.m1.pk, "directional_effect", "toward_pro", "self",
+    assert (loaded.target_type, loaded.target_id, loaded.dimension, loaded.value) == (
+        "message", world.m1.pk, "directional_effect", "toward_pro",
     )  # fmt: skip
     assert loaded.confidence == 0.9 and loaded.rating_id is None and loaded.created_at is not None
 
@@ -180,27 +187,83 @@ def test_the_message_level_dimensions_are_accepted(world, dimension):
     assert make_annotation(world.m1, dimension=dimension).dimension == dimension
 
 
-def test_the_source_self_is_accepted(world):
-    assert make_annotation(world.m1, source="self").source == "self"
-
-
-def test_a_rater_source_names_the_rater(world):
-    rater = kit.make_rater("llm", name="judge-one")
-    assert make_annotation(world.m1, source="rater:judge-one", rating=kit.make_rating(rater, world.m1)).source == "rater:judge-one"
-
-
-@pytest.mark.parametrize("source", ["", "bogus", "rater", "rater:", "Self", "human:bob"])
-def test_a_malformed_source_is_refused(world, source):
-    with pytest.raises(kit.REFUSED), transaction.atomic():
-        make_annotation(world.m1, source=source)
-
-
-def test_a_malformed_source_is_refused_by_the_database(world):
+def test_no_rater_means_the_researchers_own_label(world):
     from evaluation.models import Annotation
 
-    bad = Annotation(dimension="stance", value="pro", source="bogus", **kit.target_ref(world.m1))
+    made = make_annotation(world.m1)
+    assert Annotation.objects.get(pk=made.pk).rater_id is None
+    assert Annotation.objects.filter(rater__isnull=True).count() == 1
+
+
+@pytest.mark.parametrize("kind", ["llm", "human"])
+def test_a_rater_of_either_kind_can_label(world, kind):
+    rater = kit.make_rater(kind)
+    made = make_annotation(world.m1, rater=rater)
+    made.refresh_from_db()
+    assert made.rater == rater
+
+
+def test_an_annotation_by_a_rater_can_belong_to_that_raters_rating_and_protects_it(world):
+    from django.db.models import ProtectedError
+
+    rater = kit.make_rater("llm", name="judge-two")
+    rating = kit.make_rating(rater, world.m1)
+    make_annotation(world.m1, rating=rating, rater=rater)
+    with pytest.raises(ProtectedError):
+        rating.delete()
+
+
+def test_a_rater_with_annotations_cannot_be_deleted(world):
+    """PROTECT: the rater has no ratings here, so only the annotation blocks the delete."""
+    from django.db.models import ProtectedError
+
+    from evaluation.models import Rater
+
+    rater = kit.make_rater("llm", name="judge-one")
+    make_annotation(world.m1, rater=rater)
+    with pytest.raises(ProtectedError):
+        rater.delete()
+    assert Rater.objects.filter(pk=rater.pk).exists()
+
+
+def test_a_rater_without_annotations_can_be_deleted(world):
+    from evaluation.models import Rater
+
+    kit.make_rater("llm", name="unused").delete()
+    assert Rater.objects.count() == 0
+
+
+def test_a_made_up_rater_id_is_refused_by_the_database(world):
+    from django.db import IntegrityError, connection, transaction
+
+    from evaluation.models import Annotation
+
+    real = kit.make_rater("llm")
+    bad = Annotation(dimension="stance", value="pro", rater_id=real.pk + 5000, **kit.target_ref(world.m1))
     with pytest.raises(IntegrityError), transaction.atomic():
         Annotation.objects.bulk_create([bad])
+        connection.check_constraints()
+    assert Annotation.objects.count() == 0
+
+
+def test_a_queryset_update_cannot_point_an_annotation_at_a_made_up_rater(world):
+    from django.db import IntegrityError, connection, transaction
+
+    from evaluation.models import Annotation
+
+    rater = kit.make_rater("llm")
+    made = make_annotation(world.m1, rater=rater)
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Annotation.objects.filter(pk=made.pk).update(rater_id=rater.pk + 5000)
+        connection.check_constraints()
+    assert Annotation.objects.get(pk=made.pk).rater_id == rater.pk
+
+
+def test_the_text_source_is_gone(world):
+    from evaluation.models import Annotation
+
+    with pytest.raises(TypeError):
+        Annotation(dimension="stance", value="pro", source="self", **kit.target_ref(world.m1))
 
 
 def test_a_missing_target_is_refused_for_an_annotation(world):
@@ -208,14 +271,8 @@ def test_a_missing_target_is_refused_for_an_annotation(world):
         make_annotation(world.m1, target_id=world.m1.pk + 1000)
 
 
-def test_an_annotation_can_belong_to_a_rating_and_protects_it(world):
-    rating = kit.make_rating(kit.make_rater("llm", name="judge-two"), world.m1)
-    make_annotation(world.m1, rating=rating, source="rater:judge-two")
-    with pytest.raises(ProtectedError):
-        rating.delete()
-
-
 def test_several_annotations_may_share_a_target_and_dimension(world):
-    make_annotation(world.m1, source="self", value="pro")
-    kit.make_rater("llm", name="judge-three")
-    make_annotation(world.m1, source="rater:judge-three", value="con")
+    other = kit.make_rater("llm", name="judge-three")
+    make_annotation(world.m1, value="pro")
+    make_annotation(world.m1, rater=other, value="con")
+    make_annotation(world.m1, rater=other, value="pro")

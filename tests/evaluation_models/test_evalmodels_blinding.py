@@ -134,7 +134,7 @@ def add_moderation_and_rater_output(w):
     other = kit.make_rater("llm", name="RATER_NAME_SENTINEL")
     rating = kit.make_rating(other, w.m3)
     kit.make_finding(rating, 0, 7, detail={"note": "FINDING_DETAIL_SENTINEL"})
-    Annotation.objects.create(target_type="message", target_id=w.m3.pk, dimension="stance", value="ANNOTATION_SENTINEL", source="rater:RATER_NAME_SENTINEL", rating=rating)
+    Annotation.objects.create(target_type="message", target_id=w.m3.pk, dimension="stance", value="ANNOTATION_SENTINEL", rater=other, rating=rating)
     panel = kit.make_panel([other])
     kit.make_consensus(panel, w.m3, dimension="factual_accuracy", start=0, end=7)
     return act
