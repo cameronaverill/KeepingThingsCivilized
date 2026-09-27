@@ -1,0 +1,347 @@
+erDiagram
+    User {
+        id id
+        text password
+        datetime last_login
+        bool is_superuser
+        text first_name
+        text last_name
+        bool is_staff
+        bool is_active
+        datetime date_joined
+        text username
+        text email
+        datetime email_verified_at
+        text username_key
+        text email_key
+    }
+    Block {
+        id id
+        ForeignKey blocker
+        ForeignKey blocked
+        datetime created_at
+    }
+    Conversation {
+        id id
+        ForeignKey topic
+        text status
+        text source
+        ForeignKey experiment
+        text pair_id
+        text variant
+        text transcript_id
+        int label_seed
+        ForeignKey ended_by
+        datetime ended_at
+        datetime created_at
+    }
+    Experiment {
+        id id
+        text name
+        text kind
+        text description
+        json config
+        datetime created_at
+    }
+    Message {
+        id id
+        ForeignKey conversation
+        int seq_no
+        text author_type
+        ForeignKey participant
+        ForeignKey in_reply_to
+        text content
+        int char_count
+        json planted
+        datetime created_at
+    }
+    Participant {
+        id id
+        ForeignKey conversation
+        ForeignKey user
+        text label
+        int join_order
+        text side
+        datetime joined_at
+    }
+    Topic {
+        id id
+        text title
+        text description
+        text proposition
+        text opposing_position
+        json leans
+        ForeignKey created_by
+        bool hidden
+        datetime created_at
+    }
+    GuardState {
+        id id
+        bool breaker_tripped
+        datetime tripped_at
+        text trip_reason
+        text trip_detail
+        int consecutive_errors
+        datetime last_error_at
+        text trip_kind
+        datetime cooldown_until
+        int cooldown_seconds
+        bool probe_in_flight
+        datetime probe_started_at
+        datetime last_alert_at
+        text last_alert_error
+    }
+    InterventionAct {
+        id id
+        ForeignKey run
+        int order
+        text act_type
+        text tone
+        text text
+        text addressee
+        text subject
+        text validity
+        text rejection_reason
+        int char_len
+        int word_count
+        bool is_question
+        bool quotes_participant
+    }
+    Issue {
+        id id
+        ForeignKey run
+        text local_id
+        ForeignKey message
+        text issue_type
+        text dimension
+        text quote
+        int quote_start
+        int quote_end
+        text quote_match
+        text explanation
+        float confidence
+        int intensity
+        text validity
+        text rejection_reason
+    }
+    IssueDisposition {
+        id id
+        OneToOneField issue
+        text disposition
+        text reason
+    }
+    LLMCall {
+        id id
+        text purpose
+        int run_id
+        int conversation_id
+        text agent
+        int attempt
+        text provider
+        text model
+        text prompt_version
+        text prompt_sha256
+        float temperature
+        int max_tokens
+        json request
+        text raw_response
+        json parsed
+        int tokens_in
+        int tokens_out
+        int cache_write_tokens
+        int cache_read_tokens
+        decimal reserved_usd
+        decimal cost_usd
+        int latency_ms
+        text stop_reason
+        text provider_request_id
+        text status
+        text error
+        text error_code
+        datetime created_at
+        datetime finished_at
+    }
+    ModerationRun {
+        id id
+        ForeignKey conversation
+        ForeignKey trigger_message
+        int snapshot_seq
+        text kind
+        ForeignKey replay_of
+        int replicate
+        text status
+        int attempts
+        bool is_stale
+        text decision
+        text rationale
+        OneToOneField posted_message
+        text failure_reason
+        text error
+        json config_snapshot
+        json discussion_map
+        datetime claimed_at
+        datetime started_at
+        datetime finished_at
+        datetime created_at
+    }
+    PreviewCheck {
+        id id
+        int conversation
+        int participant
+        text draft_text
+        int char_count
+        text draft_sha256
+        int snapshot_seq
+        text mode
+        text outcome
+        text unavailable_reason
+        json note_texts
+        json master_output
+        json intervenor_output
+        json llm_call_ids
+        text action
+        int resulting_message_id
+        int reused_by_run_id
+        datetime created_at
+        datetime resolved_at
+    }
+    PreviewMode {
+        id id
+        int conversation
+        text mode
+        datetime assigned_at
+    }
+    Annotation {
+        id id
+        text target_type
+        PositiveBigIntegerField target_id
+        text dimension
+        text value
+        text source
+        ForeignKey rating
+        float confidence
+        datetime created_at
+    }
+    CalibrationItem {
+        id id
+        text target_type
+        PositiveBigIntegerField target_id
+        ForeignKey set
+        text stratum
+        int order
+    }
+    CalibrationSet {
+        id id
+        text name
+        int seed
+        json strata
+        datetime created_at
+    }
+    ConsensusFinding {
+        id id
+        text target_type
+        PositiveBigIntegerField target_id
+        ForeignKey panel
+        text dimension
+        int start
+        int end
+        int n_raters
+        float intensity_mean
+        int intensity_range
+        bool needs_adjudication
+        int adjudicated_intensity
+        ForeignKey adjudicated_by
+    }
+    ConsensusFindingMember {
+        id id
+        ForeignKey consensus_finding
+        ForeignKey finding
+    }
+    Finding {
+        id id
+        ForeignKey rating
+        text local_id
+        text dimension
+        int start
+        int end
+        text quote
+        int intensity
+        text not_scorable_reason
+        float confidence
+        json detail
+    }
+    IssueFindingLink {
+        id id
+        ForeignKey issue
+        ForeignKey consensus_finding
+        float overlap
+    }
+    Panel {
+        id id
+        text name
+        text version
+        json dimensions
+        float span_match_min_iou
+        int intensity_disagreement_threshold
+        datetime created_at
+    }
+    PanelMember {
+        id id
+        ForeignKey panel
+        ForeignKey rater
+    }
+    Rater {
+        id id
+        text name
+        text kind
+        text provider
+        text model
+        float temperature
+        ForeignKey user
+        bool active
+    }
+    Rating {
+        id id
+        text target_type
+        PositiveBigIntegerField target_id
+        ForeignKey rater
+        json dimensions
+        int replicate
+        int llm_call_id
+        text guideline_version
+        text status
+        datetime started_at
+        datetime finished_at
+    }
+    CalibrationSet ||--o{ CalibrationItem : "set"
+    ConsensusFinding ||--o{ ConsensusFindingMember : "consensus_finding"
+    ConsensusFinding ||--o{ IssueFindingLink : "consensus_finding"
+    Conversation ||--o{ Message : "conversation"
+    Conversation ||--o{ ModerationRun : "conversation"
+    Conversation ||--o{ Participant : "conversation"
+    Experiment ||--o{ Conversation : "experiment"
+    Finding ||--o{ ConsensusFindingMember : "finding"
+    Issue ||--o{ IssueDisposition : "issue"
+    Issue ||--o{ IssueFindingLink : "issue"
+    Message ||--o{ Issue : "message"
+    Message ||--o{ Message : "in_reply_to"
+    Message ||--o{ ModerationRun : "posted_message"
+    Message ||--o{ ModerationRun : "trigger_message"
+    ModerationRun ||--o{ InterventionAct : "run"
+    ModerationRun ||--o{ Issue : "run"
+    ModerationRun ||--o{ ModerationRun : "replay_of"
+    Panel ||--o{ ConsensusFinding : "panel"
+    Panel ||--o{ PanelMember : "panel"
+    Participant ||--o{ Conversation : "ended_by"
+    Participant ||--o{ Message : "participant"
+    Rater ||--o{ PanelMember : "rater"
+    Rater ||--o{ Rating : "rater"
+    Rating ||--o{ Annotation : "rating"
+    Rating ||--o{ Finding : "rating"
+    Topic ||--o{ Conversation : "topic"
+    User ||--o{ Block : "blocked"
+    User ||--o{ Block : "blocker"
+    User ||--o{ ConsensusFinding : "adjudicated_by"
+    User ||--o{ Participant : "user"
+    User ||--o{ Rater : "user"
+    User ||--o{ Topic : "created_by"
