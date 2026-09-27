@@ -1,5 +1,5 @@
 """7b: the static files exist and follow the design rules (44px targets, visible focus, 4.5:1 contrast, no left/right
-alignment for the two participants, no maxlength and no disabled button in compose.js)."""
+alignment for the two participants, no maxlength in compose.js, and a button disabled only while a check runs)."""
 import re
 
 import pytest
@@ -176,10 +176,13 @@ def test_compose_js_uses_the_server_counting_rule():
         "code points are counted (an emoji is one), not UTF-16 units"
 
 
-def test_compose_js_only_advises_it_never_truncates_or_disables():
+def test_compose_js_only_advises_the_counter_never_truncates_and_disables_the_button_only_while_checking():
+    """Step 19: the Post button is disabled while the draft is checked and must be enabled again on every path; the counter
+    itself never disables anything (behaviour is tested through Node in test_fviews_check_js.py)."""
     js = code("compose.js")
     assert not re.search(r"maxlength|maxLength", js, re.I), "nothing may be silently truncated"
-    assert not re.search(r"\.disabled\s*=|setAttribute\(\s*['\"]disabled|toggleAttribute\(\s*['\"]disabled", js), "the button stays enabled"
+    assert re.search(r"disabled\s*=\s*false|removeAttribute\(\s*['\"]disabled['\"]", js), "the button is enabled again"
+    assert not re.search(r"disabled\s*=\s*(over|n\s*>|count)", js), "the counter never disables the button"
     assert not re.search(r"\.value\s*=\s*[^=]*(slice|substring|substr)\(", js), "the text is never cut"
     assert not re.search(r"\beval\(|document\.write\(|new Function\(", js)
 

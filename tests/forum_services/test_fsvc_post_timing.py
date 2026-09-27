@@ -43,7 +43,7 @@ def test_the_message_matches_the_plan_wording(world, clock):
     assert exc.message.startswith("Please wait 12 more seconds before posting again.")
     assert "Messages are limited to one every 30 seconds" in exc.message
     assert "keep the discussion readable" in exc.message
-    assert "AI moderator's running costs low" in exc.message
+    assert "cost" not in exc.message.lower()
     assert_plain(exc)
 
 

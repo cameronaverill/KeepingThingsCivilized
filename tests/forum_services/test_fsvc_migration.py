@@ -206,6 +206,9 @@ def insert_topic(title, proposition):
         if "hidden" in names:
             cols.append("hidden")
             vals.append(0)
+        if "opposing_position" in names:
+            cols.append("opposing_position")
+            vals.append("")
         conn.execute(f"insert into forum_topic ({', '.join(cols)}) values ({', '.join('?' * len(cols))})", vals)
         conn.commit()
         return "ok"
@@ -275,3 +278,254 @@ def test_the_migration_reverses_and_reapplies_on_a_scratch_database(tmp_path):
     assert {"created_by_id", "hidden"} <= set(out["again_topic_cols"])
     assert (out["again_blank_1"], out["again_blank_2"]) == ("ok", "ok")
     assert out["again_empty_proposition"] == "refused"
+
+
+# --- migration 0003 (step 7c: sides and opposing positions) ---------------------------------------------------------------------
+
+SCRIPT_0003 = r"""
+import json, os, sqlite3
+os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings"
+import django
+django.setup()
+from django.core.management import call_command
+from django.db import connections
+
+db = os.environ["DJANGO_DB_PATH"]
+out = {}
+
+
+def columns(table):
+    conn = sqlite3.connect(db)
+    try:
+        return sorted(row[1] for row in conn.execute(f"pragma table_info({table})"))
+    finally:
+        conn.close()
+
+
+def sql(statement, *args):
+    conn = sqlite3.connect(db)
+    try:
+        rows = conn.execute(statement, args).fetchall()
+        conn.commit()
+        return rows
+    finally:
+        conn.close()
+
+
+def attempt(statement, *args):
+    try:
+        sql(statement, *args)
+        return "ok"
+    except sqlite3.IntegrityError:
+        return "refused"
+
+
+def migrate(*args):
+    call_command("migrate", *args, verbosity=0, interactive=False)
+    connections.close_all()
+
+
+migrate()
+from django.contrib.auth import get_user_model
+from forum.models import Conversation, Message, Participant, Topic
+
+ua = get_user_model().objects.create_user(username="migrator1", email="migrator1@mailbox.example")
+ub = get_user_model().objects.create_user(username="migrator2", email="migrator2@mailbox.example")
+topic = Topic.objects.create(title="", proposition="A claim that predates the switch", opposing_position="Its opposite")
+conv = Conversation.objects.create(topic=topic, status="active", label_seed=1)
+pa = Participant.objects.create(conversation=conv, user=ua, label="A", join_order=1, side="pro")
+pb = Participant.objects.create(conversation=conv, user=ub, label="B", join_order=2, side="con")
+Message.objects.create(conversation=conv, author_type="user", participant=pa, content="an old message")
+waiting = Conversation.objects.create(topic=topic, status="open")
+Participant.objects.create(conversation=waiting, user=ua, label="A", join_order=1)
+connections.close_all()
+out["forward_cols"] = [columns("forum_participant"), columns("forum_topic")]
+
+migrate("forum", "0002")
+out["back_participant_cols"] = columns("forum_participant")
+out["back_topic_cols"] = columns("forum_topic")
+out["back_rows"] = [
+    sql("select count(*) from forum_participant")[0][0],
+    sql("select count(*) from forum_topic")[0][0],
+    sql("select count(*) from forum_message")[0][0],
+    sql("select count(*) from forum_conversation")[0][0],
+]
+# a database at 0002 accepts two participants with no side and cannot store a side
+out["back_two_in_one_conversation_ok"] = attempt(
+    "insert into forum_participant (conversation_id, user_id, label, join_order, joined_at) "
+    "values (?, ?, 'C', 3, '2026-03-10 12:00:00')", waiting.pk, ub.pk)
+
+migrate("forum")
+out["again_participant_cols"] = columns("forum_participant")
+out["again_topic_cols"] = columns("forum_topic")
+out["again_sides"] = [r[0] for r in sql("select side from forum_participant order by id")]
+out["again_opposing"] = [r[0] for r in sql("select opposing_position from forum_topic")]
+out["again_rows"] = [
+    sql("select count(*) from forum_participant")[0][0],
+    sql("select count(*) from forum_topic")[0][0],
+]
+# the constraints exist again and the old rows (blank sides, two in one conversation) survived the forward step
+c2 = Conversation.objects.create(topic=topic, status="active")
+connections.close_all()
+ins = ("insert into forum_participant (conversation_id, user_id, label, join_order, joined_at, side) "
+       "values (?, ?, ?, ?, '2026-03-10 12:00:00', ?)")
+out["again_pro"] = attempt(ins, c2.pk, ua.pk, "A", 1, "pro")
+out["again_second_pro"] = attempt(ins, c2.pk, ub.pk, "B", 2, "pro")
+out["again_con"] = attempt(ins, c2.pk, ub.pk, "B", 2, "con")
+c3 = Conversation.objects.create(topic=topic, status="active")
+connections.close_all()
+out["again_bad_side"] = attempt(ins, c3.pk, ua.pk, "A", 1, "left")
+out["again_two_blank"] = [attempt(ins, c3.pk, ua.pk, "A", 1, ""), attempt(ins, c3.pk, ub.pk, "B", 2, "")]
+print("RESULT " + json.dumps(out))
+"""
+
+
+def test_migration_0003_reverses_and_reapplies_with_existing_rows(tmp_path):
+    import json
+
+    db = tmp_path / "m0003.sqlite3"
+    env = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "DJANGO_DB_PATH", "DJANGO_ENV")}
+    env["DJANGO_DB_PATH"] = str(db)
+    proc = subprocess.run([sys.executable, "-c", SCRIPT_0003], cwd=REPO, env=env, capture_output=True, text=True, timeout=900)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    out = json.loads(next(l for l in proc.stdout.splitlines() if l.startswith("RESULT "))[len("RESULT "):])
+
+    assert "side" in out["forward_cols"][0] and "opposing_position" in out["forward_cols"][1]
+    # reverse: the columns are gone, every row is still there
+    assert "side" not in out["back_participant_cols"] and "opposing_position" not in out["back_topic_cols"]
+    assert out["back_rows"] == [3, 1, 1, 2]
+    assert out["back_two_in_one_conversation_ok"] == "ok"
+    # forward again: the columns are back, the rows survived, every existing side and opposing position is blank
+    assert "side" in out["again_participant_cols"] and "opposing_position" in out["again_topic_cols"]
+    assert out["again_rows"] == [4, 1]
+    assert out["again_sides"] == [""] * 4
+    assert out["again_opposing"] == [""]
+    # the constraints are back
+    assert out["again_pro"] == "ok"
+    assert out["again_second_pro"] == "refused"
+    assert out["again_con"] == "ok"
+    assert out["again_bad_side"] == "refused"
+    assert out["again_two_blank"] == ["ok", "ok"]
+
+
+def test_the_0003_migration_file_exists_and_follows_0002():
+    files = sorted((REPO / "forum" / "migrations").glob("0003_*.py"))
+    assert len(files) == 1, files
+    import importlib
+
+    module = importlib.import_module(f"forum.migrations.{files[0].stem}")
+    assert any(dep[0] == "forum" and dep[1].startswith("0002_") for dep in module.Migration.dependencies)
+
+
+# --- migration 0004 (step 7c revision 5: forum.Block) -----------------------------------------------------------------------------
+
+SCRIPT_0004 = r"""
+import json, os, sqlite3
+os.environ["DJANGO_SETTINGS_MODULE"] = "config.settings"
+import django
+django.setup()
+from django.core.management import call_command
+from django.db import connections
+
+db = os.environ["DJANGO_DB_PATH"]
+out = {}
+
+
+def tables():
+    conn = sqlite3.connect(db)
+    try:
+        return sorted(r[0] for r in conn.execute("select name from sqlite_master where type='table'"))
+    finally:
+        conn.close()
+
+
+def count(table):
+    conn = sqlite3.connect(db)
+    try:
+        return conn.execute(f"select count(*) from {table}").fetchone()[0]
+    finally:
+        conn.close()
+
+
+def attempt(statement, *args):
+    conn = sqlite3.connect(db)
+    try:
+        conn.execute(statement, args)
+        conn.commit()
+        return "ok"
+    except sqlite3.IntegrityError:
+        return "refused"
+    finally:
+        conn.close()
+
+
+def migrate(*args):
+    call_command("migrate", *args, verbosity=0, interactive=False)
+    connections.close_all()
+
+
+migrate()
+from django.contrib.auth import get_user_model
+from forum.models import Block, Conversation, Participant, Topic
+
+users = [get_user_model().objects.create_user(username=f"blocker{i}", email=f"blocker{i}@mailbox.example") for i in range(3)]
+topic = Topic.objects.create(title="", proposition="A claim that predates blocks")
+conv = Conversation.objects.create(topic=topic, status="active", label_seed=1)
+Participant.objects.create(conversation=conv, user=users[0], label="A", join_order=1, side="pro")
+Participant.objects.create(conversation=conv, user=users[1], label="B", join_order=2, side="con")
+Block.objects.create(blocker=users[0], blocked=users[1])
+connections.close_all()
+out["forward_has_table"] = "forum_block" in tables()
+out["forward_rows"] = count("forum_block")
+
+migrate("forum", "0003")
+out["back_has_table"] = "forum_block" in tables()
+out["back_other_rows"] = [count("forum_participant"), count("forum_conversation"), count("forum_topic")]
+
+migrate("forum")
+out["again_has_table"] = "forum_block" in tables()
+out["again_rows"] = count("forum_block")
+out["again_other_rows"] = [count("forum_participant"), count("forum_conversation"), count("forum_topic")]
+ins = "insert into forum_block (blocker_id, blocked_id, created_at) values (?, ?, '2026-03-10 12:00:00')"
+ids = [u.pk for u in users]
+out["ins_pair"] = attempt(ins, ids[0], ids[1])
+out["ins_duplicate"] = attempt(ins, ids[0], ids[1])
+out["ins_reverse"] = attempt(ins, ids[1], ids[0])
+out["ins_self"] = attempt(ins, ids[2], ids[2])
+out["ins_other"] = attempt(ins, ids[0], ids[2])
+print("RESULT " + json.dumps(out))
+"""
+
+
+def test_the_0004_migration_file_exists_and_follows_0003():
+    files = sorted((REPO / "forum" / "migrations").glob("0004_*.py"))
+    assert len(files) == 1, files
+    import importlib
+
+    module = importlib.import_module(f"forum.migrations.{files[0].stem}")
+    assert any(dep[0] == "forum" and dep[1].startswith("0003_") for dep in module.Migration.dependencies)
+
+
+def test_migration_0004_reverses_and_reapplies_and_keeps_its_constraints(tmp_path):
+    import json
+
+    db = tmp_path / "m0004.sqlite3"
+    env = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "DJANGO_DB_PATH", "DJANGO_ENV")}
+    env["DJANGO_DB_PATH"] = str(db)
+    proc = subprocess.run([sys.executable, "-c", SCRIPT_0004], cwd=REPO, env=env, capture_output=True, text=True, timeout=900)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    out = json.loads(next(l for l in proc.stdout.splitlines() if l.startswith("RESULT "))[len("RESULT "):])
+
+    assert out["forward_has_table"] is True and out["forward_rows"] == 1
+    # reverse: the table goes, everything else stays
+    assert out["back_has_table"] is False
+    assert out["back_other_rows"] == [2, 1, 1]
+    # forward again: an empty table, the other rows intact
+    assert out["again_has_table"] is True and out["again_rows"] == 0
+    assert out["again_other_rows"] == [2, 1, 1]
+    # constraints at the database
+    assert out["ins_pair"] == "ok"
+    assert out["ins_duplicate"] == "refused"
+    assert out["ins_reverse"] == "ok"
+    assert out["ins_self"] == "refused"
+    assert out["ins_other"] == "ok"

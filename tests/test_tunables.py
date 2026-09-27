@@ -11,6 +11,9 @@ from config import tunables
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TUNABLES_FILE = REPO_ROOT / "config" / "tunables.py"
+# config/settings_live.py exists solely to flip LLM_ENABLED on for a single `dev.sh --live` run;
+# config/tunables.py itself is untouched, so it's an allowed, single-purpose exception to the rule below.
+LIVE_SETTINGS_FILE = REPO_ROOT / "config" / "settings_live.py"
 # Directories whose Python files are not application source.
 SKIP_DIRS = {".venv", "tests", "migrations", "__pycache__", ".git", "node_modules"}
 
@@ -33,7 +36,7 @@ def test_tunables_are_assigned_only_in_tunables_py():
     offenders = []
     for path in REPO_ROOT.rglob("*.py"):
         rel = path.relative_to(REPO_ROOT)
-        if path == TUNABLES_FILE or SKIP_DIRS & set(rel.parts):
+        if path in (TUNABLES_FILE, LIVE_SETTINGS_FILE) or SKIP_DIRS & set(rel.parts):
             continue
         tree = ast.parse(path.read_text(), filename=str(path))
         for node in ast.walk(tree):
@@ -92,7 +95,7 @@ def test_agreed_limits():
     assert tunables.MAX_ACTS_PER_INTERVENTION == 3
     assert tunables.MAX_PARTICIPANTS == 2
     assert tunables.PASSWORD_MIN_LENGTH == 12
-    assert tunables.EMAIL_CONFIRM_MAX_AGE_DAYS == 3
+    assert not hasattr(tunables, "EMAIL_CONFIRM_MAX_AGE_DAYS"), "removed in step 6c (no email confirmation)"
     assert tunables.SESSION_COOKIE_AGE == int(timedelta(days=30).total_seconds())
     assert tunables.SPAN_MATCH_MIN_IOU == 0.5
     assert tunables.BREAKER_MAX_CONSECUTIVE_ERRORS == 5

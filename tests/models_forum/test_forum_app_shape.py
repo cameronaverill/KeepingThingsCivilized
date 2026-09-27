@@ -48,9 +48,11 @@ def test_the_migration_state_matches_the_models():
     assert changes == {}
 
 
-def test_the_five_models_are_registered_under_the_forum_label():
+def test_the_six_models_are_registered_under_the_forum_label():
     labels = {m._meta.label for m in apps.get_app_config("forum").get_models()}
-    assert labels == {"forum.Topic", "forum.Experiment", "forum.Conversation", "forum.Participant", "forum.Message"}
+    assert labels == {
+        "forum.Topic", "forum.Experiment", "forum.Conversation", "forum.Participant", "forum.Message", "forum.Block",
+    }  # Block came with step 7c revision 5
 
 
 def test_step_7a_added_its_files_and_the_second_migration():

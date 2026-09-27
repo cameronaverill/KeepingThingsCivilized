@@ -234,7 +234,7 @@ def test_a_message_is_never_shown_twice_even_if_the_server_repeats_it(poll):
     assert parse_qs(urlparse(results[f][-1]["url"]).query).get("after") == ["4"], "after= follows the newest message seen"
 
 
-def test_appended_messages_carry_the_speaker_label_and_the_moderator_card_its_heading(poll):
+def test_appended_messages_carry_the_speaker_username_and_the_moderator_card_its_heading(poll):
     before = poll.body_text()
     poll.other_says("Polled-token-4")
     mine = poll.you_say("Polled-token-5")
@@ -244,7 +244,8 @@ def test_appended_messages_carry_the_speaker_label_and_the_moderator_card_its_he
     after = poll.body_text()
     results = poll.run()
     b, a = results[before], results[after]
-    assert a.count("The other participant") > b.count("The other participant")
+    assert a.count(K.NAME_B) > b.count(K.NAME_B), "the other person's messages carry their username"
+    assert "The other participant" not in a
     assert len(re.findall(r"\bYou\b", a)) > len(re.findall(r"\bYou\b", b))
     assert "About your message 5" in a and "Moderator-words" in a
     assert "moderator" in a.lower()

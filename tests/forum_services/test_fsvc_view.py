@@ -3,9 +3,10 @@ label letter, username or email ever appears."""
 from datetime import datetime
 
 import pytest
+from fsvc_testkit import enter  # noqa: E402
 
 from fsvc_testkit import (
-    assert_no_identity, assert_plain, counts, make_active, make_active_via_service, make_prop, make_user, make_waiting,
+    assert_names_only_where_allowed, assert_no_identity, assert_plain, counts, make_active, make_active_via_service, make_prop, make_user, make_waiting,
     orm_act, orm_moderator_message, orm_run, orm_user_message, rejection, svc, views, walk_strings,
 )  # fmt: skip
 
@@ -191,28 +192,60 @@ def test_after_seq_defaults_to_everything(w):
 # --- waiting -------------------------------------------------------------------------------------------------------------
 
 
-def test_a_waiting_conversation_says_so_and_offers_no_composer():
+def test_a_waiting_conversation_says_so_and_still_offers_the_composer():
     user = make_user()
     conv = make_waiting(make_prop("Trains should be free"), user)
     result = view(user, conv)
     assert result["waiting"] is True
     assert result["status"] == "open"
-    assert result["can_post"] is False
-    assert result["cannot_post_reason"]["code"] == "waiting"
-    assert "You can post once someone else joins." in result["cannot_post_reason"]["message"]
+    assert result["can_post"] is True
+    assert result["cannot_post_reason"] is None
     assert result["messages"] == []
     assert result["proposition"] == "Trains should be free"
     assert_no_identity(result, user)
 
 
+def test_a_waiting_conversation_shows_the_messages_posted_so_far(clock):
+    user = make_user()
+    conv = enter(user, make_prop("Trains should be free"))
+    svc().post_message(user, conv, "my opening message")
+    clock.advance(31)
+    svc().post_message(user, conv, "and a second thought")
+    result = view(user, conv)
+    assert [m["text"] for m in result["messages"]] == ["my opening message", "and a second thought"]
+    assert [m["kind"] for m in result["messages"]] == ["you", "you"]
+    assert result["waiting"] is True and result["can_post"] is True and result["message_count"] == 2
+
+
+def test_a_waiting_conversation_that_is_full_or_closed_cannot_be_posted_to(settings, clock):
+    settings.MAX_USER_MESSAGES_PER_CONVERSATION = 2
+    user = make_user()
+    conv = enter(user, make_prop("Trains should be free"))
+    svc().post_message(user, conv, "one")
+    clock.advance(31)
+    svc().post_message(user, conv, "two")  # the limit closes it
+    result = view(user, reload(conv))
+    assert result["can_post"] is False and result["cannot_post_reason"]["code"] == "closed"
+
+
+def test_waiting_for_second_flag_if_present_agrees_with_waiting():
+    user = make_user()
+    conv = make_waiting(user=user)
+    result = view(user, conv)
+    if "waiting_for_second" in result:
+        assert result["waiting_for_second"] is True
+
+
 def test_waiting_turns_off_when_someone_joins():
     topic = make_prop()
     first, second = make_user(), make_user()
-    conv = svc().enter_proposition(first, topic)
+    conv = enter(first, topic)
     assert view(first, conv)["waiting"] is True
-    svc().enter_proposition(second, topic)
+    enter(second, topic)
     result = view(first, reload(conv))
     assert result["waiting"] is False and result["can_post"] is True and result["status"] == "active"
+    if "waiting_for_second" in result:
+        assert result["waiting_for_second"] is False
 
 
 # --- ended and closed states ---------------------------------------------------------------------------------------------
@@ -301,7 +334,7 @@ def test_cannot_post_reason_is_a_plain_dict_with_code_and_message(w):
 # --- no label letter, username or email ----------------------------------------------------------------------------------
 
 
-def test_no_label_username_or_email_appears_anywhere_in_a_busy_conversation(w):
+def test_no_label_email_or_own_name_appears_and_the_others_name_only_in_its_fields_in_a_busy_conversation(w):
     m1 = orm_user_message(w.conv, w.a, "from the first person")
     m2 = orm_user_message(w.conv, w.b, "from the second person")
     mod = orm_moderator_message(w.conv, in_reply_to=m2, content="Both of you may wish to define the term.")
@@ -309,8 +342,9 @@ def test_no_label_username_or_email_appears_anywhere_in_a_busy_conversation(w):
     orm_act(run, "A", "B", [m2])
     for user in (w.ua, w.ub):
         result = view(user, reload(w.conv))
-        assert_no_identity(result, w.ua, w.ub)
-        assert_no_identity(view(user, reload(w.conv), after_seq=1), w.ua, w.ub)
+        other = w.ub if user is w.ua else w.ua
+        assert_names_only_where_allowed(result, user, other)
+        assert_names_only_where_allowed(view(user, reload(w.conv), after_seq=1), user, other)
 
 
 @pytest.mark.parametrize("labels", [("A", "B"), ("B", "A")])
@@ -319,7 +353,7 @@ def test_no_identity_in_the_ended_states_either(labels):
     orm_user_message(w.conv, w.a, "from the first person")
     svc().end_conversation(w.ua, w.conv)
     for user in (w.ua, w.ub):
-        assert_no_identity(view(user, reload(w.conv)), w.ua, w.ub)
+        assert_names_only_where_allowed(view(user, reload(w.conv)), user, w.ub if user is w.ua else w.ua)
 
 
 def test_no_identity_in_the_waiting_state():

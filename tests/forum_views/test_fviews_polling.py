@@ -90,7 +90,7 @@ def test_the_moderator_post_is_picked_up_with_the_heading_for_each_viewer():
     _, for_b = poll(duo.cb, duo, after=last)
     _, for_a = poll(duo.ca, duo, after=last)
     assert [(m["kind"], m["text"], m["heading"]) for m in for_b["messages"]] == [
-        ("moderator", "Moderator says hello", "About the other participant's message 1")]
+        ("moderator", "Moderator says hello", f"About {K.NAME_A}'s message 1")]
     assert [(m["kind"], m["text"], m["heading"]) for m in for_a["messages"]] == [
         ("moderator", "Moderator says hello", "About your message 1")]
 
@@ -102,7 +102,7 @@ def test_the_json_never_names_a_person_or_a_label():
     K.add_moderator_post(duo.conv, m1, "Mod text", [(duo.pa.label, duo.pa.label, [m1])])
     for client, viewer, other in ((duo.ca, duo.ua, duo.ub), (duo.cb, duo.ub, duo.ua)):
         _, data = poll(client, duo)
-        assert K.json_leaks(data, viewer, other) == []
+        assert K.json_leaks(data, viewer, other) == [], "the other username may appear; the viewer's own name and emails may not"
 
 
 def test_a_closed_conversation_reports_closed_with_its_messages():

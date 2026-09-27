@@ -2,7 +2,7 @@
 import pytest
 
 from fsvc_testkit import (
-    assert_no_identity, make_active, make_prop, orm_act, orm_moderator_message, orm_run, orm_user_message, views,
+    assert_names_only_where_allowed, make_active, make_prop, orm_act, orm_moderator_message, orm_run, orm_user_message, views,
     walk_strings,
 )  # fmt: skip
 
@@ -41,10 +41,10 @@ def scene(labels):
 # the actual letters, which depend on the labels, so cases are built from roles: "first", "second", "all", "both", "none".
 CASES = [
     # addressee, subject, source, heading for first person, heading for second person
-    ("first", "first", 0, "About your message 1", "About the other participant's message 1"),
-    ("second", "first", 0, "About your message 1", "About the other participant's message 1"),
-    ("first", "second", 1, "About the other participant's message 2", "About your message 2"),
-    ("second", "second", 1, "About the other participant's message 2", "About your message 2"),
+    ("first", "first", 0, "About your message 1", "About {other}'s message 1"),
+    ("second", "first", 0, "About your message 1", "About {other}'s message 1"),
+    ("first", "second", 1, "About {other}'s message 2", "About your message 2"),
+    ("second", "second", 1, "About {other}'s message 2", "About your message 2"),
     ("all", "first", 0, "For both of you", "For both of you"),
     ("all", "second", 1, "For both of you", "For both of you"),
     ("all", "both", 1, "For both of you", "For both of you"),
@@ -62,15 +62,31 @@ def test_the_heading_is_computed_per_viewer(labels, addressee, subject, source, 
     letters = {"first": labels[0], "second": labels[1]}
     resolve = lambda role: letters.get(role, role)  # noqa: E731  ("all", "both", "none" stay as they are)
     orm_act(run, resolve(addressee), resolve(subject), [(m1, m2)[source]])
-    assert moderator_post(view(w.ua, w.conv))["heading"] == first_heading
-    assert moderator_post(view(w.ub, w.conv))["heading"] == second_heading
+    # Revision 5: the other person's heading names them by username.
+    assert moderator_post(view(w.ua, w.conv))["heading"] == first_heading.format(other=w.ub.username)
+    assert moderator_post(view(w.ub, w.conv))["heading"] == second_heading.format(other=w.ua.username)
 
 
-def test_headings_use_no_label_letter_and_no_name():
+def test_headings_use_no_label_letter_and_no_email_and_never_the_viewers_own_name():
     w, m1, m2, run = scene(("A", "B"))
     orm_act(run, "A", "B", [m2])
     for user in (w.ua, w.ub):
-        assert_no_identity(view(user, w.conv), w.ua, w.ub)
+        assert_names_only_where_allowed(view(user, w.conv), user, w.ub if user is w.ua else w.ua)
+
+
+def test_a_heading_about_the_other_person_ends_with_possessive_message_and_number():
+    w, m1, m2, run = scene(("A", "B"))
+    orm_act(run, "B", "B", [m2])
+    heading = moderator_post(view(w.ua, w.conv))["heading"]
+    assert heading == f"About {w.ub.username}'s message 2"
+    assert moderator_post(view(w.ub, w.conv))["heading"] == "About your message 2"
+
+
+def test_headings_never_say_the_other_participant_any_more():
+    w, m1, m2, run = scene(("A", "B"))
+    orm_act(run, "B", "B", [m2])
+    for user in (w.ua, w.ub):
+        assert "other participant" not in moderator_post(view(user, w.conv))["heading"]
 
 
 def test_the_number_is_the_source_messages_seq_no_not_the_trigger_or_the_moderators():
@@ -88,7 +104,7 @@ def test_the_number_is_the_source_messages_seq_no_not_the_trigger_or_the_moderat
     run.acts.all().delete()
     orm_act(run, "B", "A", [third])
     assert moderator_post(view(w.ua, w.conv))["heading"] == "About your message 3"
-    assert moderator_post(view(w.ub, w.conv))["heading"] == "About the other participant's message 3"
+    assert moderator_post(view(w.ub, w.conv))["heading"] == f"About {w.ua.username}'s message 3"
 
 
 def test_a_rejected_act_is_ignored_when_choosing_the_heading():
@@ -145,15 +161,16 @@ def test_a_healthy_latest_run_gives_no_notice(w, status):
     assert view(w.ua, w.conv)["moderation_notice"] is None
 
 
-def test_skipped_budget_says_the_moderator_has_reached_a_spending_limit(w):
+def test_skipped_budget_says_moderation_is_paused_without_naming_spending(w):
     with_runs(w, "skipped_budget")
     for user in (w.ua, w.ub):
         notice = view(user, w.conv)["moderation_notice"]
         assert isinstance(notice, str)
-        assert "AI moderator" in notice
-        assert "limit" in notice
+        assert "AI moderat" in notice
+        assert "paused" in notice
         assert "resume" in notice
         assert "still posted" in notice
+        assert "spend" not in notice.lower() and "cost" not in notice.lower()
 
 
 def test_skipped_disabled_says_moderation_is_switched_off(w):
@@ -244,4 +261,4 @@ def test_the_notice_does_not_stop_posting(w):
 
 def test_the_notice_never_names_a_label_or_a_person(w):
     with_runs(w, "failed")
-    assert_no_identity(view(w.ua, w.conv), w.ua, w.ub)
+    assert_names_only_where_allowed(view(w.ua, w.conv), w.ua, w.ub)

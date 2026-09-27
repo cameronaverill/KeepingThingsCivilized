@@ -3,6 +3,7 @@ actions; hiding keeps every conversation."""
 import re
 
 import pytest
+from fsvc_testkit import enter  # noqa: E402
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -135,9 +136,9 @@ def test_hiding_a_proposition_keeps_its_conversations_and_they_stay_readable(cli
 def test_a_hidden_proposition_cannot_be_entered_until_unhidden(client, staff):
     topic = make_prop("Trains should be free")
     run_action(client, "Hide selected propositions", [topic])
-    assert rejection(svc().enter_proposition, make_user(), fresh(topic)).code == "hidden"
+    assert rejection(enter, make_user(), fresh(topic)).code == "hidden"
     run_action(client, "Unhide", [topic])
-    assert svc().enter_proposition(make_user(), fresh(topic)).pk
+    assert enter(make_user(), fresh(topic)).pk
 
 
 def test_a_hidden_proposition_is_ignored_by_the_duplicate_check_but_visible_ones_are_not(client, staff):

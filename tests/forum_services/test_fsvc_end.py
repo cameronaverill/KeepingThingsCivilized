@@ -1,5 +1,6 @@
 """end_conversation: who may end what, what it records, and what is still possible afterwards."""
 import pytest
+from fsvc_testkit import enter  # noqa: E402
 
 from fsvc_testkit import (
     assert_plain, counts, make_active_via_service, make_prop, make_user, make_waiting, participant_of, rejection, svc,
@@ -43,7 +44,7 @@ def test_the_creator_can_end_a_waiting_conversation():
 
 def test_a_waiting_conversation_created_through_the_pairing_rule_can_be_ended_by_its_creator():
     user, topic = make_user(), make_prop()
-    conv = svc().enter_proposition(user, topic)
+    conv = enter(user, topic)
     svc().end_conversation(user, conv)
     assert reload(conv).status == "closed"
 
@@ -133,4 +134,4 @@ def test_an_ended_conversation_no_longer_counts_as_open_for_either_person(world,
     settings.MAX_OPEN_CONVERSATIONS = 1
     svc().end_conversation(world.u1, world.conv)
     for user in (world.u1, world.u2):
-        assert svc().enter_proposition(user, make_prop()).pk
+        assert enter(user, make_prop()).pk

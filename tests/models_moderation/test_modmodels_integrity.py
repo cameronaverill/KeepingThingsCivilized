@@ -92,10 +92,12 @@ def test_a_moderator_post_never_creates_a_run_by_itself():
 
 
 # --- the ledger has no foreign keys ------------------------------------------------------------------------------------------------
-def test_llmcall_has_no_relations_at_all():
+def test_llmcall_has_no_relations_of_its_own():
+    """The ledger points at nothing (its ids are plain). Other tables may point at it (evaluation.Rating.llm_call), which
+    shows up as a reverse, auto-created relation and is not a column of the ledger."""
     from moderation.models import LLMCall
 
-    assert [f.name for f in LLMCall._meta.get_fields() if f.is_relation] == []
+    assert [f.name for f in LLMCall._meta.get_fields() if f.is_relation and not f.auto_created] == []
 
 
 @pytest.mark.parametrize("name", ["run_id", "conversation_id"])
@@ -179,6 +181,7 @@ def test_the_moderation_and_forum_migrations_form_one_chain():
 
     graph = MigrationExecutor(connection).loader.graph
     leaves = {app: name for app, name in graph.leaf_nodes() if app in ("moderation", "forum")}
-    assert leaves["moderation"].startswith("0004")
+    plan = graph.forwards_plan(("moderation", leaves["moderation"]))
+    assert ("moderation", "0004_moderation_run_issue_act") in plan  # later moderation migrations may follow it
     assert "forum" in leaves
-    assert graph.forwards_plan(("moderation", leaves["moderation"])).count(("forum", "0001_initial")) == 1
+    assert plan.count(("forum", "0001_initial")) == 1

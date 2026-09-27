@@ -248,3 +248,16 @@ def normalise_page(response):
 
 def unescape(text):
     return _html.unescape(text)
+
+
+def norm(text):
+    """Text with curly quotes and apostrophes made straight and whitespace collapsed, so wording compares the same
+    however it is typeset."""
+    text = unescape(text)
+    for curly, straight in (("\u2019", "'"), ("\u2018", "'"), ("\u201c", '"'), ("\u201d", '"')):
+        text = text.replace(curly, straight)
+    return " ".join(text.split())
+
+
+def page_norm(response):
+    return norm(doc(response).text())

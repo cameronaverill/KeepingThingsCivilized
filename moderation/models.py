@@ -404,3 +404,93 @@ def _validate_source_issues(sender, instance, action, reverse, model, pk_set, **
 @receiver(m2m_changed, sender=InterventionAct.source_messages.through)
 def _validate_source_messages(sender, instance, action, reverse, model, pk_set, **kwargs):
     _check_sources(instance, action, reverse, model, pk_set, issues=False)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Step 19: the intervention preview (docs/plan.md section 14, step 19; docs/step19_backend_brief.md). Both tables use real
+# foreign keys, all PROTECT (so a conversation, participant, message or run that a preview record points at cannot be
+# deleted until the record is removed). Only `llm_call_ids` (a JSON list of ledger ids) stays plain: the ledger must stay
+# independent of every other table. Everything here is private to the author of a draft.
+# ---------------------------------------------------------------------------------------------------------------------
+
+PREVIEW_MODES = ("on", "off")
+PREVIEW_OUTCOMES = ("no_concern", "concern", "unavailable")
+PREVIEW_UNAVAILABLE_REASONS = (
+    "off", "rate_limited", "llm_disabled", "budget", "breaker", "refused", "structural", "api_error", "internal_error",
+)
+PREVIEW_ACTIONS = ("posted_as_written", "edited", "abandoned")
+
+
+class PreviewMode(models.Model):
+    """Whether a conversation gets previews. Drawn once, the first time the conversation is checked (see
+    `moderation/preview.py`), and never redrawn: later changes of `PREVIEW_SHARE` do not touch existing conversations.
+    Both participants share it."""
+
+    MODE_CHOICES = _choices(PREVIEW_MODES)
+
+    conversation = models.OneToOneField(
+        "forum.Conversation", on_delete=models.PROTECT, related_name="preview_mode_record"
+    )
+    mode = models.CharField(max_length=3, choices=MODE_CHOICES)
+    assigned_at = models.DateTimeField(default=_now)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(mode__in=PREVIEW_MODES), name="previewmode_mode_valid"),
+        ]
+
+    def __str__(self):
+        return f"PreviewMode conversation={self.conversation} {self.mode}"
+
+
+class PreviewCheck(models.Model):
+    """One check of one draft, before it was posted. The draft text is kept (it is what lets the analysis compare drafts
+    with the final text); it is shown in the admin detail page only and never sent to a prompt, an export or a log."""
+
+    OUTCOME_CHOICES = _choices(PREVIEW_OUTCOMES)
+    UNAVAILABLE_REASON_CHOICES = [("", "")] + _choices(PREVIEW_UNAVAILABLE_REASONS)
+    ACTION_CHOICES = [("", "")] + _choices(PREVIEW_ACTIONS)
+
+    conversation = models.ForeignKey("forum.Conversation", on_delete=models.PROTECT, related_name="preview_checks")
+    participant = models.ForeignKey("forum.Participant", on_delete=models.PROTECT, related_name="preview_checks")
+    draft_text = models.TextField()
+    char_count = models.PositiveIntegerField()
+    # SHA-256 (hex) of the draft as forum.limits.count_message_chars normalises it: CRLF/CR to LF, NFC, stripped.
+    draft_sha256 = models.CharField(max_length=64)
+    # The highest message seq_no in the conversation when the draft was checked.
+    snapshot_seq = models.PositiveIntegerField()
+    mode = models.CharField(max_length=3, choices=PreviewMode.MODE_CHOICES)
+    outcome = models.CharField(max_length=12, choices=OUTCOME_CHOICES)
+    unavailable_reason = models.CharField(max_length=20, choices=UNAVAILABLE_REASON_CHOICES, blank=True, default="")
+    # The valid act texts shown to the author, in order (empty when there is no concern).
+    note_texts = models.JSONField(default=list, blank=True)
+    # The validated model outputs, with the draft's placeholder message id (-1); null when no model output exists.
+    master_output = models.JSONField(null=True, blank=True)
+    intervenor_output = models.JSONField(null=True, blank=True)
+    llm_call_ids = models.JSONField(default=list, blank=True)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES, blank=True, default="")
+    resulting_message = models.ForeignKey(
+        "forum.Message", null=True, blank=True, on_delete=models.PROTECT, related_name="preview_checks_resulting"
+    )
+    reused_by_run = models.ForeignKey(
+        ModerationRun, null=True, blank=True, on_delete=models.PROTECT, related_name="preview_checks_reused"
+    )
+    created_at = models.DateTimeField(default=_now, db_index=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["participant", "created_at"], name="previewcheck_participant_time"),
+            models.Index(fields=["conversation", "participant", "draft_sha256"], name="previewcheck_reuse_lookup"),
+        ]
+        constraints = [
+            models.CheckConstraint(condition=Q(outcome__in=PREVIEW_OUTCOMES), name="previewcheck_outcome_valid"),
+            models.CheckConstraint(condition=Q(action__in=("",) + PREVIEW_ACTIONS), name="previewcheck_action_valid"),
+            models.CheckConstraint(
+                condition=Q(action="") | Q(resolved_at__isnull=False), name="previewcheck_resolved_has_time"
+            ),
+            models.CheckConstraint(condition=Q(mode__in=PREVIEW_MODES), name="previewcheck_mode_valid"),
+        ]
+
+    def __str__(self):
+        return f"PreviewCheck {self.pk} conversation={self.conversation} {self.outcome}"

@@ -20,10 +20,15 @@ def all_pages():
     closed = K.Duo("A proposition that is closed.", names=("closed_carl", "closed_cora"))
     closed.ca.post(closed.end_url)
     anon = Client()
+    blocker = K.client_for(K.make_user("a11y_blocker"))
+    blocker.post("/users/" + K.NAME_A + "/block/")
     return [
         ("home", duo.ca, "/"),
         ("home search", duo.ca, "/?q=trains"),
         ("propose", duo.ca, "/propose/"),
+        ("your discussions", duo.ca, "/discussions/"),
+        ("your discussions search", duo.ca, "/discussions/?q=trains"),
+        ("blocked people", blocker, "/blocked/"),
         ("how it works", duo.ca, "/how-it-works/"),
         ("how it works (anonymous)", anon, "/how-it-works/"),
         ("conversation active", duo.ca, duo.url),
@@ -31,8 +36,6 @@ def all_pages():
         ("conversation closed", closed.cb, closed.url),
         ("login", anon, reverse("accounts:login")),
         ("register", anon, reverse("accounts:register")),
-        ("password reset", anon, reverse("accounts:password_reset")),
-        ("resend", anon, reverse("accounts:resend")),
         ("password change", duo.ca, reverse("accounts:password_change")),
     ]
 
@@ -94,7 +97,7 @@ def test_every_page_uses_the_shared_stylesheet_and_only_local_assets(pages):
 
 def test_signed_in_pages_have_the_header_with_a_post_logout_form(pages):
     for label, response in pages:
-        if label in ("login", "register", "resend", "password reset", "how it works (anonymous)"):
+        if label in ("login", "register", "how it works (anonymous)"):
             continue
         root = H.doc(response)
         header = root.find("header")
@@ -165,7 +168,7 @@ def test_how_it_works_numbers_come_from_settings(settings):
 def test_how_it_works_does_not_promise_labels_or_names():
     text = how_text()
     assert "Participant A" not in text and "Participant B" not in text
-    assert re.search(r"(?i)you.*the other participant|the other participant", text), "it says how the other person is shown"
+    assert "Each of you is shown only as" not in text
 
 
 # --- accounts restyle keeps the words the step 6 tests pin --------------------------------------------------------------

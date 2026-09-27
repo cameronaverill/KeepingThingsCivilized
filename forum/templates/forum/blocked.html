@@ -1,0 +1,23 @@
+{% extends "forum/base.html" %}
+{% block title %}Blocked people{% endblock %}
+{% block content %}
+<h1>Blocked people</h1>
+<p class="lead">People you have blocked cannot see your waiting positions, and you cannot see theirs.</p>
+{% if rows %}
+<ul class="my-list">
+  {% for row in rows %}
+  <li class="my-row">
+    <span class="my-position">{{ row.username }}</span>
+    <span class="my-status">since {{ row.since|date:"j F Y" }}</span>
+    <form class="inline-form" method="post" action="{% url 'forum:unblock' row.username %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-secondary btn-small">Unblock</button>
+    </form>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">You have not blocked anyone.</p>
+{% endif %}
+<p><a href="{% url 'forum:mine' %}">&larr; Your discussions</a></p>
+{% endblock %}

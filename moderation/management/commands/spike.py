@@ -13,13 +13,13 @@ A real run is done deliberately, after the Console spend limit and the key are c
 """
 import json
 import re
-import unicodedata
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
+from forum.limits import count_message_chars
 from moderation import budget, clock, llm, pricing, prompting, quotes, taxonomy
 from moderation.series import COMPUTED_KEYS, FACTORS, SIDES, compute_features
 from moderation.errors import (
@@ -90,11 +90,6 @@ def _is_moderator(author):
     return "moderator" in str(author).lower()
 
 
-def _counted_chars(text):
-    """The message length rule shared with real users (plan section 4): NFC, stripped, counted in code points."""
-    return len(unicodedata.normalize("NFC", text).strip())
-
-
 def validate_transcript(path, data, known_ids=None):
     """Raise CommandError (naming the file and the key or message) unless the transcript is usable and within limits."""
     name = path.name
@@ -121,9 +116,10 @@ def validate_transcript(path, data, known_ids=None):
             raise CommandError(f"{name}: message {position} has a seq that is not an integer")
         if not isinstance(author, str) or not isinstance(text, str):
             raise CommandError(f"{name}: message seq {seq} needs a string 'author' and a string 'text'")
-        if _counted_chars(text) > settings.MAX_MESSAGE_CHARS:
+        counted = count_message_chars(text)  # the rule real users are held to (CRLF as one, NFC, stripped, code points)
+        if counted > settings.MAX_MESSAGE_CHARS:
             raise CommandError(
-                f"{name}: message seq {seq} is {_counted_chars(text)} characters, over MAX_MESSAGE_CHARS "
+                f"{name}: message seq {seq} is {counted} characters, over MAX_MESSAGE_CHARS "
                 f"({settings.MAX_MESSAGE_CHARS}); synthetic transcripts obey the same limit as real users"
             )
         planted = message.get("planted", [])

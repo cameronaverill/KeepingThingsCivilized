@@ -5,7 +5,9 @@
  * moderation notice, and stops when the conversation is closed. After an error it waits longer and longer (up to a
  * minute) and returns to the normal pace on the first success. It never touches the compose box, so what someone is
  * typing is not disturbed; if the state of the conversation changes (someone joined, someone ended it) it reloads the
- * page only when nothing is being typed, otherwise it shows a notice with a reload link.
+ * page only when nothing is being typed, otherwise it shows a notice with a reload link and keeps polling for messages.
+ * A person waiting for a second participant can post, so the compose box exists while waiting; messages of that
+ * person are already on the page and are never added twice (each is keyed by its seq_no).
  */
 (function () {
   "use strict";
@@ -61,13 +63,15 @@
     if (count && typeof data.message_count === "number") { count.textContent = String(data.message_count); }
     updateNotice(data.moderation_notice);
     if (stateChanged(data)) {
-      stopped = true;
       if (!box || box.value.trim() === "") {
+        stopped = true;
         window.location.reload();
-      } else if (changed) {
-        changed.hidden = false;
+        return;
       }
-      return;
+      // Someone is typing: never reload under them. Say so, remember the new state, and keep polling for messages
+      // (unless the conversation is now closed, handled below).
+      if (changed) { changed.hidden = false; }
+      initial = { status: data.status, waiting: !!data.waiting, canPost: !!data.can_post };
     }
     if (data.status === "closed") { stopped = true; }
   }

@@ -27,14 +27,21 @@ def norm(text):
     return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
-def speaker_in_block(response, token):
-    """'You' or 'other' for the message block holding `token`, from the speaker label inside that block."""
+def other_name(client, duo):
+    """The username the viewer sees for the other person (Revision 5: usernames are shown)."""
+    return K.NAME_B if client is duo.ca else K.NAME_A
+
+
+def speaker_in_block(response, token, other):
+    """'You' or 'other' for the message block holding `token`, from the speaker label inside that block: 'You' for the
+    viewer's own messages, the other person's username for theirs."""
     root = H.doc(response)
-    block = K.find_block(root, token, ["You", "The other participant"])
+    block = K.find_block(root, token, ["You", other])
     assert block is not None, f"{token!r} is not shown next to a speaker label"
     text = block.text().replace(token, "")
     has_you = re.search(r"\bYou\b", text) is not None
-    has_other = "The other participant" in text
+    has_other = other in text
+    assert "The other participant" not in text, "the speaker label is the username now"
     assert has_you != has_other, f"the block for {token!r} must carry exactly one speaker label: {text!r}"
     return "you" if has_you else "other"
 
@@ -82,14 +89,14 @@ def test_the_sidebar_counts_the_messages_used(field_names):
     assert re.search(r"\b3\b\D{0,20}\b30\b", text), "the sidebar shows how many of the 30 messages are used"
 
 
-def test_messages_carry_you_and_the_other_participant_per_viewer_in_order():
+def test_messages_carry_you_and_the_other_persons_username_per_viewer_in_order():
     duo = K.Duo()
     duo.seed(duo.pa, "Token-alpha-one", 50)
     duo.seed(duo.pb, "Token-bravo-two", 40)
     duo.seed(duo.pa, "Token-charlie-three", 30)
     for client, expected in ((duo.ca, ["you", "other", "you"]), (duo.cb, ["other", "you", "other"])):
         response = page(client, duo)
-        assert [speaker_in_block(response, t) for t in ("Token-alpha-one", "Token-bravo-two", "Token-charlie-three")] == expected
+        assert [speaker_in_block(response, t, other_name(client, duo)) for t in ("Token-alpha-one", "Token-bravo-two", "Token-charlie-three")] == expected
         body = response.content.decode()
         assert body.index("Token-alpha-one") < body.index("Token-bravo-two") < body.index("Token-charlie-three")
 
@@ -136,7 +143,7 @@ def test_two_sessions_alternate_and_repeat_posts_with_no_turn_rule(field_names, 
     seqs = list(K.user_messages(duo.conv).values_list("seq_no", flat=True))
     assert seqs == sorted(seqs) and len(set(seqs)) == 6
     for client, expected in ((duo.ca, "you"), (duo.cb, "other")):
-        assert speaker_in_block(page(client, duo), "Token-a2") == expected
+        assert speaker_in_block(page(client, duo), "Token-a2", other_name(client, duo)) == expected
 
 
 def test_a_successful_post_redirects_back_to_the_conversation_and_saves_one_pending_live_run(field_names):
@@ -228,7 +235,7 @@ def test_a_message_of_3001_characters_is_refused_with_the_count_limit_and_reason
     alert = H.alert_text(response)
     assert "3,001" in alert and "3,000" in alert
     assert re.search(r"shorten it by 1 character", alert)
-    assert "keep the AI moderator's running costs low" in alert
+    assert "cost" not in alert.lower()
     assert norm(H.control_value(H.text_control(composer(response, duo)))) == norm(text)
     assert K.user_messages(duo.conv).count() == 0 and K.runs(duo.conv).count() == 0
 
@@ -354,7 +361,7 @@ def test_the_creator_of_a_waiting_conversation_can_end_it(field_names):
     assert K.fresh(conv).status == "closed"
     landing = client.get(reverse("forum:conversation", args=[conv.pk]))
     assert K.YOU_ENDED in H.unescape(landing.content.decode())
-    later = K.enter(K.make_user(), topic)
+    later = K.enter(K.make_user(), topic, "con")
     assert later.pk != conv.pk and later.status == "open", "nobody can join an ended conversation"
 
 
@@ -365,7 +372,9 @@ def test_a_closed_conversation_stays_readable_after_its_proposition_is_hidden():
     duo.topic.save()
     assert "Token-still-readable" in page(duo.ca, duo).content.decode()
     assert "Token-still-readable" in page(duo.cb, duo).content.decode()
-    assert duo.topic.proposition not in duo.ca.get("/").content.decode()
+    import fviews_cards as C
+
+    assert duo.topic.pk not in C.choices_in(H.doc(duo.ca.get("/"))), "a hidden proposition is never offered to join"
 
 
 # --- the AI moderator: cards, headings, notices -----------------------------------------------------------------------
@@ -389,7 +398,7 @@ def scripted_conversation():
     return duo, (m1, m2, m3, m4, m5, m6)
 
 
-HEADINGS = ["About your message", "About the other participant's message", "For both of you", "About the conversation"]
+HEADINGS = ["About your message", f"About {K.NAME_A}'s message", f"About {K.NAME_B}'s message", "For both of you", "About the conversation"]
 
 
 def heading_in_block(response, token):
@@ -406,9 +415,9 @@ def test_each_moderator_post_shows_the_heading_worked_out_for_the_viewer():
     duo, _ = scripted_conversation()
     a = page(duo.ca, duo)
     b = page(duo.cb, duo)
-    expected_a = {1: "About your message 1", 2: "About the other participant's message 2", 3: "For both of you",
-                  4: "About the conversation", 5: "For both of you", 6: "About the other participant's message 6"}
-    expected_b = {1: "About the other participant's message 1", 2: "About your message 2", 3: "For both of you",
+    expected_a = {1: "About your message 1", 2: f"About {K.NAME_B}'s message 2", 3: "For both of you",
+                  4: "About the conversation", 5: "For both of you", 6: f"About {K.NAME_B}'s message 6"}
+    expected_b = {1: f"About {K.NAME_A}'s message 1", 2: "About your message 2", 3: "For both of you",
                   4: "About the conversation", 5: "For both of you", 6: "About your message 6"}
     for n in range(1, 7):
         assert heading_in_block(a, f"Mod-token-{n}") == expected_a[n], f"A, card {n}"
@@ -422,15 +431,15 @@ def test_moderator_posts_are_labelled_as_the_ai_moderator_and_distinct_from_part
     block = K.find_block(root, "Mod-token-1", ["moderator", "Moderator"])
     assert block is not None and "moderator" in block.text().lower()
     speaker = block.text()
-    assert "The other participant" not in speaker.replace("About the other participant's", "")
-    user_block = K.find_block(root, "User-one-by-A", ["You", "The other participant"])
+    assert "The other participant" not in speaker
+    user_block = K.find_block(root, "User-one-by-A", ["You", K.NAME_B])
     assert user_block is not block and "moderator" not in user_block.text().lower().replace("ai moderator", "")
 
 
-def test_a_moderator_post_is_never_addressed_by_a_label_letter_or_username_in_the_page():
+def test_a_moderator_card_uses_usernames_never_label_letters_or_emails_in_the_page():
     duo, _ = scripted_conversation()
     for client, viewer, other in ((duo.ca, duo.ua, duo.ub), (duo.cb, duo.ub, duo.ua)):
-        assert K.leaks(page(client, duo).content.decode(), viewer, other) == []
+        assert K.leaks(page(client, duo).content.decode(), viewer, other, other_name_ok=True) == []
 
 
 def test_moderation_paused_notices_are_plain_and_say_messages_are_still_posted(field_names):
@@ -448,12 +457,13 @@ def test_moderation_paused_notices_are_plain_and_say_messages_are_still_posted(f
         assert composer(response, duo) is not None, "moderation being paused never blocks posting"
 
 
-def test_a_budget_pause_names_the_spending_limit_and_that_posting_still_works():
+def test_a_budget_pause_says_moderation_is_paused_and_that_posting_still_works_without_naming_spending():
     duo = K.Duo()
     trigger = duo.seed(duo.pa, "hello", 30)
     K.set_last_run(duo.conv, trigger, "skipped_budget", "site_total_cap")
     body = H.unescape(page(duo.ca, duo).content.decode())
-    assert re.search(r"spending limit", body) and "still posted" in body
+    assert re.search(r"moderation is paused", body) and "still posted" in body
+    assert "spending" not in body.lower()
     assert "site_total_cap" not in body
 
 
@@ -480,7 +490,7 @@ def test_sync_mode_runs_the_pipeline_after_commit_and_the_moderator_post_reaches
     _, for_b = K.poll_json(duo.cb, duo.conv, after=0)
     kinds = [(m["kind"], m["text"]) for m in for_b["messages"]]
     assert kinds == [("other", "Please moderate this."), ("moderator", "Mod-from-pipeline")]
-    assert [m["heading"] for m in for_b["messages"] if m["kind"] == "moderator"] == ["About the other participant's message 1"]
+    assert [m["heading"] for m in for_b["messages"] if m["kind"] == "moderator"] == [f"About {K.NAME_A}'s message 1"]
     _, for_a = K.poll_json(duo.ca, duo.conv, after=1)
     assert [(m["kind"], m["heading"]) for m in for_a["messages"]] == [("moderator", "About your message 1")]
 

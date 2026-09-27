@@ -10,8 +10,11 @@ Views are thin. Every rule (limits, pairing, membership, who ended what) lives i
 """
 
 import logging
+from types import SimpleNamespace
 
 from django.conf import settings
+from django.contrib import messages as flash
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import JsonResponse
@@ -24,10 +27,13 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 from . import services, viewmodels
 from .forms import SearchForm, TextForm
 from .limits import count_message_chars
-from .models import Conversation, Topic
+from .models import Conversation, Participant, Topic
+from .templatetags import forum_text
 
 logger = logging.getLogger(__name__)
 
+SIDES = ("pro", "con")
+CHOOSE_A_POSITION = "Choose a position first."
 CONVERSATION_NOT_FOUND = "This conversation was not found, or you are not a participant."
 OUR_SIDE_FAILED = (
     "Something went wrong on our side and your message was not sent. "
@@ -72,29 +78,78 @@ def _not_found(request):
 
 # --- Home ----------------------------------------------------------------------------------------------------
 
+STATUS_WORDS = {
+    "waiting": "Waiting for someone to take the other position",
+    "active": "In discussion",
+    "ended": "Ended",
+}
+DISAGREE_BUTTON = "I disagree with this position"
 
-def _matching_topics(query):
-    if "\x00" in query:
-        return []  # a NUL character can never be part of a proposition
-    topics = Topic.objects.filter(hidden=False).exclude(proposition="").order_by("-created_at", "-id")
-    if not query:
-        return list(topics.only("id", "proposition"))
-    if query.isascii():
-        return list(topics.filter(proposition__icontains=query).only("id", "proposition"))
-    # SQLite's LIKE only ignores case for ASCII, so a non-ASCII search is compared in Python.
-    needle = query.casefold()
-    return [topic for topic in topics.only("id", "proposition") if needle in topic.proposition.casefold()]
+
+def _own_position_line(side, topic):
+    """The viewer's own position as one line (the same rule on the conversation page and in "Your conversations")."""
+    if side == "con":
+        if topic.opposing_position:  # a seeded topic: the opposing wording exists
+            return f"Your position: {topic.opposing_position}"
+        return f"You disagree with this position: {topic.proposition}"
+    return f"Your position: {topic.proposition}"  # pro, or an old row with a blank side
+
+
+def _side_choices(topic):
+    """The two buttons that start a conversation on ``topic``: (side, label) for pro and con."""
+    con_label = (
+        f"My position is that {forum_text.position_phrase(topic.opposing_position)}"
+        if topic.opposing_position
+        else DISAGREE_BUTTON
+    )
+    return [
+        ("pro", f"My position is that {forum_text.position_phrase(topic.proposition)}"),
+        ("con", con_label),
+    ]
+
+
+def _waiting_cards(groups):
+    """One card per waiting group: who is waiting, their position, and the ONE button that takes the opposite side."""
+    cards = []
+    for group in groups:
+        topic, waiter = group["topic"], group["waiting_side"]
+        if waiter == "con":
+            quote = topic.opposing_position or f"They disagree with: {topic.proposition}"
+        else:
+            quote = topic.proposition
+        join_side = "pro" if waiter == "con" else "con"
+        label = dict(_side_choices(topic))[join_side]
+        cards.append(
+            {
+                "topic_id": topic.pk,
+                "quote": quote,
+                "join_side": join_side,
+                "join_label": label,
+                "username": group.get("waiting_username") or "",
+            }
+        )
+    return cards
+
+
+def _my_rows(conversations):
+    """Rows of "Your discussions": own position, who with, a status word and the link. Ended ones come last, quieter."""
+    rows = [
+        {
+            "id": item["conversation"].pk,
+            "position": _own_position_line(item.get("my_side"), item["topic"]),
+            "status": item["status"],
+            "status_word": STATUS_WORDS.get(item["status"], ""),
+            "other_username": item.get("other_username") or "",
+        }
+        for item in conversations
+    ]
+    return [r for r in rows if r["status"] != "ended"] + [r for r in rows if r["status"] == "ended"]
 
 
 def _render_home(request, *, error=None, status=200):
-    form = SearchForm(request.GET or None)
-    if form.is_valid():
-        query = form.cleaned_data["q"]
-    else:  # for example a NUL character: search for exactly that, which finds nothing, rather than showing everything
-        query = " ".join(request.GET.get("q", "").split())
+    """The waiting list only. A ``q`` parameter is ignored: searching lives on "Your discussions"."""
     context = {
-        "topics": _matching_topics(query),
-        "query": query,
+        "cards": _waiting_cards(services.waiting_groups(request.user)),
         "error": error,
         **_limits(),
     }
@@ -107,7 +162,88 @@ def home(request):
     return _render_home(request)
 
 
+@login_required
+@require_GET
+def mine(request):
+    """"Your discussions": the viewer's own conversations, searchable. Nothing about anyone else's."""
+    form = SearchForm(request.GET or None)
+    if form.is_valid():
+        query = form.cleaned_data["q"]
+    else:  # for example a NUL character: search for exactly that, which finds nothing, rather than showing everything
+        query = " ".join(request.GET.get("q", "").split())
+    context = {
+        "rows": _my_rows(services.my_conversations(request.user, query or None)),
+        "query": query,
+        **_limits(),
+    }
+    return render(request, "forum/mine.html", context)
+
+
+# --- Blocking ------------------------------------------------------------------------------------------------
+
+
+def _target_user(username):
+    User = get_user_model()
+    return User._default_manager.filter(**{User.USERNAME_FIELD: username}).first()
+
+
+@login_required
+@require_POST
+def block(request, username):
+    target = _target_user(username)
+    if target is None:
+        return render(request, "404.html", status=404)
+    if target.pk == request.user.pk:
+        return _render_home(request, error=_plain_error("You cannot block yourself.", code="invalid_block"))
+    try:
+        ended = services.block_user(request.user, target)
+    except services.PostRejected as exc:
+        return _render_home(request, error=_error_context(exc))
+    name = target.get_username()
+    if ended:  # a conversation they shared has ended
+        flash.success(request, f"You blocked {name}. The conversation has ended.")
+        return redirect("forum:mine")
+    flash.success(request, f"You blocked {name}.")
+    return redirect("forum:home")
+
+
+@login_required
+@require_POST
+def unblock(request, username):
+    target = _target_user(username)
+    if target is None:
+        return render(request, "404.html", status=404)
+    try:
+        services.unblock_user(request.user, target)
+    except services.PostRejected as exc:
+        return _render_home(request, error=_error_context(exc))
+    flash.success(request, f"You unblocked {target.get_username()}.")
+    return redirect("forum:blocked")
+
+
+@login_required
+@require_GET
+def blocked(request):
+    return render(request, "forum/blocked.html", {"rows": services.blocked_users(request.user)})
+
+
 # --- Propose and enter ---------------------------------------------------------------------------------------
+
+
+def _seeded_cards(user):
+    """The suggested topics on the propose page: two side buttons each, or the viewer's own conversation."""
+    topics = services.seeded_topics()
+    own = services.own_sides(topics, user) if topics else {}
+    return [
+        {
+            "id": topic.pk,
+            "proposition": topic.proposition,
+            "own": topic.pk in own,
+            "own_side": own.get(topic.pk, "pro"),
+            "choices": _side_choices(topic),
+        }
+        for topic in topics
+    ]
 
 
 def _render_propose(request, *, draft="", error=None, status=200):
@@ -116,6 +252,7 @@ def _render_propose(request, *, draft="", error=None, status=200):
         "draft_count": count_message_chars(draft),
         "error": error,
         "duplicate_topic_id": error["details"].get("topic_id") if error is not None else None,
+        "seeded": _seeded_cards(request.user),
         **_limits(),
     }
     return render(request, "forum/propose.html", context, status=status)
@@ -133,7 +270,8 @@ def propose(request):
         # open ones) nothing is published, the text stays in the box, and the person can simply try again.
         with transaction.atomic():
             topic = services.create_proposition(request.user, text)
-            conversation = services.enter_proposition(request.user, topic)
+            # The person writes their own position, so they enter holding it ("pro"); whoever joins holds the other.
+            conversation = services.enter_proposition(request.user, topic, "pro")
     except services.PostRejected as exc:
         return _render_propose(request, draft=text, error=_error_context(exc))
     except Exception:
@@ -146,8 +284,12 @@ def propose(request):
 @require_POST
 def enter(request, topic_id):
     topic = get_object_or_404(Topic, pk=topic_id)
+    side = request.POST.get("side", "")
+    if side not in SIDES:
+        # Nothing is created: the person is told to choose, and the list is shown again.
+        return _render_home(request, error=_plain_error(CHOOSE_A_POSITION, code="invalid_side"))
     try:
-        conversation = services.enter_proposition(request.user, topic)
+        conversation = services.enter_proposition(request.user, topic, side)
     except services.PostRejected as exc:
         return _render_home(request, error=_error_context(exc))
     return redirect("forum:conversation", conversation_id=conversation.pk)
@@ -160,6 +302,34 @@ def _load_conversation(conversation_id):
     return Conversation.objects.select_related("topic").filter(pk=conversation_id).first()
 
 
+def _preview_mode(conversation, view):
+    """"on" or "off" for the composer (``data-preview``), or None when there is no composer to check.
+
+    Asked only for a participant (``conversation_view`` already refused everyone else) of an open or active
+    conversation that can be posted in. Any failure of the moderation side gives "off": the composer then behaves as an
+    ordinary form."""
+    if view.get("status") not in ("open", "active") or not view.get("can_post"):
+        return None
+    try:
+        from moderation import preview
+
+        return "on" if preview.preview_mode(conversation.pk) == "on" else "off"
+    except Exception:
+        logger.exception("preview_mode failed for conversation %s", conversation.pk)
+        return "off"
+
+
+def _position_lines(view):
+    """The viewer's own position, shown under the title (owner wording). Nothing about the other participant."""
+    texts = view.get("position_texts") or {}
+    mine = view.get("my_side")
+    proposition = texts.get("pro")
+    if mine not in SIDES or not proposition:
+        return []
+    topic = SimpleNamespace(proposition=proposition, opposing_position=texts.get("con") or "")
+    return [_own_position_line(mine, topic)]
+
+
 def _render_conversation(request, conversation, *, error=None, draft="", status=200):
     try:
         view = viewmodels.conversation_view(request.user, conversation)
@@ -170,9 +340,13 @@ def _render_conversation(request, conversation, *, error=None, draft="", status=
     messages_list = view["messages"]
     reason = view.get("cannot_post_reason")
     context = {
+        "preview_mode": _preview_mode(conversation, view),
+        "check_url": reverse("forum:check", args=[conversation.pk]),
+        "check_timeout_ms": int(settings.PREVIEW_CLIENT_TIMEOUT_SECONDS * 1000),
         "conversation": conversation,
         "view": view,
         "reason": reason,
+        "position_lines": _position_lines(view),
         "error": error,
         "draft": draft,
         "draft_count": count_message_chars(draft),
@@ -194,6 +368,93 @@ def conversation(request, conversation_id):
     return _render_conversation(request, found)
 
 
+def _my_participant(request, conversation):
+    return Participant.objects.filter(conversation_id=conversation.pk, user_id=request.user.pk).first()
+
+
+def _resolve_posted_check(request, conversation, message):
+    """After a successful post: when the form carried a ``check_id`` of this poster's own check of this very text, record
+    "posted as written". Anything else is ignored silently, and nothing here can change whether the post succeeded."""
+    raw = request.POST.get("check_id", "")
+    if not raw:
+        return
+    try:
+        check_id = int(raw)
+        from moderation import preview
+        from moderation.models import PreviewCheck
+
+        participant = _my_participant(request, conversation)
+        check = PreviewCheck.objects.filter(
+            pk=check_id, conversation=conversation.pk, participant=getattr(participant, "pk", None)
+        ).first()
+        if check is not None and check.draft_sha256 == preview.draft_sha256(message.content):
+            preview.resolve_check(check_id, "posted_as_written", message_id=message.pk)
+    except Exception:
+        logger.exception("could not resolve preview check for conversation %s", conversation.pk)
+
+
+def _check_json(payload):
+    response = JsonResponse(payload)
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@login_required
+@require_POST
+@never_cache
+def check(request, conversation_id):
+    """Check a draft before it is posted: the posting rules first (nothing is created), then the moderator's preview."""
+    found = _load_conversation(conversation_id)
+    if found is None:
+        return _not_found(request)
+    form = TextForm(request.POST)
+    text = form.cleaned_data["text"] if form.is_valid() else ""
+    try:
+        services.validate_draft(request.user, found, text)
+    except services.PostRejected as exc:
+        if exc.code == "not_participant":
+            return _not_found(request)
+        return _check_json(
+            {"status": "refused", "code": exc.code, "message": exc.message, "retry_after": exc.retry_after}
+        )
+    unavailable = {"status": "unavailable", "check_id": None, "notes": []}
+    try:
+        from moderation import preview
+
+        stored = preview.check_draft(found, _my_participant(request, found), text)
+        outcome = stored.outcome if stored.outcome in ("no_concern", "concern", "unavailable") else "unavailable"
+        notes = [str(note) for note in (stored.note_texts or [])] if outcome == "concern" else []
+        return _check_json({"status": outcome, "check_id": stored.pk, "notes": notes})
+    except Exception:
+        logger.exception("check_draft failed for conversation %s", conversation_id)
+        return _check_json(unavailable)
+
+
+@login_required
+@require_POST
+@never_cache
+def check_edit(request, conversation_id, check_id):
+    """The author chose to edit after seeing a concern. Only the owner of the check, in its own conversation."""
+    found = _load_conversation(conversation_id)
+    if found is None:
+        return _not_found(request)
+    participant = _my_participant(request, found)
+    if participant is None:
+        return _not_found(request)
+    from moderation.models import PreviewCheck
+
+    owned = PreviewCheck.objects.filter(pk=check_id, conversation=found.pk, participant=participant.pk).exists()
+    if not owned:
+        return _not_found(request)
+    try:
+        from moderation import preview
+
+        preview.resolve_check(check_id, "edited")
+    except Exception:
+        logger.exception("could not record the edit of check %s", check_id)
+    return _check_json({"ok": True})
+
+
 @login_required
 @require_POST
 @never_cache
@@ -204,7 +465,7 @@ def post(request, conversation_id):
     form = TextForm(request.POST)
     text = form.cleaned_data["text"] if form.is_valid() else ""
     try:
-        services.post_message(request.user, found, text)
+        message = services.post_message(request.user, found, text)
     except services.PostRejected as exc:
         if exc.code == "not_participant":
             return _not_found(request)
@@ -213,6 +474,7 @@ def post(request, conversation_id):
         # Details go to the log, never to the page. The person's text stays in the box.
         logger.exception("post_message failed for conversation %s", conversation_id)
         return _render_conversation(request, found, error=_plain_error(OUR_SIDE_FAILED), draft=text, status=500)
+    _resolve_posted_check(request, found, message)
     return redirect("forum:conversation", conversation_id=found.pk)
 
 

@@ -1,13 +1,12 @@
 {% extends "forum/base.html" %}
 {% load static %}
-{% block title %}Propose a new debate{% endblock %}
+{% block title %}Start a new discussion{% endblock %}
 {% block content %}
-<h1>Propose a new debate</h1>
-<p class="lead">Write a statement that someone could agree or disagree with. Two people will discuss it. You do not have to argue for or against it, and you will not be told which side the other person takes.</p>
+<h1>Start a new discussion</h1>
+<p class="lead">State a position you hold and want to talk through. Whoever joins will take the opposing view, so you will not need to argue both sides.</p>
 
 <form class="card compose" method="post" action="{% url 'forum:propose' %}">
   {% csrf_token %}
-  <label for="proposition" class="label">Your proposition</label>
   {% if error %}
   <div class="banner banner-error" role="alert" data-code="{{ error.code }}" id="proposition-error">
     <div class="banner-title">{% if error.code == "daily_limit" %}You cannot publish another proposition today{% elif error.code == "too_long" %}This proposition is too long{% elif error.code == "duplicate" %}This proposition already exists{% elif error.code == "empty" %}Your proposition is empty{% else %}Your proposition was not published{% endif %}</div>
@@ -15,18 +14,50 @@
   </div>
   {% if duplicate_topic_id %}
   <div class="duplicate-action">
-    <button type="submit" class="btn btn-secondary" formaction="{% url 'forum:enter' duplicate_topic_id %}">Discuss the existing proposition</button>
+    <button type="submit" name="side" value="pro" class="btn btn-secondary" formaction="{% url 'forum:enter' duplicate_topic_id %}">Discuss the existing proposition</button>
   </div>
   {% endif %}
   {% endif %}
+  <label for="proposition" class="label fixed-start">My position is that</label>
   <textarea id="proposition" name="text" rows="3" data-counter="proposition-counter" data-limit="{{ max_proposition_chars }}" data-noun="proposition"{% if error %} aria-describedby="proposition-error"{% endif %}{% if error and error.code == "too_long" %} class="is-over" aria-invalid="true"{% endif %}>
 {{ draft }}</textarea>
   <div class="compose-foot">
     <span id="proposition-counter" class="counter{% if draft_count > max_proposition_chars %} is-over{% endif %}" aria-live="polite"><span data-count>{{ draft_count|floatformat:"0g" }}</span> / {{ max_proposition_chars|floatformat:"0g" }} characters</span>
-    <button type="submit" class="btn btn-primary">Publish proposition</button>
+    <button type="submit" class="btn btn-primary">Publish and start discussing</button>
   </div>
   <p class="hint">It appears on the home page immediately. You can create up to {{ max_propositions_per_day }} propositions per day.</p>
 </form>
-<p><a href="{% url 'forum:home' %}">&larr; Back to all propositions</a></p>
+
+{% if seeded %}
+<section class="seeded" aria-labelledby="seeded-heading">
+  <h2 id="seeded-heading" class="section-title">Or start from one of these topics</h2>
+  <ul class="topic-list">
+    {% for topic in seeded %}
+    <li class="topic">
+      <h3 class="topic-claim">{{ topic.proposition }}</h3>
+      {% if topic.own %}
+      <p class="topic-state">You already have a conversation here.</p>
+      <form method="post" action="{% url 'forum:enter' topic.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="side" value="{{ topic.own_side }}">
+        <button type="submit" class="choice">Open your conversation</button>
+      </form>
+      {% else %}
+      {% for side, label in topic.choices %}
+      <div class="choice-block">
+        <form method="post" action="{% url 'forum:enter' topic.id %}">
+          {% csrf_token %}
+          <input type="hidden" name="side" value="{{ side }}">
+          <button type="submit" class="choice">{{ label }}</button>
+        </form>
+      </div>
+      {% endfor %}
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+<p><a href="{% url 'forum:home' %}">&larr; Back to home</a></p>
 {% endblock %}
 {% block scripts %}<script src="{% static 'forum/compose.js' %}" defer></script>{% endblock %}

@@ -16,7 +16,7 @@ T0 = datetime(2026, 3, 10, 12, 0, 0, tzinfo=dt_timezone.utc)
 INTERNAL_WORDS = ("Traceback", "Exception", "Error", "None", "IntegrityError", "seq_no", "NoneType", "{", "}", "<", "pk=")
 
 ALL_CODES = {
-    "empty", "too_long", "too_fast", "conversation_full", "closed", "waiting", "not_participant",
+    "empty", "too_long", "too_fast", "conversation_full", "closed", "invalid_side", "not_participant",
     "daily_limit", "duplicate", "too_many_open", "hidden",
 }  # fmt: skip
 # Also allowed (architect ruling): a person who is not logged in, a reply to a message of another conversation, and
@@ -67,7 +67,7 @@ def other_of(conversation, user):
     return Participant.objects.exclude(user=user).get(conversation=conversation)
 
 
-def make_active(topic=None, labels=("A", "B")):
+def make_active(topic=None, labels=("A", "B"), sides=("pro", "con")):
     """An active conversation built with the ORM so the labels are known: returns a namespace with conv, a, b
     (participants), ua, ub (users). User ua holds label labels[0] and joined first."""
     from forum.models import Conversation, Participant
@@ -75,31 +75,57 @@ def make_active(topic=None, labels=("A", "B")):
     topic = topic or make_prop()
     ua, ub = make_user(), make_user()
     conv = Conversation.objects.create(topic=topic, status="active", label_seed=12345)
-    a = Participant.objects.create(conversation=conv, user=ua, label=labels[0], join_order=1)
-    b = Participant.objects.create(conversation=conv, user=ub, label=labels[1], join_order=2)
+    a = Participant.objects.create(conversation=conv, user=ua, label=labels[0], join_order=1, side=sides[0])
+    b = Participant.objects.create(conversation=conv, user=ub, label=labels[1], join_order=2, side=sides[1])
     return SimpleNamespace(conv=conv, a=a, b=b, ua=ua, ub=ub, topic=topic)
 
 
+def opposite(side):
+    return {"pro": "con", "con": "pro"}[side or "pro"]
+
+
+def enter(user, topic, side=None):
+    """enter_proposition with a side. When no side is given: the side opposite to the oldest person waiting on the topic
+    (so that the two people pair, as in the tests written before positions existed), else "pro". A legacy waiter with a
+    blank side counts as "pro"."""
+    from forum.models import Conversation
+
+    if side is None:
+        waiting = (
+            Conversation.objects.filter(topic_id=topic.pk, source="human", status="open")
+            .exclude(participants__user_id=user.pk)
+            .order_by("created_at", "id")
+        )
+        side = "pro"
+        for conv in waiting:
+            people = list(conv.participants.all())
+            if len(people) == 1:
+                side = opposite(people[0].side)
+                break
+    return svc().enter_proposition(user, topic, side)
+
+
 def make_active_via_service(topic=None):
-    """An active conversation built through the pairing rule: the first user enters, the second joins."""
-    s = svc()
+    """An active conversation built through the pairing rule: the first user enters as pro, the second as con."""
     topic = topic or make_prop()
     u1, u2 = make_user(), make_user()
-    conv = s.enter_proposition(u1, topic)
-    joined = s.enter_proposition(u2, topic)
+    conv = svc().enter_proposition(u1, topic, "pro")
+    joined = svc().enter_proposition(u2, topic, "con")
     assert joined.pk == conv.pk
     conv.refresh_from_db()
     return SimpleNamespace(conv=conv, u1=u1, u2=u2, topic=topic)
 
 
-def make_waiting(topic=None, user=None, created_at=None):
-    """A waiting conversation (one participant) made with the ORM. The label is a placeholder."""
+def make_waiting(topic=None, user=None, created_at=None, side="", seed=None):
+    """A waiting conversation (one participant) made with the ORM. By default it is a LEGACY row as stored before step
+    7c: label "A", no seed, blank side. Pass side (and seed) for a row as the current code stores it."""
     from forum.models import Conversation, Participant
 
     topic = topic or make_prop()
     user = user or make_user()
-    conv = Conversation.objects.create(topic=topic, status="open")
-    Participant.objects.create(conversation=conv, user=user, label="A", join_order=1)
+    conv = Conversation.objects.create(topic=topic, status="open", label_seed=seed)
+    label = svc().assign_labels(seed)[0] if seed is not None else "A"
+    Participant.objects.create(conversation=conv, user=user, label=label, join_order=1, side=side)
     if created_at is not None:
         Conversation.objects.filter(pk=conv.pk).update(created_at=created_at)
         conv.refresh_from_db()
@@ -221,3 +247,40 @@ def at(day, hour=12, minute=0, second=0, micro=0, month=3):
 
 def seconds(n):
     return timedelta(seconds=n)
+
+
+# Step 7c revision 5: the other participant's USERNAME is shown to the viewer, in these fields only.
+ALLOWED_NAME_KEYS = {"other_username", "author_name", "heading", "waiting_username"}
+
+
+def name_paths(value, needle, path=()):
+    """Key paths of every string (or key) in a nested structure that contains `needle`."""
+    if isinstance(value, str):
+        if needle in value:
+            yield path
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            if isinstance(key, str) and needle in key:
+                yield path + (str(key),)
+            yield from name_paths(item, needle, path + (str(key),))
+    elif isinstance(value, (list, tuple, set)):
+        for index, item in enumerate(value):
+            yield from name_paths(item, needle, path + (str(index),))
+
+
+def assert_names_only_where_allowed(structure, viewer, other=None, allowed=ALLOWED_NAME_KEYS):
+    """The viewer's own username and every email never appear; the other person's username appears only under the
+    allowed keys; no label letter and no capitalised 'Participant' anywhere (once the allowed name is set aside)."""
+    for text in walk_strings(structure):
+        assert viewer.username not in text, (viewer.username, text)
+        assert viewer.email not in text and viewer.email.split("@")[0] not in text, text
+        if other is not None:
+            assert other.email not in text, text
+    if other is not None:
+        for path in name_paths(structure, other.username):
+            assert path and path[-1] in allowed, (other.username, path)
+    for text in walk_strings(structure):
+        if other is not None:
+            text = text.replace(other.username, "")
+        assert "Participant" not in text, text
+        assert not _LABEL_WORD.search(text), text

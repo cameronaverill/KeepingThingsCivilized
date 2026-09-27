@@ -1,8 +1,9 @@
 """post_message: what is created, the rejection codes and their wording, and the order in which the checks run."""
 import pytest
+from fsvc_testkit import enter  # noqa: E402
 
 from fsvc_testkit import (
-    ALL_CODES, assert_plain, counts, make_active, make_active_via_service, make_user, make_waiting, orm_moderator_message,
+    ALL_CODES, assert_plain, counts, make_active, make_active_via_service, make_prop, make_user, make_waiting, orm_moderator_message,
     orm_user_message, rejection, svc,
 )  # fmt: skip
 
@@ -79,29 +80,27 @@ def test_the_creator_of_a_waiting_conversation_is_a_participant_but_a_stranger_i
 # --- waiting -------------------------------------------------------------------------------------------------------------
 
 
-def test_posting_in_a_waiting_conversation_is_refused_until_someone_joins():
+def test_the_first_person_can_post_while_waiting_for_a_second():
+    """Step 7c: the `waiting` refusal is gone; the creator posts in a waiting conversation like anyone else."""
     user = make_user()
-    conv = make_waiting(user=user)
-    before = counts()
-    exc = rejection(svc().post_message, user, conv, "hello there friend")
-    assert exc.code == "waiting"
-    assert "You can post once someone else joins." in exc.message
-    assert_plain(exc)
-    assert counts() == before
+    conv = enter(user, make_prop())
+    message = svc().post_message(user, conv, "hello there friend")
+    assert message.seq_no == 1 and message.participant.user_id == user.pk
+    conv.refresh_from_db()
+    assert conv.status == "open"  # still waiting; posting does not make it active
 
 
-def test_the_wait_ends_when_someone_joins(clock):
-    topic_world = make_active_via_service()
-    from forum.models import Conversation
-
+def test_a_second_person_joining_can_answer_at_once_and_the_first_persons_clock_continues(clock):
+    world = make_active_via_service()
     third = make_user()
-    waiting = svc().enter_proposition(third, topic_world.topic)
-    assert rejection(svc().post_message, third, waiting, "hello there friend").code == "waiting"
+    waiting = enter(third, world.topic)
+    svc().post_message(third, waiting, "hello there friend")
+    clock.advance(10)
     fourth = make_user()
-    svc().enter_proposition(fourth, topic_world.topic)
-    assert Conversation.objects.get(pk=waiting.pk).status == "active"
-    waiting.refresh_from_db()
-    assert svc().post_message(third, waiting, "hello there friend").seq_no == 1
+    joined = enter(fourth, world.topic)
+    assert joined.pk == waiting.pk
+    assert svc().post_message(fourth, joined, "an answer from the joiner").seq_no == 2
+    assert rejection(svc().post_message, third, joined, "and again").code == "too_fast"
 
 
 # --- closed --------------------------------------------------------------------------------------------------------------
@@ -182,7 +181,7 @@ def test_3001_characters_is_refused_with_count_limit_and_excess(world):
     assert "the limit is 3,000" in exc.message
     assert "shorten it by 1 character" in exc.message
     assert "keep the discussion readable" in exc.message
-    assert "running costs low" in exc.message
+    assert "cost" not in exc.message.lower()
     assert_plain(exc)
     assert counts() == before
 
@@ -240,7 +239,7 @@ def test_not_a_participant_is_reported_before_closed(world):
     assert rejection(svc().post_message, make_user(), world.conv, "hello there friend").code == "not_participant"
 
 
-def test_not_a_participant_is_reported_before_waiting_and_empty():
+def test_not_a_participant_is_reported_before_empty_in_a_waiting_conversation():
     conv = make_waiting()
     assert rejection(svc().post_message, make_user(), conv, "").code == "not_participant"
 
@@ -255,14 +254,14 @@ def test_closed_is_reported_before_too_long(world):
     assert rejection(svc().post_message, world.u2, world.conv, "a" * 5000).code == "closed"
 
 
-def test_waiting_is_reported_before_empty_and_too_long():
+def test_a_waiting_conversation_reports_empty_and_too_long_like_any_other():
     user = make_user()
-    conv = make_waiting(user=user)
-    assert rejection(svc().post_message, user, conv, "").code == "waiting"
-    assert rejection(svc().post_message, user, conv, "a" * 5000).code == "waiting"
+    conv = enter(user, make_prop())
+    assert rejection(svc().post_message, user, conv, "").code == "empty"
+    assert rejection(svc().post_message, user, conv, "a" * 5000).code == "too_long"
 
 
-def test_closed_is_reported_before_waiting_for_a_waiting_conversation_that_was_ended():
+def test_closed_is_reported_for_a_waiting_conversation_that_was_ended():
     user = make_user()
     conv = make_waiting(user=user)
     svc().end_conversation(user, conv)

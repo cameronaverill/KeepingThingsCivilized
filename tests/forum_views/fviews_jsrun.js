@@ -12,7 +12,7 @@ const realSetImmediate = setImmediate;
 // ---------------------------------------------------------------------------------------------------------------
 const state = {
   now: 0, timerSeq: 0, timers: [], fetchLog: [], fetchQueue: [], htmlLog: [], focusLog: [], reloads: 0,
-  errors: [], consoleLog: [], byEid: new Map(), activeElement: null,
+  errors: [], consoleLog: [], byEid: new Map(), activeElement: null, submits: [],
 };
 
 const decode = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&#x27;/g, "'").replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&');
@@ -295,9 +295,21 @@ class El {
   scrollIntoView() {}
   scrollTo() {}
   getBoundingClientRect() { return { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 }; }
-  submit() {}
+  submit() { state.submits.push({ eid: this.eid, fields: collectFields(this) }); }
   reset() {}
-  requestSubmit() {}
+  requestSubmit() { const ev = new Ev('submit', { bubbles: true, cancelable: true }); if (this.dispatchEvent(ev)) this.submit(); }
+}
+
+function collectFields(form) {
+  const out = [];
+  for (const el of form.querySelectorAll('input,textarea,select')) {
+    if (!el.attrs.name || 'disabled' in el.attrs) continue;
+    const type = el.localName === 'input' ? (el.attrs.type || 'text') : el.localName;
+    if (['submit', 'button', 'image', 'reset', 'file'].includes(type)) continue;
+    if ((type === 'checkbox' || type === 'radio') && !('checked' in el.attrs)) continue;
+    out.push([el.attrs.name, el.value]);
+  }
+  return out;
 }
 
 function fireListeners(target, ev) {
@@ -365,10 +377,28 @@ function makeResponse(r) {
     text: () => Promise.resolve(body), clone: () => makeResponse(r) };
   return res;
 }
+function plain(v) {
+  if (v instanceof URLSearchParams) return { __urlencoded: v.toString() };
+  if (v && v.constructor && v.constructor.name === 'FormData') return { __form: v.d };
+  if (v && v.constructor && v.constructor.name === 'Headers') return v.h;
+  if (typeof v === 'function') return undefined;
+  return v;
+}
 function fetchStub(url, opts) {
-  state.fetchLog.push({ url: String(url && url.url ? url.url : url), options: opts ? JSON.parse(JSON.stringify(opts, (k, v) => (typeof v === 'function' ? undefined : v))) : null });
+  let logged = null;
+  if (opts) {
+    logged = {};
+    for (const k of Object.keys(opts)) { if (k !== 'signal') logged[k] = k === 'body' ? plain(opts[k]) : (k === 'headers' ? plain(opts[k]) : opts[k]); }
+    if (logged.body === undefined && opts.body !== undefined) logged.body = opts.body;
+  }
+  state.fetchLog.push({ url: String(url && url.url ? url.url : url), options: logged });
   const r = nextResponse();
   if (r.reject) return Promise.reject(new TypeError('Failed to fetch'));
+  if (r.hang) {
+    return new Promise((_, rej) => {
+      if (opts && opts.signal) opts.signal.addEventListener('abort', () => rej(Object.assign(new Error('The operation was aborted'), { name: 'AbortError' })));
+    });
+  }
   return Promise.resolve(makeResponse(r));
 }
 class XHR {
@@ -410,7 +440,7 @@ const sandbox = {
   MutationObserver: class { observe() {} disconnect() {} }, IntersectionObserver: class { observe() {} disconnect() {} }, ResizeObserver: class { observe() {} disconnect() {} },
   URL, URLSearchParams, AbortController, TextEncoder, TextDecoder,
   performance: { now: () => state.now }, structuredClone: (v) => JSON.parse(JSON.stringify(v)), scrollTo() {}, innerWidth: 390, innerHeight: 800,
-  Headers: class { constructor(h) { this.h = h || {}; } get(k) { return this.h[k] || null; } }, FormData: class { constructor() { this.d = []; } append(k, v) { this.d.push([k, v]); } },
+  Headers: class { constructor(h) { this.h = h || {}; } get(k) { return this.h[k] || null; } }, FormData: class FormData { constructor(form) { this.d = form && form.querySelectorAll ? collectFields(form) : []; } append(k, v) { this.d.push([k, String(v)]); } set(k, v) { this.d = this.d.filter((x) => x[0] !== k); this.d.push([k, String(v)]); } get(k) { const f = this.d.find((x) => x[0] === k); return f ? f[1] : null; } has(k) { return this.d.some((x) => x[0] === k); } entries() { return this.d[Symbol.iterator](); } forEach(fn) { this.d.forEach(([k, v]) => fn(v, k)); } },
   Request: class { constructor(url, o) { this.url = url; this.o = o; } },
 };
 sandbox.window = sandbox; sandbox.self = sandbox; sandbox.globalThis = sandbox; sandbox.top = sandbox; sandbox.parent = sandbox;
@@ -434,6 +464,24 @@ const aggregate = (node) => {
   return out;
 };
 
+function findAll(text, tag) {
+  const out = [];
+  (function walk(n) {
+    for (const c of n.childNodes) {
+      if (c.nodeType !== 1) continue;
+      if ((!tag || c.localName === tag) && (text === undefined || c.textContent.trim() === text)) out.push(c);
+      walk(c);
+    }
+  })(documentObj);
+  return out;
+}
+function describe(el) {
+  let visible = true;
+  for (let n = el; n && n !== documentObj; n = n.parentNode) { if ('hidden' in n.attrs || (n.style && n.style.display === 'none')) visible = false; }
+  return { tag: el.localName, attrs: el.attrs, visible, text: el.textContent.trim(), eid: el.eid, disabled: 'disabled' in el.attrs,
+    ancestors: (() => { const a = []; for (let n = el.parentNode; n && n !== documentObj; n = n.parentNode) a.push(n.localName); return a; })() };
+}
+
 async function runOp(op) {
   switch (op.op) {
     case 'load': {
@@ -455,6 +503,14 @@ async function runOp(op) {
     case 'attr': { const v = state.byEid.get(op.eid).getAttribute(op.name); return v; }
     case 'prop': return state.byEid.get(op.eid)[op.name];
     case 'connected': return state.byEid.get(op.eid).isConnected;
+    case 'alerts': return findAll(undefined, undefined).filter((e) => e.attrs.role === 'alert').map(describe).filter((d) => d.visible && d.text !== '').map((d) => d.text);
+    case 'live_regions': return findAll(undefined, undefined).filter((e) => e.attrs['aria-live'] === 'polite' || e.attrs.role === 'status').map((e) => ({ text: e.textContent.trim(), eid: e.eid, attrs: e.attrs }));
+    case 'fire_window': { const ev = new Ev(op.type, { bubbles: false }); ev.persisted = !!op.persisted; fireListeners(sandbox, ev); await flush(); return null; }
+    case 'delete_global': delete sandbox[op.name]; return null;
+    case 'submits': return state.submits.slice();
+    case 'active_desc': { const a = state.activeElement; return a ? { eid: a.eid, tag: a.localName, text: a.textContent.trim(), attrs: a.attrs } : null; }
+    case 'find': return findAll(op.text, op.tag).map(describe);
+    case 'click_text': { const f = findAll(op.text, op.tag); if (!f.length) return false; f[f.length - 1].click(); await flush(); return true; }
     case 'active': return state.activeElement ? state.activeElement.eid : null;
     case 'dom_text': return aggregate(op.eid === undefined ? documentObj : state.byEid.get(op.eid));
     case 'html_log': return state.htmlLog.slice();

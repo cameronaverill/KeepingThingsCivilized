@@ -87,26 +87,26 @@ SCRIPT = textwrap.dedent(
         out = {}
         if scenario == "join":
             u1, u2, u3, t = user(), user(), user(), topic()
-            waiting = services.enter_proposition(u1, t)
-            out["results"] = parallel(lambda: services.enter_proposition(u2, t).pk, lambda: services.enter_proposition(u3, t).pk)
+            waiting = services.enter_proposition(u1, t, "pro")
+            out["results"] = parallel(lambda: services.enter_proposition(u2, t, "con").pk, lambda: services.enter_proposition(u3, t, "con").pk)
             out["waiting_id"] = waiting.pk
             out["users"] = [u1.pk, u2.pk, u3.pk]
             out["convs"] = convs_of(t)
         elif scenario == "fresh":
             u1, u2, t = user(), user(), topic()
-            out["results"] = parallel(lambda: services.enter_proposition(u1, t).pk, lambda: services.enter_proposition(u2, t).pk)
+            out["results"] = parallel(lambda: services.enter_proposition(u1, t, "pro").pk, lambda: services.enter_proposition(u2, t, "con").pk)
             out["users"] = [u1.pk, u2.pk]
             out["convs"] = convs_of(t)
         elif scenario == "double":
             u1, t = user(), topic()
-            out["results"] = parallel(*[(lambda: services.enter_proposition(u1, t).pk)] * 3)
+            out["results"] = parallel(*[(lambda: services.enter_proposition(u1, t, "pro").pk)] * 3)
             out["users"] = [u1.pk]
             out["convs"] = convs_of(t)
         elif scenario == "posts":
             settings.MIN_SECONDS_BETWEEN_MESSAGES = 0  # reset for every scenario at the top of run()
             u1, u2, t = user(), user(), topic()
-            conv = services.enter_proposition(u1, t)
-            services.enter_proposition(u2, t)
+            conv = services.enter_proposition(u1, t, "pro")
+            services.enter_proposition(u2, t, "con")
             calls = []
             for who in (u1, u2, u1, u2, u1, u2):
                 calls.append(lambda who=who: services.post_message(who, conv, "racing message text").seq_no)
@@ -115,15 +115,15 @@ SCRIPT = textwrap.dedent(
             out["runs"] = list(ModerationRun.objects.filter(conversation=conv).order_by("snapshot_seq").values_list("snapshot_seq", "status", "kind"))
         elif scenario == "same_participant":
             u1, u2, t = user(), user(), topic()
-            conv = services.enter_proposition(u1, t)
-            services.enter_proposition(u2, t)
+            conv = services.enter_proposition(u1, t, "pro")
+            services.enter_proposition(u2, t, "con")
             out["results"] = parallel(*[(lambda: services.post_message(u1, conv, "racing message text").seq_no)] * 3)
             out["messages"] = Message.objects.filter(conversation=conv).count()
             out["runs"] = ModerationRun.objects.filter(conversation=conv).count()
         elif scenario == "cap":
             u1, u2, t = user(), user(), topic()
-            conv = services.enter_proposition(u1, t)
-            services.enter_proposition(u2, t)
+            conv = services.enter_proposition(u1, t, "pro")
+            services.enter_proposition(u2, t, "con")
             parts = {p.user_id: p for p in conv.participants.all()}
             for i in range(29):
                 who = u1 if i % 2 == 0 else u2
@@ -135,24 +135,89 @@ SCRIPT = textwrap.dedent(
             out["status"] = Conversation.objects.get(pk=conv.pk).status
             out["runs"] = ModerationRun.objects.filter(conversation=conv).count()
         elif scenario == "open_limit":
+            settings.MAX_OPEN_CONVERSATIONS = 5  # the limit is off by default; the capacity to switch it on stays
             u1 = user()
             for _ in range(4):
-                services.enter_proposition(u1, topic())
+                services.enter_proposition(u1, topic(), "pro")
             t5, t6 = topic(), topic()
-            out["results"] = parallel(lambda: services.enter_proposition(u1, t5).pk, lambda: services.enter_proposition(u1, t6).pk)
+            out["results"] = parallel(lambda: services.enter_proposition(u1, t5, "pro").pk, lambda: services.enter_proposition(u1, t6, "pro").pk)
             out["open"] = Conversation.objects.filter(participants__user=u1, status__in=["open", "active"]).count()
+            settings.MAX_OPEN_CONVERSATIONS = None
         elif scenario == "end":
             rounds = []
             for _ in range(12):  # a small window: repeat the race on fresh conversations
                 u1, u2, t = user(), user(), topic()
-                conv = services.enter_proposition(u1, t)
-                services.enter_proposition(u2, t)
+                conv = services.enter_proposition(u1, t, "pro")
+                services.enter_proposition(u2, t, "con")
                 results = parallel(lambda: services.end_conversation(u1, conv).pk, lambda: services.end_conversation(u2, conv).pk)
                 fresh = Conversation.objects.get(pk=conv.pk)
                 rounds.append({"results": results, "status": fresh.status,
                                "ended_by_user": fresh.ended_by.user_id if fresh.ended_by_id else None, "users": [u1.pk, u2.pk]})
             out["rounds"] = rounds
             out["results"] = [r for rnd in rounds for r in rnd["results"]]
+        elif scenario == "same_side":
+            u1, u2, t = user(), user(), topic()
+            out["results"] = parallel(lambda: services.enter_proposition(u1, t, "pro").pk, lambda: services.enter_proposition(u2, t, "pro").pk)
+            out["users"] = [u1.pk, u2.pk]
+            out["convs"] = convs_of(t)
+        elif scenario == "mixed_sides":
+            u1, u2, u3, t = user(), user(), user(), topic()
+            waiting = services.enter_proposition(u1, t, "pro")
+            out["results"] = parallel(lambda: services.enter_proposition(u2, t, "pro").pk, lambda: services.enter_proposition(u3, t, "con").pk)
+            out["waiting_id"] = waiting.pk
+            out["users"] = [u1.pk, u2.pk, u3.pk]
+            out["convs"] = convs_of(t)
+            out["sides"] = {str(c.pk): sorted(p.side for p in c.participants.all()) for c in Conversation.objects.filter(topic=t)}
+        elif scenario == "post_and_join":
+            settings.MIN_SECONDS_BETWEEN_MESSAGES = 0
+            u1, u2, t = user(), user(), topic()
+            conv = services.enter_proposition(u1, t, "pro")
+            seed_before = Conversation.objects.get(pk=conv.pk).label_seed
+            label_before = Participant.objects.get(conversation=conv, user=u1).label
+            out["results"] = parallel(lambda: services.post_message(u1, conv, "posting while somebody joins").seq_no,
+                                      lambda: services.enter_proposition(u2, t, "con").pk)
+            fresh = Conversation.objects.get(pk=conv.pk)
+            out["status"] = fresh.status
+            out["seed_same"] = fresh.label_seed == seed_before
+            out["label_same"] = Participant.objects.get(conversation=conv, user=u1).label == label_before
+            out["messages"] = Message.objects.filter(conversation=conv).count()
+            out["runs"] = ModerationRun.objects.filter(conversation=conv).count()
+            out["n_participants"] = fresh.participants.count()
+        elif scenario == "block_vs_join":
+            rounds = []
+            from forum.models import Block
+            for _ in range(8):
+                u1, u2, t = user(), user(), topic()
+                services.enter_proposition(u1, t, "pro")
+                results = parallel(lambda: services.enter_proposition(u2, t, "con").pk, lambda: services.block_user(u1, u2))
+                both_live = [
+                    c.pk for c in Conversation.objects.filter(topic=t, status__in=["open", "active"])
+                    if {p.user_id for p in c.participants.all()} >= {u1.pk, u2.pk}
+                ]
+                rounds.append({"results": results, "live_shared": both_live, "blocks": Block.objects.filter(blocker=u1, blocked=u2).count()})
+            out["rounds"] = rounds
+            out["results"] = [r for rnd in rounds for r in rnd["results"]]
+        elif scenario == "double_block":
+            from forum.models import Block
+            u1, u2 = user(), user()
+            t = topic()
+            services.enter_proposition(u1, t, "pro")
+            services.enter_proposition(u2, t, "con")
+            out["results"] = parallel(*[(lambda: len(services.block_user(u1, u2))) for _ in range(4)])
+            out["blocks"] = Block.objects.filter(blocker=u1, blocked=u2).count()
+            out["status"] = Conversation.objects.get(topic=t).status
+        elif scenario == "mutual_block":
+            from forum.models import Block
+            u1, u2 = user(), user()
+            t = topic()
+            services.enter_proposition(u1, t, "pro")
+            services.enter_proposition(u2, t, "con")
+            out["results"] = parallel(lambda: len(services.block_user(u1, u2)), lambda: len(services.block_user(u2, u1)))
+            out["blocks"] = Block.objects.filter(blocker__in=[u1, u2], blocked__in=[u1, u2]).count()
+            conv = Conversation.objects.get(topic=t)
+            out["status"] = conv.status
+            out["ended_by_user"] = conv.ended_by.user_id
+            out["users"] = [u1.pk, u2.pk]
         elif scenario == "props_limit":
             settings.MAX_PROPOSITIONS_PER_USER_PER_DAY = 3
             u1 = user()
@@ -167,8 +232,8 @@ SCRIPT = textwrap.dedent(
             out["made"] = Topic.objects.filter(proposition=text).count()
         elif scenario == "post_and_end":
             u1, u2, t = user(), user(), topic()
-            conv = services.enter_proposition(u1, t)
-            services.enter_proposition(u2, t)
+            conv = services.enter_proposition(u1, t, "pro")
+            services.enter_proposition(u2, t, "con")
             out["results"] = parallel(lambda: services.post_message(u1, conv, "racing message text").seq_no,
                                       lambda: services.end_conversation(u2, conv).pk)
             out["status"] = Conversation.objects.get(pk=conv.pk).status
@@ -177,7 +242,7 @@ SCRIPT = textwrap.dedent(
         return out
 
 
-    ALL = ["join", "fresh", "double", "posts", "same_participant", "cap", "open_limit", "end", "post_and_end", "props_limit", "props_duplicate"]
+    ALL = ["join", "fresh", "double", "posts", "same_participant", "cap", "open_limit", "end", "post_and_end", "props_limit", "props_duplicate", "same_side", "mixed_sides", "post_and_join", "block_vs_join", "double_block", "mutual_block"]
     results = {name: run(name) for name in ALL}
     print("RESULT " + json.dumps(results))
     '''
@@ -337,3 +402,61 @@ def test_the_same_proposition_submitted_by_three_people_at_once_is_created_once(
     assert sorted(next(iter(r)) for r in out["results"]) == ["ok", "rejected", "rejected"]
     assert {r["rejected"] for r in out["results"] if "rejected" in r} == {"duplicate"}
     assert out["made"] == 1
+
+
+# --- sides (step 7c) -----------------------------------------------------------------------------------------------------
+
+
+def test_two_people_entering_the_same_side_at_once_never_pair(outcomes):
+    out = outcomes["same_side"]
+    no_errors(out)
+    assert len(out["convs"]) == 2, out["convs"]
+    assert all(c["status"] == "open" and len(c["users"]) == 1 for c in out["convs"])
+    assert sorted(u for c in out["convs"] for u in c["users"]) == sorted(out["users"])
+    assert all(c["seed"] is not None for c in out["convs"])
+
+
+def test_a_same_side_entrant_and_an_opposite_side_entrant_racing_only_the_opposite_one_joins(outcomes):
+    out = outcomes["mixed_sides"]
+    no_errors(out)
+    u1, u2, u3 = out["users"]
+    waiting = next(c for c in out["convs"] if c["id"] == out["waiting_id"])
+    assert waiting["status"] == "active" and sorted(waiting["users"]) == sorted([u1, u3])
+    others = [c for c in out["convs"] if c["id"] != out["waiting_id"]]
+    assert len(others) == 1 and others[0]["users"] == [u2] and others[0]["status"] == "open"
+    assert out["sides"][str(out["waiting_id"])] == ["con", "pro"]
+
+
+def test_posting_while_someone_joins_keeps_the_seed_the_label_and_all_the_rows(outcomes):
+    out = outcomes["post_and_join"]
+    no_errors(out)
+    assert out["status"] == "active" and out["n_participants"] == 2
+    assert out["seed_same"] is True and out["label_same"] is True
+    assert out["messages"] == 1 and out["runs"] == 1
+
+
+# --- blocks (step 7c revision 5) ------------------------------------------------------------------------------------------------
+
+
+def test_a_block_racing_a_join_never_leaves_the_pair_together(outcomes):
+    out = outcomes["block_vs_join"]
+    no_errors(out)
+    assert len(out["rounds"]) == 8
+    for rnd in out["rounds"]:
+        assert rnd["blocks"] == 1
+        assert rnd["live_shared"] == [], rnd  # never an open or active conversation holding both
+
+
+def test_four_simultaneous_blocks_of_the_same_person_make_one_block_and_end_the_conversation_once(outcomes):
+    out = outcomes["double_block"]
+    no_errors(out)
+    assert out["blocks"] == 1 and out["status"] == "closed"
+    assert sorted(r["ok"] for r in out["results"]) == [0, 0, 0, 1]  # exactly one call ended the conversation
+
+
+def test_two_people_blocking_each_other_at_once_end_the_conversation_once(outcomes):
+    out = outcomes["mutual_block"]
+    no_errors(out)
+    assert out["blocks"] == 2 and out["status"] == "closed"
+    assert sorted(r["ok"] for r in out["results"]) == [0, 1]
+    assert out["ended_by_user"] in out["users"]

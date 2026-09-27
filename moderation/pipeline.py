@@ -24,6 +24,7 @@ Rejection reason codes (stored verbatim in `rejection_reason`):
 """
 import logging
 import re
+from typing import NamedTuple
 
 from django.conf import settings
 from django.db import transaction
@@ -59,7 +60,7 @@ class _Stop:
         self.error = error
 
 
-class _IssueView(dict):
+class IssueView(dict):
     """A stored valid issue as the Intervenor sees it: `id` is the Master's own local id (what the Intervenor cites in
     `issue_dispositions` and `source_issue_ids`), not the database key. Readable both as a dict and by attribute."""
 
@@ -68,6 +69,9 @@ class _IssueView(dict):
             return self[name]
         except KeyError:
             raise AttributeError(name) from None
+
+
+_IssueView = IssueView
 
 
 # --- Small helpers -------------------------------------------------------------------------------------------------
@@ -99,6 +103,12 @@ def build_transcript(run):
         run.conversation.messages_up_to(run.snapshot_seq).select_related("participant").order_by("-seq_no")[:limit]
     )
     rows.reverse()
+    return transcript_from_messages(rows)
+
+
+def transcript_from_messages(rows):
+    """Plain transcript dicts for `rows` (Message objects, oldest first, participants loaded). Shared by the live run and
+    the draft check (moderation/preview.py), so both send the agents exactly the same shape."""
     transcript = []
     for message in rows:
         if message.author_type == "moderator":
@@ -121,16 +131,27 @@ def build_transcript(run):
 def _already_raised(run):
     """Valid issues from this conversation's earlier finished runs of the same kind (and replicate), with what the
     Intervenor did about each, so the Master does not raise them again."""
+    return already_raised_for(
+        conversation_id=run.conversation_id,
+        kind=run.kind,
+        replicate=run.replicate,
+        snapshot_seq=run.snapshot_seq,
+        exclude_run_id=run.pk,
+    )
+
+
+def already_raised_for(*, conversation_id, kind, replicate, snapshot_seq, exclude_run_id=None):
+    """`_already_raised` on plain values, so the draft check can ask the same question for a message not yet posted."""
     earlier = (
         Issue.objects.filter(
-            run__conversation_id=run.conversation_id,
-            run__kind=run.kind,
-            run__replicate=run.replicate,
+            run__conversation_id=conversation_id,
+            run__kind=kind,
+            run__replicate=replicate,
             run__status="done",
-            run__snapshot_seq__lt=run.snapshot_seq,
+            run__snapshot_seq__lt=snapshot_seq,
             validity="valid",
         )
-        .exclude(run_id=run.pk)
+        .exclude(run_id=exclude_run_id)
         .select_related("disposition")
         .order_by("run__snapshot_seq", "run_id", "pk")
     )
@@ -162,31 +183,48 @@ def _unique_local_id(base, taken):
     return f"{base}#dup{n}"
 
 
-def _store_issues(run, transcript, output):
-    """Validate every issue of the Master's output and store all of them. Returns {local_id: Issue} for ALL stored issues
-    (valid and rejected); the valid ones are the ones with validity == "valid"."""
-    from forum.models import Message
+class PlainMessage(NamedTuple):
+    """What issue validation needs to know about one message: plain data, so a draft that is not yet a message can be
+    validated by the same code (moderation/preview.py)."""
 
-    in_window = {m["id"]: m for m in transcript}
-    newest_user_id = next((m["id"] for m in reversed(transcript) if m["author_type"] == "user"), None)
-    cited = {issue.message_id for issue in output.issues}
-    in_conversation = {
-        m.pk: m for m in Message.objects.filter(conversation_id=run.conversation_id, pk__in=cited)
-    }
-    trigger = run.trigger_message
+    author_type: str
+    content: str
+    seq_no: int
+
+
+class IssueVerdict(NamedTuple):
+    """The outcome of validating one issue of the Master's output. `reason` is None for a valid issue. `location` is the
+    quote's place in the cited message (None when the message was not looked at). `anchored` is True when the cited message
+    is a message of the conversation that is not later than the snapshot (so an Issue may hang on it); otherwise the stored
+    issue is anchored on the trigger message."""
+
+    item: object
+    local_id: str
+    reason: str | None
+    location: object
+    has_dimension: bool
+    anchored: bool
+
+
+def validate_issues(output, *, window_ids, newest_user_id, messages, snapshot_seq):
+    """Validate every issue of a Master output on plain data; one `IssueVerdict` per issue, in order. Touches no database.
+
+    `window_ids`: ids of the messages the Master saw. `newest_user_id`: id of the newest user message in that window.
+    `messages`: {id: PlainMessage} for every message of the conversation the output may cite (missing id: unknown).
+    `snapshot_seq`: the run's snapshot; a cited message later than it is not anchorable."""
     taken = set()
-    rows = []
+    verdicts = []
     for item in output.issues:
-        message = in_conversation.get(item.message_id)
+        message = messages.get(item.message_id)
         reason = None
         location = None
         if message is None:
             reason = "unknown_message"
-        elif item.message_id not in in_window:
+        elif item.message_id not in window_ids:
             reason = "outside_window"
         elif message.author_type == "moderator":
             reason = "moderator_message"
-        if message is not None and item.message_id in in_window:
+        if message is not None and item.message_id in window_ids:
             location = quotes.locate_quote(message.content, item.quote)
         if reason is None and item.issue_type not in taxonomy.CROSS_MESSAGE_ISSUE_TYPES and item.message_id != newest_user_id:
             reason = "not_new"
@@ -203,16 +241,43 @@ def _store_issues(run, transcript, output):
             local_id = _unique_local_id(item.id, taken)
         taken.add(local_id)
 
+        anchored = message is not None and message.seq_no <= snapshot_seq
+        if not anchored:
+            location = None
+        verdicts.append(IssueVerdict(item, local_id, reason, location, has_dimension, anchored))
+    return verdicts
+
+
+def _store_issues(run, transcript, output):
+    """Validate every issue of the Master's output and store all of them. Returns {local_id: Issue} for ALL stored issues
+    (valid and rejected); the valid ones are the ones with validity == "valid"."""
+    from forum.models import Message
+
+    window_ids = {m["id"] for m in transcript}
+    newest_user_id = next((m["id"] for m in reversed(transcript) if m["author_type"] == "user"), None)
+    cited = {issue.message_id for issue in output.issues}
+    in_conversation = {
+        m.pk: m for m in Message.objects.filter(conversation_id=run.conversation_id, pk__in=cited)
+    }
+    verdicts = validate_issues(
+        output,
+        window_ids=window_ids,
+        newest_user_id=newest_user_id,
+        messages={pk: PlainMessage(m.author_type, m.content, m.seq_no) for pk, m in in_conversation.items()},
+        snapshot_seq=run.snapshot_seq,
+    )
+    trigger = run.trigger_message
+    rows = []
+    for verdict in verdicts:
+        item, location = verdict.item, verdict.location
         # The issue must hang on a message of this run's conversation that is not later than the snapshot. An id that is
         # not a message of the conversation (or is later than the snapshot) is stored on the trigger message instead,
         # rejected; what the model cited is preserved in its LLMCall row.
-        anchor = message if (message is not None and message.seq_no <= run.snapshot_seq) else trigger
-        if anchor is not message:
-            location = None
+        anchor = in_conversation[item.message_id] if verdict.anchored else trigger
         rows.append(
             Issue(
                 run=run,
-                local_id=local_id,
+                local_id=verdict.local_id,
                 message=anchor,
                 issue_type=item.issue_type,
                 quote=item.quote,
@@ -221,9 +286,9 @@ def _store_issues(run, transcript, output):
                 quote_match=quotes.NOT_FOUND if location is None else location.match,
                 explanation=item.explanation,
                 confidence=item.confidence,
-                intensity=item.intensity if has_dimension else None,
-                validity="valid" if reason is None else "rejected",
-                rejection_reason=reason or "",
+                intensity=item.intensity if verdict.has_dimension else None,
+                validity="valid" if verdict.reason is None else "rejected",
+                rejection_reason=verdict.reason or "",
             )
         )
     stored = {}
@@ -248,6 +313,62 @@ def _label_value(value, labels, allowed_words):
     return None
 
 
+class ActVerdict(NamedTuple):
+    """The outcome of validating one act: the stored forms of addressee and subject, and `reason` (None when valid)."""
+
+    item: object
+    order: int
+    addressee: str | None
+    subject: str | None
+    reason: str | None
+
+
+def validate_dispositions(output, valid_local_ids, notes):
+    """{local_id: disposition item} for the dispositions of an Intervenor output that count: one per valid issue. The
+    ones that do not count (unknown or rejected issue, second disposition) are described in `notes`."""
+    dispositions = {}
+    for item in output.issue_dispositions:
+        if item.issue_id not in valid_local_ids:
+            notes.append(f"ignored a disposition for issue {item.issue_id!r}: not a valid issue of this run")
+        elif item.issue_id in dispositions:
+            notes.append(f"ignored a second disposition for issue {item.issue_id!r}")
+        else:
+            dispositions[item.issue_id] = item
+    return dispositions
+
+
+def validate_acts(output, *, labels, window_ids, valid_local_ids, cap):
+    """Validate every act of an Intervenor output on plain data; one `ActVerdict` per act, in order. Touches no database.
+
+    `labels`: the conversation's participant labels. `window_ids`: ids of the messages the agents saw. `valid_local_ids`:
+    the Master's local ids of the valid issues. `cap`: most valid acts allowed."""
+    intervene = output.decision == "intervene"
+    verdicts = []
+    valid_count = 0
+    for order, act in enumerate(output.acts, start=1):
+        addressee = _label_value(act.addressee, labels, ("all",))
+        subject = _label_value(act.subject, labels, ("both", "none"))
+        reason = None
+        if not intervene:
+            reason = "decision_no_intervention"
+        elif not act.text.strip():
+            reason = "empty_text"
+        elif addressee is None or subject is None:
+            reason = "bad_label"
+        elif label_check.names_a_label(act.text):
+            reason = "names_participant"
+        elif any(i not in valid_local_ids for i in act.source_issue_ids):
+            reason = "bad_source_issue"
+        elif any(m not in window_ids for m in act.source_message_ids):
+            reason = "bad_source_message"
+        elif valid_count >= cap:
+            reason = "act_cap"
+        if reason is None:
+            valid_count += 1
+        verdicts.append(ActVerdict(act, order, addressee, subject, reason))
+    return verdicts
+
+
 def _store_intervenor(run, transcript, output, stored_issues, notes):
     """Validate and store dispositions and acts. Returns the list of valid acts in order."""
     from forum.models import Participant
@@ -256,16 +377,11 @@ def _store_intervenor(run, transcript, output, stored_issues, notes):
     window_ids = {m["id"] for m in transcript}
     valid_by_local = {lid: issue for lid, issue in stored_issues.items() if issue.validity == "valid"}
     cap = int(settings.MAX_ACTS_PER_INTERVENTION)
-    intervene = output.decision == "intervene"
 
-    dispositions = {}
-    for item in output.issue_dispositions:
-        if item.issue_id not in valid_by_local:
-            notes.append(f"ignored a disposition for issue {item.issue_id!r}: not a valid issue of this run")
-        elif item.issue_id in dispositions:
-            notes.append(f"ignored a second disposition for issue {item.issue_id!r}")
-        else:
-            dispositions[item.issue_id] = item
+    dispositions = validate_dispositions(output, valid_by_local, notes)
+    verdicts = validate_acts(
+        output, labels=labels, window_ids=window_ids, valid_local_ids=valid_by_local, cap=cap
+    )
 
     valid_acts = []
     with transaction.atomic():
@@ -276,33 +392,17 @@ def _store_intervenor(run, transcript, output, stored_issues, notes):
                 disposition=item.disposition if item else "declined",
                 reason=item.reason if item else "no_disposition",
             )
-        for order, act in enumerate(output.acts, start=1):
-            addressee = _label_value(act.addressee, labels, ("all",))
-            subject = _label_value(act.subject, labels, ("both", "none"))
+        for verdict in verdicts:
+            act, reason = verdict.item, verdict.reason
             source_issues = [stored_issues[i] for i in dict.fromkeys(act.source_issue_ids) if i in stored_issues]
-            reason = None
-            if not intervene:
-                reason = "decision_no_intervention"
-            elif not act.text.strip():
-                reason = "empty_text"
-            elif addressee is None or subject is None:
-                reason = "bad_label"
-            elif label_check.names_a_label(act.text):
-                reason = "names_participant"
-            elif any(i not in valid_by_local for i in act.source_issue_ids):
-                reason = "bad_source_issue"
-            elif any(m not in window_ids for m in act.source_message_ids):
-                reason = "bad_source_message"
-            elif len(valid_acts) >= cap:
-                reason = "act_cap"
             row = InterventionAct(
                 run=run,
-                order=order,
+                order=verdict.order,
                 act_type=act.type,
                 tone=act.tone,
                 text=act.text,
-                addressee=addressee or "all",
-                subject=subject or "none",
+                addressee=verdict.addressee or "all",
+                subject=verdict.subject or "none",
                 validity="valid" if reason is None else "rejected",
                 rejection_reason=reason or "",
             )
@@ -456,10 +556,18 @@ def _run(run):
     facts = features.process_facts(transcript)
     notes = []
 
-    # 3. Master.
-    output = agents.call_master(
-        run, transcript, topic=topic, already_raised=_already_raised(run), process_facts=facts
-    )
+    # 3. Master. A live run for a message the author already previewed unchanged (moderation/preview.py) uses the model
+    # outputs computed for the preview instead of asking again; everything after this point is the same either way.
+    from moderation import preview
+
+    reuse = preview.claim_reusable_check(run)
+    if reuse is None:
+        output = agents.call_master(
+            run, transcript, topic=topic, already_raised=_already_raised(run), process_facts=facts
+        )
+    else:
+        output = reuse.master
+        _update(run, config_snapshot={**(run.config_snapshot or {}), "preview_check_id": reuse.check_id})
     stored = _store_issues(run, transcript, output)
     discussion_map = output.discussion_map.model_dump(mode="json")
     _update(run, discussion_map=discussion_map)
@@ -473,16 +581,19 @@ def _run(run):
         )
         return
     views = [
-        _IssueView(
+        IssueView(
             id=issue.local_id, local_id=issue.local_id, pk=issue.pk, message_id=issue.message_id,
             issue_type=issue.issue_type, dimension=issue.dimension, confidence=issue.confidence,
             intensity=issue.intensity, quote=issue.quote, explanation=issue.explanation,
         )
         for issue in valid_issues
     ]
-    result = agents.call_intervenor(
-        run, transcript, topic=topic, valid_issues=views, discussion_map=output.discussion_map
-    )
+    if reuse is not None and reuse.intervenor is not None:
+        result = reuse.intervenor
+    else:
+        result = agents.call_intervenor(
+            run, transcript, topic=topic, valid_issues=views, discussion_map=output.discussion_map
+        )
     valid_acts = _store_intervenor(run, transcript, result, stored, notes)
 
     # 5 and 6. Post (live only) and finish.

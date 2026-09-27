@@ -110,11 +110,12 @@ def test_logging_out_takes_the_pages_away_again():
     assert response.status_code == 302 and reverse("accounts:login") in response["Location"]
 
 
-def test_the_home_page_of_a_user_with_no_conversations_still_works_and_lists_propositions():
+def test_the_home_page_of_a_user_with_no_conversations_still_works_and_lists_waiting_positions():
     user = K.make_user()
-    K.make_topic("Only proposition around.", created_by=user)
+    topic = K.make_topic("Only waiting proposition around.", created_by=K.make_user())
+    K.wait_on(topic, "pro")
     response = K.client_for(user).get("/")
-    assert response.status_code == 200 and "Only proposition around." in response.content.decode()
+    assert response.status_code == 200 and "Only waiting proposition around." in response.content.decode()
 
 
 def test_the_home_page_with_no_propositions_at_all_says_so_and_offers_to_propose():
@@ -125,9 +126,11 @@ def test_the_home_page_with_no_propositions_at_all_says_so_and_offers_to_propose
     assert not re.search(r"/p/\d+/enter/", response.content.decode())
 
 
-def test_many_propositions_are_all_reachable_from_the_home_page():
+def test_many_waiting_positions_are_all_reachable_from_the_home_page():
     user = K.make_user()
-    topics = [K.make_topic(f"Bulk proposition number {i}.", created_by=user, minutes_ago=i) for i in range(1, 41)]
-    page = K.client_for(user).get("/").content.decode()
+    topics = [K.make_topic(f"Bulk proposition number {i}.", created_by=user) for i in range(1, 41)]
+    for i, topic in enumerate(topics):
+        K.wait_on(topic, "pro", minutes_ago=100 - i)
+    page = K.client_for(K.make_user()).get("/").content.decode()
     missing = [t.proposition for t in topics if t.proposition not in page]
-    assert not missing, f"{len(missing)} propositions are not on the page and there is no paging in the contract: {missing[:3]}"
+    assert not missing, f"{len(missing)} waiting positions are not on the page and there is no paging in the contract: {missing[:3]}"

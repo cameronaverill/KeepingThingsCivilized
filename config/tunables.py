@@ -119,8 +119,12 @@ MIN_SECONDS_BETWEEN_MESSAGES = 30
 # Most user messages one conversation may contain before it is closed.
 MAX_USER_MESSAGES_PER_CONVERSATION = 30
 
-# Most conversations that may be open at the same time.
-MAX_OPEN_CONVERSATIONS = 5
+# Most conversations one person may have open at the same time. None means no limit (the current setting); a number turns
+# the limit back on, and the site then refuses a new conversation past it with a message.
+MAX_OPEN_CONVERSATIONS = None
+
+# On the home page, how many of a user's ended conversations are listed under "Your conversations" (the most recent ones).
+MY_ENDED_CONVERSATIONS_SHOWN = 10
 
 # Longest proposition a user may create, in characters.
 MAX_PROPOSITION_CHARS = 200
@@ -140,6 +144,20 @@ TRANSCRIPT_MAX_MESSAGES = 20
 MAX_ACTS_PER_INTERVENTION = 3
 
 # ---------------------------------------------------------------------------
+# Intervention preview (step 19)
+# ---------------------------------------------------------------------------
+
+# Share of new conversations that get the intervention preview: 1.0 = all (the MVP), 0.0 = none, 0.5 = a random half.
+# Drawn once per conversation and stored, so changing it never changes an existing conversation.
+PREVIEW_SHARE = 1.0
+
+# Most draft checks one participant may run in any 60 seconds; past it the message simply posts without a preview.
+PREVIEW_MAX_CHECKS_PER_MINUTE = 6
+
+# How long, in seconds, a checked draft's model outputs may be reused when the author posts that same text unchanged.
+PREVIEW_REUSE_SECONDS = 900
+
+# ---------------------------------------------------------------------------
 # Accounts
 # ---------------------------------------------------------------------------
 
@@ -151,12 +169,6 @@ USERNAME_MAX_LENGTH = 30
 
 # Shortest allowed password.
 PASSWORD_MIN_LENGTH = 12
-
-# How long an email confirmation link stays valid.
-EMAIL_CONFIRM_MAX_AGE_DAYS = 3
-
-# Minimum wait before another confirmation email can be requested.
-RESEND_CONFIRMATION_MIN_SECONDS = 60
 
 # How long a login session lasts, in seconds (30 days).
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
@@ -207,6 +219,13 @@ INTENSITY_DISAGREEMENT_THRESHOLD = 2
 # A phrase counts as an "error" for the metrics if its intensity is at least this. Proposal; not final.
 INTENSITY_ERROR_THRESHOLD = 2
 
+# Replays (step 13): the fixed time, in seconds, between consecutive messages of a scripted conversation. The same for every
+# transcript and both label assignments, so the "seconds between messages" fact the Master sees cannot differ by side.
+REPLAY_MESSAGE_GAP_SECONDS = 90
+
+# In the admin, the most characters shown of an LLM call's request, raw response and parsed output (lists never show them).
+ADMIN_RAW_DISPLAY_CHARS = 5000
+
 # How many earlier messages (text only, labelled "earlier message") a rater sees as context beside the message rated.
 BLINDED_CONTEXT_MESSAGES = 3
 
@@ -228,3 +247,15 @@ CALIBRATION_STRATUM_SHARES = {
 
 # Calibration set: an intensity up to and including this counts as "low", above it as "high".
 CALIBRATION_LOW_INTENSITY_MAX = 2
+
+# LLM raters (step 14): the longest reply, in tokens, one rating call may produce. It is also the output part of the
+# worst-case cost estimate of every rating call, so lowering it makes a run look cheaper (and truncates long answers).
+RATER_MAX_TOKENS = 2000
+
+# LLM raters (step 14): folder with the rubric files (rubrics/<dimension>_v1.md). None = the repository's rubrics/ folder.
+# Tests point it at a temporary folder; nothing else should change it.
+RATER_RUBRICS_DIR = None
+
+# Step 19: the longest the conversation page waits, in seconds, for the check of a draft before it posts the message
+# anyway (the page never blocks posting because the check was slow or failed).
+PREVIEW_CLIENT_TIMEOUT_SECONDS = 25

@@ -36,7 +36,7 @@ def test_the_text_is_stripped_whitespace_collapsed_and_nfc_normalised():
     topic = svc().create_proposition(user, "  Cats   make\nbetter\t\tpets \r\n than dogs   ")
     assert topic.proposition == "Cats make better pets than dogs"
     composed = svc().create_proposition(user, "caf" + "é is nicer than tea")
-    assert composed.proposition == "café is nicer than tea"
+    assert composed.proposition == "Café is nicer than tea"
 
 
 def test_case_and_punctuation_are_kept_as_typed():

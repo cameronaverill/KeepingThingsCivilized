@@ -11,7 +11,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import IntegrityError, models, transaction
-from django.db.models import Max, Q
+from django.db.models import F, Max, Q
 from django.db.models.functions import Length
 from django.db.models.lookups import Exact
 
@@ -29,6 +29,7 @@ KIND_CHOICES = [
 STATUS_CHOICES = [("open", "open"), ("active", "active"), ("closed", "closed")]
 SOURCE_CHOICES = [("human", "human"), ("synthetic", "synthetic")]
 AUTHOR_CHOICES = [("user", "user"), ("moderator", "moderator")]
+SIDE_CHOICES = [("pro", "pro"), ("con", "con")]
 
 
 class Topic(models.Model):
@@ -37,6 +38,9 @@ class Topic(models.Model):
     title = models.CharField(max_length=200, blank=True, default="")
     description = models.TextField(blank=True, default="")
     proposition = models.TextField(blank=True, default="")
+    # The wording of the opposing position ("con"); blank for user-created propositions, whose "con" is the plain
+    # choice "I disagree with this position" (step 7c, two-position model).
+    opposing_position = models.TextField(blank=True, default="")
     # Per side, per scheme and axis, with rationale (plan section 2).
     leans = models.JSONField(default=dict, blank=True)
     # Null for seeded topics; the user who created a proposition otherwise (plan section 2, step 7).
@@ -155,11 +159,20 @@ class Participant(models.Model):
         validators=[RegexValidator(r"\A[A-Z]\Z", "The label must be one uppercase letter, A to Z.")],
     )
     join_order = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    # The position this person holds: "pro" (Topic.proposition) or "con" (the opposing position). Blank for synthetic
+    # participants and for rows that pre-date step 7c (a blank side counts as "pro" when pairing).
+    side = models.CharField(max_length=3, blank=True, default="", choices=SIDE_CHOICES)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["conversation", "label"], name="forum_participant_label_unique"),
+            models.UniqueConstraint(
+                fields=["conversation", "side"],
+                condition=~Q(side=""),
+                name="forum_participant_side_unique_per_conversation",
+            ),
+            models.CheckConstraint(condition=Q(side__in=["", "pro", "con"]), name="forum_participant_side_valid"),
             models.UniqueConstraint(fields=["conversation", "join_order"], name="forum_participant_join_order_unique"),
             models.UniqueConstraint(
                 fields=["conversation", "user"],
@@ -182,6 +195,8 @@ class Participant(models.Model):
             raise ValidationError({"label": "The label must be one uppercase letter, A to Z."})
         if self.join_order is None or self.join_order < 1:
             raise ValidationError({"join_order": "The join order must be a positive number."})
+        if self.side not in ("", "pro", "con"):
+            raise ValidationError({"side": "The side must be blank, 'pro' or 'con'."})
         conversation = self.conversation
         if conversation.source == "human" and self.user_id is None:
             raise ValidationError({"user": "A participant of a human conversation must have a user."})
@@ -291,3 +306,26 @@ class Message(models.Model):
                 raise ValidationError({"seq_no": "The sequence number must be at least 1."})
             self._validate_rules()
             super().save(*args, **kwargs)
+
+
+class Block(models.Model):
+    """One person blocking another (step 7c, revision 5). Blocks apply in both directions when people look at or join
+    each other's waiting positions; ``forum.services.block_user`` also ends the conversations the two share."""
+
+    blocker = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="blocks_made")
+    blocked = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="blocks_received")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["blocker", "blocked"], name="forum_block_pair_unique"),
+            models.CheckConstraint(condition=~Q(blocker=F("blocked")), name="forum_block_not_self"),
+        ]
+
+    def __str__(self):
+        return f"Block {self.blocker_id} -> {self.blocked_id}"
+
+    def save(self, *args, **kwargs):
+        if self.blocker_id is not None and self.blocker_id == self.blocked_id:
+            raise ValidationError({"blocked": "A person cannot block themselves."})
+        super().save(*args, **kwargs)

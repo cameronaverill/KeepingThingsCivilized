@@ -16,7 +16,99 @@ User = get_user_model()
 MODEL_BACKEND = "django.contrib.auth.backends.ModelBackend"
 
 NOT_FOUND_TEXT = "This conversation was not found, or you are not a participant."
-WAITING_TEXT = "You can post once someone else joins."
+# 7c wording (final, from docs/step7c_brief.md "Two-position model")
+WAITING_TITLE = "Waiting for someone to take the other position"
+WAITING_BODY = (
+    "You are the first one here. Whoever joins will take the opposing position and can read everything you have "
+    "posted so far. You can keep posting while you wait."
+)
+OWN_CONVERSATION = "You already have a conversation here."
+OPEN_OWN_BUTTON = "Open your conversation"
+DISAGREE_BUTTON = "I disagree with this position"
+POSITION_PREFIX = "My position is that"
+CHOOSE_POSITION = "Choose a position first."
+PROPOSE_LEAD = (
+    "State a position you hold and want to talk through. Whoever joins will take the opposing view, so you will not "
+    "need to argue both sides."
+)
+PROPOSE_LEAD_OLD_TAIL = "Your opening message will be shown, shortened, on the home page"
+HOW_PARAGRAPH = (
+    # Wave 16 item 7 (docs/wave16_brief.md) removed the trailing "AI moderator sees only the topic..." sentence.
+    "Every conversation is between two opposing positions. The home page lists positions that someone holds and is "
+    "waiting for someone to disagree with. Join one to take the other side, or start a discussion of your own with "
+    "your position or one of the suggested topics. Conversations are private to their two participants."
+)
+HOME_HEADING = "Waiting to discuss"
+HOME_LEAD = (
+    "These are positions that someone holds and is waiting for someone to disagree with. Pick one to take the other "
+    "side, or start a discussion of your own. An AI moderator reads along and may step in."
+)
+WAITING_LABEL_RE = r"(\S+) is waiting to discuss:"
+
+
+def waiting_label(username):
+    return f"{username} is waiting to discuss:"
+
+
+NO_MATCH = "No discussion matches your search."
+EMPTY_HOME = "Nobody is waiting right now. You can start a discussion of your own."
+SEARCH_LABEL = "Search your discussions"
+START_BUTTON = "Start a new discussion"
+YOUR_DISCUSSIONS = "Your discussions"
+OLD_HOME_SECTION = "Your conversations"
+EMPTY_DISCUSSIONS = "You have no discussions yet. Pick a waiting position on the home page, or start one of your own."
+BLOCKED_HEADING = "Blocked people"
+BLOCKED_LEAD = "People you have blocked cannot see your waiting positions, and you cannot see theirs."
+BLOCKED_EMPTY = "You have not blocked anyone."
+WHO_IS_HERE_FORMAT = "You are talking with {name}. The moderator refers to messages by number, such as \u201cAbout your message 4\u201d."
+BLOCK_EXPLAIN = "Blocking ends this conversation for both of you. You will not see each other's waiting positions or be paired again."
+SELF_BLOCK = "You cannot block yourself."
+# HOW_BLOCK (the username/blocking sentences that used to follow HOW_PARAGRAPH) was removed by wave 16 item 7; the
+# how_it_works page no longer says this anywhere (see test_fviews_wave16_how_it_works.py).
+
+
+def blocked_banner_from_conversation(name):
+    return f"You blocked {name}. The conversation has ended."
+
+
+def blocked_banner_from_card(name):
+    return f"You blocked {name}."
+
+
+def unblocked_banner(name):
+    return f"You unblocked {name}."
+SEEDED_HEADING = "Or start from one of these topics"
+STATUS_WAITING = "Waiting for someone to take the other position"
+STATUS_ACTIVE = "In discussion"
+STATUS_ENDED = "Ended"
+THEY_DISAGREE = "They disagree with: "
+YOU_DISAGREE = "You disagree with this position: "
+# Wording that must be gone from every page (old behaviour).
+OLD_PHRASES = [
+    "Choose a proposition",
+    "All propositions",
+    "Back to all propositions",
+    "Back to propositions",
+    "No proposition matches",
+    "Propose a new one",
+    "Search propositions",
+    "You choose the position you hold, and you are paired with someone who holds the other one",
+    "Someone who holds the other position is waiting",
+    "Their opening message",
+    "You can post once someone else joins",
+    "Waiting for a second person",
+    "When someone else picks this proposition",
+    "Two people will discuss it",
+    "you will not be told which side",
+    "nobody is told which side you take",
+    "The one exception is a conversation that is still waiting for a second person",
+    "The one exception is a conversation still waiting for someone to take the other position",
+    "Someone who holds the other position is waiting",
+    "Shortened here",
+    "Their opening message",
+    "Your opening message will be shown",
+    "is shown on the home page so people can see what they would be joining",
+]
 CLOSED_TEXT = "This conversation is closed."
 YOU_ENDED = "You ended this conversation."
 OTHER_ENDED = "The other participant ended this conversation."
@@ -78,21 +170,23 @@ class FClock:
 
 # --- forum data -----------------------------------------------------------------------------------------------------
 
-def make_topic(proposition=None, created_by=None, title="", hidden=False, minutes_ago=0):
+def make_topic(proposition=None, created_by=None, title="", hidden=False, minutes_ago=0, opposing=""):
     from forum.models import Topic
 
     proposition = proposition or uniq("Proposition number ")
-    topic = Topic.objects.create(title=title, proposition=proposition, created_by=created_by, hidden=hidden)
+    topic = Topic.objects.create(
+        title=title, proposition=proposition, created_by=created_by, hidden=hidden, opposing_position=opposing
+    )
     if minutes_ago:
         Topic.objects.filter(pk=topic.pk).update(created_at=timezone.now() - timedelta(minutes=minutes_ago))
     topic.refresh_from_db()
     return topic
 
 
-def enter(user, topic):
+def enter(user, topic, side="pro"):
     from forum import services
 
-    return services.enter_proposition(user, topic)
+    return services.enter_proposition(user, topic, side)
 
 
 def participant_of(conv, user):
@@ -102,12 +196,14 @@ def participant_of(conv, user):
 class Duo:
     """Two signed-in browsers in one active conversation about one proposition."""
 
-    def __init__(self, proposition="Cats make better pets than dogs.", csrf=False, names=(NAME_A, NAME_B)):
+    def __init__(self, proposition="Cats make better pets than dogs.", csrf=False, names=(NAME_A, NAME_B),
+                 opposing="", sides=("pro", "con")):
         self.ua = make_user(names[0], f"{names[0]}@leakcheck.example")
         self.ub = make_user(names[1], f"{names[1]}@leakcheck.example")
-        self.topic = make_topic(proposition, created_by=self.ua)
-        self.conv = enter(self.ua, self.topic)
-        self.conv = enter(self.ub, self.topic)
+        self.topic = make_topic(proposition, created_by=self.ua, opposing=opposing)
+        self.sides = sides
+        self.conv = enter(self.ua, self.topic, sides[0])
+        self.conv = enter(self.ub, self.topic, sides[1])
         assert self.conv.status == "active", "the second person joining must make the conversation active"
         self.ca = client_for(self.ua, csrf)
         self.cb = client_for(self.ub, csrf)
@@ -222,16 +318,17 @@ _LABEL_PATTERNS = [
     re.compile(r"(?i)\b(?:participant|user|speaker|side|person|member|player)[\s_-]*[AB]\b"),
     re.compile(r"(?i)\(\s*[AB]\s*\)"),
     re.compile(r'(?i)class="[^"]*\b(?:label|participant|side|speaker|user)[-_][ab]\b'),
-    re.compile(r"(?i)\bdata-(?:label|participant|side)\b"),
+    re.compile(r"(?i)\bdata-(?:label|participant)\b"),
 ]
 
 
-def leaks(page_html, viewer, other, own_name_in_header_ok=False):
+def leaks(page_html, viewer, other, own_name_in_header_ok=False, other_name_ok=False):
     """Everything in a rendered page that identifies a person or shows an internal label. Empty list = clean.
-    Conversation pages must not carry even the viewer's own username (the brief: no username of either person); on the
-    other pages the site header shows it (`own_name_in_header_ok=True`)."""
+    Revision 5: the OTHER person's username is shown to participants and on waiting cards (`other_name_ok=True`); emails
+    are never shown. Conversation pages still never carry the viewer's OWN username; on the other pages the site header
+    shows it (`own_name_in_header_ok=True`)."""
     problems = []
-    for token in (other.username, other.email, viewer.email):
+    for token in ((other.email, viewer.email) if other_name_ok else (other.username, other.email, viewer.email)):
         if token and token.lower() in page_html.lower():
             problems.append(f"contains {token!r}")
     body = H.without_header(page_html) if own_name_in_header_ok else page_html
@@ -246,18 +343,19 @@ def leaks(page_html, viewer, other, own_name_in_header_ok=False):
     return problems
 
 
-def json_leaks(data, viewer, other):
-    """Leaks in a polling response: names, emails, label letters as values, label-ish keys."""
+def json_leaks(data, viewer, other, other_name_ok=True):
+    """Leaks in a polling response: the viewer's own name, emails, label letters as values, label-ish keys. The other
+    participant's username is allowed (Revision 5) unless `other_name_ok=False`."""
     problems = []
     blob = json.dumps(data)
-    for token in (viewer.username, other.username, viewer.email, other.email):
+    for token in (viewer.username, viewer.email, other.email) + (() if other_name_ok else (other.username,)):
         if token in blob:
             problems.append(f"contains {token!r}")
 
     def walk(value, path=""):
         if isinstance(value, dict):
             for key, item in value.items():
-                if re.search(r"(?i)label|participant|username|email|user_id|author", key):
+                if re.search(r"(?i)label|participant|email|user_id", key):
                     problems.append(f"key {path}/{key}")
                 walk(item, f"{path}/{key}")
         elif isinstance(value, list):
@@ -295,3 +393,41 @@ def install_fake_pipeline(monkeypatch, behaviour=None):
 
         monkeypatch.setattr(moderation, "pipeline", module, raising=False)
     return calls
+
+
+def enter_view(client, topic, side="pro", **extra):
+    """POST the enter form the way a home-page button does."""
+    data = {} if side is None else {"side": side}
+    return client.post(reverse("forum:enter", args=[topic.pk]), data, **extra)
+
+
+def conv_id(response):
+    found = re.fullmatch(r"/c/(\d+)/", response["Location"])
+    assert found, f"expected a redirect into a conversation, got {response.status_code} {response.get('Location')}"
+    return int(found.group(1))
+
+
+def wait_on(topic, side="pro", user=None, minutes_ago=None):
+    """Someone (a fresh user unless given) waits on `topic` holding `side`. Returns (conversation, user)."""
+    from forum.models import Conversation
+
+    user = user or make_user()
+    conv = enter(user, topic, side)
+    if minutes_ago is not None:
+        Conversation.objects.filter(pk=conv.pk).update(created_at=timezone.now() - timedelta(minutes=minutes_ago))
+    return conv, user
+
+
+def raw_waiting(topic, side, user=None, minutes_ago=None):
+    """A waiting conversation written straight into the database, for states the pairing rule never produces by itself
+    (for example waiters on both sides of one topic). Returns (conversation, user)."""
+    import secrets
+
+    from forum.models import Conversation, Participant
+
+    user = user or make_user()
+    conv = Conversation.objects.create(topic=topic, status="open", label_seed=secrets.randbits(62))
+    Participant.objects.create(conversation=conv, user=user, label="A", join_order=1, side=side)
+    if minutes_ago is not None:
+        Conversation.objects.filter(pk=conv.pk).update(created_at=timezone.now() - timedelta(minutes=minutes_ago))
+    return conv, user

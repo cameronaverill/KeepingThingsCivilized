@@ -3,5 +3,5 @@
 {% block content %}
 <h1>Not found</h1>
 <p class="lead">{% if not_found_text %}{{ not_found_text }}{% else %}This page was not found.{% endif %}</p>
-<p><a class="btn btn-primary" href="{% url 'forum:home' %}">Back to propositions</a></p>
+<p><a class="btn btn-primary" href="{% url 'forum:home' %}">Back to home</a></p>
 {% endblock %}

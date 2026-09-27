@@ -5,21 +5,21 @@
 
 <section class="prose">
   <h2>What this site is</h2>
-  <p>Two people discuss a proposition in writing. An AI moderator reads each message and may add a short note of its own. The site is also part of a research project on whether AI moderators treat different viewpoints equally.</p>
+  <p>Two people discuss a proposition in writing. An AI moderator reads each message and may add notes of its own. The site is part of a research project on AI-facilitated discussion.</p>
 </section>
 
 <section class="prose">
   <h2>Propositions</h2>
-  <p>Anyone with an account can propose a statement to debate. It appears on the home page straight away; nobody at the site reviews it first, and listing one is not an endorsement. You can create up to {{ max_propositions_per_day }} a day, and each can be up to {{ max_proposition_chars }} characters. If a proposition is abusive, tell the site admin [contact to be added].</p>
-  <p>Choosing a proposition puts you in a conversation on it. If you already have one open on that proposition, you return to it. If someone else is already waiting to discuss it, you are paired with them. Otherwise you wait, and the conversation starts when someone else picks the same proposition. A waiting conversation does not expire.</p>
-  <p>You do not have to argue for or against anything, and nobody is told which side you take. Each of you is shown only as &ldquo;You&rdquo; and &ldquo;The other participant&rdquo;. Only the two people in a conversation can read it.</p>
-  <p>Either of you can end a conversation at any time. That closes it for both of you: it stays readable, but nobody can post in it, and it is kept for the research record.</p>
+  <p>Anyone with an account can propose a statement to discuss. It appears on the home page straight away; nobody at the site reviews it first, and listing one is not an endorsement. You can create up to {{ max_propositions_per_day }} a day, and each can be up to {{ max_proposition_chars }} characters.</p>
+  <p>Choosing a proposition puts you in a conversation on it, holding the position you chose. If you already have one open on that proposition, you return to it. If someone who holds the other position is already waiting, you are paired with them and can read everything they posted while they waited. Otherwise you wait, and the conversation starts when someone takes the other position. You can keep posting while you wait. A waiting conversation does not expire.</p>
+  <p>Every conversation is between two opposing positions. The home page lists positions that someone holds and is waiting for someone to disagree with. Join one to take the other side, or start a discussion of your own with your position or one of the suggested topics. Conversations are private to their two participants.</p>
+  <p>Either of you can end a conversation at any time. That closes it for both of you: it stays readable by the participants, but nobody can post in it, and it is kept for the research record.</p>
 </section>
 
 <section class="prose">
   <h2>What the AI moderator does</h2>
-  <p>After each message it looks for problems such as a factual error, abusive language, flooding the conversation, or an unanswered question, and decides whether to say anything. It can only reply to a person&rsquo;s message, never to its own, and it posts at most once per message.</p>
-  <p>It is not a judge and it can be wrong. It is instructed to treat both sides of an argument the same way and never to take a side. If you think a note is mistaken, say so in the conversation.</p>
+  <p>After each message it looks for problems such as a factual error, abusive language, flooding the conversation, or an unanswered question, and decides whether to say anything.</p>
+  <p>It is not a judge and it can be wrong. If you think a note is mistaken, say so in the conversation.</p>
 </section>
 
 <section class="prose" id="limits">
@@ -30,18 +30,18 @@
     <li>A conversation closes after {{ max_messages }} messages and has two participants.</li>
     <li>Nothing stops you posting several messages in a row.</li>
   </ul>
-  <p>These limits keep the discussion readable and keep the AI moderator&rsquo;s running costs low. Whenever you cannot post, the page tells you why and what to do next.</p>
+  <p>These limits keep the discussion readable. Whenever you cannot post, the page tells you why and what to do next.</p>
 </section>
 
 <section class="prose">
-  <h2>Cost and pauses</h2>
-  <p>The moderator runs on a small daily budget. If it is used up, moderation pauses and the page says so. Your messages are still posted.</p>
+  <h2>Pauses</h2>
+  <p>Sometimes the moderator is paused. When it is, the page says so and your messages are still posted.</p>
 </section>
 
 <section class="prose">
   <h2>What is recorded</h2>
-  <p>Your messages, the moderator&rsquo;s analysis and its replies are stored so the research team can study how moderation treats different viewpoints. [Retention period and who can see the data: to be written before launch.] Your email address is used only for account confirmation and password reset.</p>
+  <p>Your messages, the moderator&rsquo;s analysis and its replies are stored so the research team can study how moderation treats different viewpoints.</p>
 </section>
 
-<p><a class="btn btn-primary" href="{% url 'forum:home' %}">Back to propositions</a></p>
+<p><a class="btn btn-primary" href="{% url 'forum:home' %}">Back to home</a></p>
 {% endblock %}

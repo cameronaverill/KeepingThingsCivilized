@@ -23,7 +23,7 @@ def no_internals(response):
 def post_targets(duo, field_names):
     return [
         ("propose", reverse("forum:propose"), {field_names["proposition"]: "A brand new csrf proposition."}),
-        ("enter", reverse("forum:enter", args=[duo.topic.pk]), {}),
+        ("enter", reverse("forum:enter", args=[duo.topic.pk]), {"side": "pro"}),
         ("post", duo.post_url, {field_names["message"]: "csrf message"}),
         ("end", duo.end_url, {}),
     ]
@@ -190,7 +190,7 @@ def test_an_unexpected_failure_while_entering_or_proposing_shows_no_internals(pr
     client.raise_request_exception = False
     topic = K.make_topic("Failing proposition.", created_by=K.make_user())
     with mock.patch.object(Participant, "save", side_effect=RuntimeError(SECRET)):
-        response = client.post(reverse("forum:enter", args=[topic.pk]))
+        response = client.post(reverse("forum:enter", args=[topic.pk]), {"side": "pro"})
     assert response.status_code in (200, 500)
     no_internals(response)
     with mock.patch.object(Topic, "save", side_effect=RuntimeError(SECRET)):

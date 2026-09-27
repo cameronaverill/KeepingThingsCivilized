@@ -4,6 +4,7 @@ import ast
 from pathlib import Path
 
 import pytest
+from fsvc_testkit import enter  # noqa: E402
 
 from fsvc_testkit import (
     counts, make_active_via_service, orm_moderator_message, rejection, svc,
@@ -82,7 +83,7 @@ def test_a_too_fast_post_saves_nothing_and_creates_no_run(world):
 
 @pytest.mark.django_db
 def test_end_conversation_and_entering_create_no_runs(world):
-    svc().enter_proposition(world.u1, world.topic)
+    enter(world.u1, world.topic)
     svc().end_conversation(world.u1, world.conv)
     assert runs().count() == 0
 

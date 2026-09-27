@@ -12,8 +12,10 @@ def html_of(response):
     return response.content.decode()
 
 
-def assert_clean(response, viewer, other, where, own_name_in_header_ok=False):
-    problems = K.leaks(html_of(response), viewer, other, own_name_in_header_ok)
+def assert_clean(response, viewer, other, where, own_name_in_header_ok=False, other_name_ok=True):
+    """Revision 5: the other participant's username may be shown to a participant; emails, the viewer's own name on
+    conversation pages, the word 'Participant' and label letters may not."""
+    problems = K.leaks(html_of(response), viewer, other, own_name_in_header_ok, other_name_ok)
     assert problems == [], f"{where}: {problems}"
 
 
@@ -34,7 +36,7 @@ def viewers(duo):
     return ((duo.ca, duo.ua, duo.ub, "A"), (duo.cb, duo.ub, duo.ua, "B"))
 
 
-def test_the_active_page_names_nobody_and_shows_no_label():
+def test_the_active_page_shows_no_email_no_own_name_and_no_label():
     duo = busy_duo()
     for client, viewer, other, who in viewers(duo):
         assert_clean(client.get(duo.url), viewer, other, f"active page for {who}")
@@ -89,7 +91,7 @@ def test_home_and_propose_and_how_it_works_name_nobody_else():
     duo = busy_duo()
     for client, viewer, other, who in viewers(duo):
         for name in ("forum:home", "forum:propose", "forum:how_it_works"):
-            assert_clean(client.get(reverse(name)), viewer, other, f"{name} for {who}", own_name_in_header_ok=True)
+            assert_clean(client.get(reverse(name)), viewer, other, f"{name} for {who}", own_name_in_header_ok=True, other_name_ok=False)
 
 
 def test_the_page_html_holds_no_label_in_attributes_scripts_or_comments():
@@ -146,7 +148,7 @@ def test_a_participant_of_another_conversation_is_a_stranger_here():
 def test_a_third_person_entering_the_same_proposition_cannot_read_the_conversation():
     duo = busy_duo()
     third = K.client_for(K.make_user("third_tim", "third_tim@example.com"))
-    conv_id = int(re.search(r"/c/(\d+)/", third.post(reverse("forum:enter", args=[duo.topic.pk]))["Location"]).group(1))
+    conv_id = int(re.search(r"/c/(\d+)/", third.post(reverse("forum:enter", args=[duo.topic.pk]), {"side": "pro"})["Location"]).group(1))
     assert conv_id != duo.conv.pk
     assert third.get(duo.url).status_code == 404
     assert "Hello from the first person." not in html_of(third.get(reverse("forum:conversation", args=[conv_id])))

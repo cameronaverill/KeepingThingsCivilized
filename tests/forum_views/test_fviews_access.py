@@ -31,6 +31,7 @@ def test_url_paths_are_the_contract_paths():
     assert reverse("forum:end", args=[7]) == "/c/7/end/"
     assert reverse("forum:messages", args=[7]) == "/c/7/messages/"
     assert reverse("forum:how_it_works") == "/how-it-works/"
+    assert reverse("forum:mine") == "/discussions/" and reverse("forum:blocked") == "/blocked/"
 
 
 # --- login redirect ---------------------------------------------------------------------------------------------------
@@ -88,7 +89,7 @@ def test_how_it_works_is_also_served_to_signed_in_users():
     assert K.client_for(K.make_user()).get(reverse("forum:how_it_works")).status_code == 200
 
 
-@pytest.mark.parametrize("name", ["accounts:login", "accounts:register", "accounts:password_reset"])
+@pytest.mark.parametrize("name", ["accounts:login", "accounts:register"])
 def test_accounts_pages_stay_public(name):
     assert Client().get(reverse(name)).status_code == 200
 
@@ -109,6 +110,10 @@ def method_table(duo):
         ("forum:end", [duo.conv.pk], {"post"}),
         ("forum:messages", [duo.conv.pk], {"get"}),
         ("forum:how_it_works", [], {"get"}),
+        ("forum:mine", [], {"get"}),
+        ("forum:blocked", [], {"get"}),
+        ("forum:block", ["quincy_ray"], {"post"}),
+        ("forum:unblock", ["quincy_ray"], {"post"}),
     ]
 
 

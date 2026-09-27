@@ -1,0 +1,37 @@
+{% extends "forum/base.html" %}
+{% block title %}Your discussions{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Your discussions</h1>
+  </div>
+  <div class="page-head-action">
+    <a class="btn btn-secondary" href="{% url 'forum:blocked' %}">Blocked people</a>
+  </div>
+</div>
+
+<form class="search" method="get" action="{% url 'forum:mine' %}" role="search">
+  <label for="search" class="label">Search your discussions</label>
+  <div class="search-row">
+    <input id="search" name="q" type="search" value="{{ query }}" autocomplete="off">
+    <button type="submit" class="btn btn-secondary">Search</button>
+  </div>
+  <span class="hint">Newest first.</span>
+</form>
+
+{% if rows %}
+<ul class="my-list">
+  {% for row in rows %}
+  <li class="my-row{% if row.status == 'ended' %} is-ended{% endif %}">
+    <span class="my-position">{{ row.position }}{% if row.other_username %} <span class="my-with">with {{ row.other_username }}</span>{% endif %}</span>
+    <span class="my-status">{{ row.status_word }}</span>
+    <a class="btn btn-secondary btn-small" href="{% url 'forum:conversation' row.id %}">Open</a>
+  </li>
+  {% endfor %}
+</ul>
+{% elif query %}
+<p class="empty">No discussion matches your search.</p>
+{% else %}
+<p class="empty">You have no discussions yet. Pick a waiting position on <a href="{% url 'forum:home' %}">the home page</a>, or start <a href="{% url 'forum:propose' %}">one of your own</a>.</p>
+{% endif %}
+{% endblock %}

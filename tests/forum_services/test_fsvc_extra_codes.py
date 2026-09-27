@@ -1,5 +1,6 @@
 """Codes beyond the eleven in the brief that the architect allowed: login_required, invalid_reply, not_saved."""
 import pytest
+from fsvc_testkit import enter  # noqa: E402
 from django.contrib.auth.models import AnonymousUser
 
 from fsvc_testkit import (
@@ -16,7 +17,7 @@ def test_a_visitor_who_is_not_logged_in_cannot_create_propose_enter_post_or_end(
     before = counts()
     for call in (
         lambda: svc().create_proposition(visitor, "Trains should be free"),
-        lambda: svc().enter_proposition(visitor, make_prop()),
+        lambda: enter(visitor, make_prop()),
         lambda: svc().post_message(visitor, world.conv, "hello there friend"),
         lambda: svc().end_conversation(visitor, waiting),
     ):

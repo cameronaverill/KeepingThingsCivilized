@@ -79,14 +79,15 @@ def test_a_valid_proposition_creates_a_topic_and_redirects_into_a_waiting_conver
     assert list(conv.participants.values_list("user", flat=True)) == [user.pk]
     landing = client.get(response["Location"])
     assert landing.status_code == 200
-    assert K.WAITING_TEXT in H.unescape(landing.content.decode())
+    assert K.WAITING_TITLE in H.unescape(landing.content.decode())
 
 
-def test_the_new_proposition_is_on_the_home_page_at_once(field_names):
+def test_the_new_proposition_is_in_your_discussions_and_on_everyone_elses_home_page_at_once(field_names):
     user = K.make_user()
     client = K.client_for(user)
     propose(client, field_names, "Appears-immediately-token.")
-    assert "Appears-immediately-token." in client.get("/").content.decode()
+    assert "Appears-immediately-token." in client.get("/discussions/").content.decode()
+    assert "Appears-immediately-token." not in client.get("/").content.decode(), "your own waiting position is not offered to you"
     other = K.client_for(K.make_user())
     assert "Appears-immediately-token." in other.get("/").content.decode()
 
@@ -97,7 +98,7 @@ def test_exactly_200_characters_is_accepted(field_names):
     assert response.status_code == 302
     from forum.models import Topic
 
-    assert Topic.objects.get().proposition == text
+    assert Topic.objects.get().proposition == "X" + "x" * 199, "the claim's first letter is upper-cased (7c)"
 
 
 def test_length_counts_characters_the_same_way_as_messages(field_names):
@@ -199,9 +200,10 @@ def test_the_limits_in_the_messages_come_from_settings(settings, field_names):
     assert "2 propositions today" in alert
 
 
-def test_too_many_open_conversations_is_explained_and_no_proposition_is_left_behind(field_names):
+def test_too_many_open_conversations_is_explained_and_no_proposition_is_left_behind(field_names, settings):
     """Contract ambiguity settled by the tester: the proposition and its first conversation are one action, so a refusal
     to enter saves no proposition (otherwise the user's retry would hit 'already exists')."""
+    settings.MAX_OPEN_CONVERSATIONS = 5  # off by default (None); switched on here
     user = K.make_user()
     for i in range(5):
         K.enter(user, K.make_topic(f"Already-open proposition {i}.", created_by=user))

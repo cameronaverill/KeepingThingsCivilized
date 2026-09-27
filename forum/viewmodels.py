@@ -10,24 +10,17 @@ from moderation.models import InterventionAct, ModerationRun
 from django.conf import settings
 
 from .models import Conversation, Message, Participant
-from .services import PostRejected, standing_block
+from .services import PostRejected, effective_side, opposite_side, standing_block
 
 __all__ = ["conversation_view", "moderation_heading", "moderation_notice_for"]
 
 HEADING_BOTH = "For both of you"
 HEADING_CONVERSATION = "About the conversation"
 
-_PAUSED_GENERIC = (
-    "The AI moderator has reached its spending limit and will resume when it resets; messages are still posted."
-)
-_PAUSED_DAY = "The AI moderator has reached today's spending limit and will resume tomorrow; messages are still posted."
-_PAUSED_CONVERSATION = (
-    "The AI moderator has reached this conversation's spending limit and will not comment further in it; "
-    "messages are still posted."
-)
-_PAUSED_SITE = (
-    "The AI moderator has reached the site's spending limit and will resume when it resets; messages are still posted."
-)
+_PAUSED_GENERIC = "AI moderation is paused right now and will resume when it can; messages are still posted."
+_PAUSED_DAY = "AI moderation is paused for today and will resume tomorrow; messages are still posted."
+_PAUSED_CONVERSATION = "The AI moderator will not comment further in this conversation; messages are still posted."
+_PAUSED_SITE = "AI moderation is paused right now and will resume later; messages are still posted."
 _PAUSED_BREAKER = (
     "The AI moderator is paused after repeated problems and will resume by itself; messages are still posted."
 )
@@ -66,14 +59,15 @@ def moderation_notice_for(conversation):
     return None
 
 
-def _act_heading(act, viewer, source_message):
-    """The heading for one act, for this viewer. ``source_message`` is the message the act is about, or None."""
+def _act_heading(act, viewer, source_message, names):
+    """The heading for one act, for this viewer. ``source_message`` is the message the act is about, or None.
+    ``names`` maps a participant label to that person's username (used for the other person's messages)."""
     if act.addressee == "all" or act.subject == "both":
         return HEADING_BOTH
     if act.subject == "none":
         return HEADING_CONVERSATION
     mine = act.subject == viewer.label
-    whose = "your" if mine else "the other participant's"
+    whose = "your" if mine else f"{names.get(act.subject) or 'the other participant'}'s"
     if source_message is not None:
         return f"About {whose} message {source_message.seq_no}"
     return f"About {whose} messages"
@@ -87,7 +81,9 @@ def moderation_heading(message, viewer):
     acts = list(InterventionAct.objects.filter(run_id=run.pk, validity="valid").order_by("order"))
     if not acts:
         return HEADING_CONVERSATION
-    label_by_participant = dict(Participant.objects.filter(conversation_id=run.conversation_id).values_list("id", "label"))
+    people = list(Participant.objects.filter(conversation_id=run.conversation_id).values_list("id", "label", "user__username"))
+    label_by_participant = {pid: label for pid, label, _ in people}
+    names = {label: username for _, label, username in people if username}
     headings = set()
     for act in acts:
         source = None
@@ -100,7 +96,7 @@ def moderation_heading(message, viewer):
                 label_by_participant.get(run.trigger_message.participant_id) == act.subject
             ):
                 source = run.trigger_message
-        headings.add(_act_heading(act, viewer, source))
+        headings.add(_act_heading(act, viewer, source, names))
     return headings.pop() if len(headings) == 1 else HEADING_BOTH
 
 
@@ -120,6 +116,9 @@ def conversation_view(user, conversation, after_seq=0):
         you_ended = conversation.ended_by_id == viewer.pk
         ended_by_other = not you_ended
 
+    other = Participant.objects.filter(conversation_id=conversation.pk).exclude(pk=viewer.pk).select_related("user").first()
+    other_username = other.user.username if other is not None and other.user is not None else None
+
     messages = []
     queryset = Message.objects.filter(conversation_id=conversation.pk, seq_no__gt=after_seq or 0).order_by("seq_no")
     for message in queryset:
@@ -128,8 +127,14 @@ def conversation_view(user, conversation, after_seq=0):
                 "seq_no": message.seq_no,
                 "kind": "moderator",
                 "text": message.content,
+                "paragraphs": [
+                    para.strip()
+                    for para in message.content.split("\n\n")
+                    if para.strip()
+                ],
                 "created_at": message.created_at,
                 "heading": moderation_heading(message, viewer),
+                "author_name": None,
             }
         else:
             kind = "you" if message.participant_id == viewer.pk else "other"
@@ -138,8 +143,18 @@ def conversation_view(user, conversation, after_seq=0):
                 "kind": kind,
                 "text": message.content,
                 "created_at": message.created_at,
+                "author_name": other_username if kind == "other" else None,
             }
         messages.append(item)
+
+    my_side, other_side = viewer.side or None, (other.side or None) if other else None
+    if my_side is None and other_side is None:
+        # Old rows have blank sides: a lone (waiting) person counts as "pro"; an old pair has no known sides.
+        my_side = effective_side("") if other is None else None
+    elif my_side is None:
+        my_side = opposite_side(other_side)
+    if other is not None and other_side is None and my_side is not None:
+        other_side = opposite_side(my_side)
 
     message_count = Message.objects.filter(conversation_id=conversation.pk, author_type="user").count()
     block = standing_block(conversation, viewer)
@@ -153,6 +168,11 @@ def conversation_view(user, conversation, after_seq=0):
         "message_count": message_count,
         "message_limit": settings.MAX_USER_MESSAGES_PER_CONVERSATION,
         "waiting": conversation.status == "open",
+        "waiting_for_second": conversation.status == "open",
+        "other_username": other_username,
+        "my_side": my_side,
+        "other_side": other_side,
+        "position_texts": {"pro": topic.proposition or topic.title, "con": topic.opposing_position or None},
         "can_post": block is None,
         "cannot_post_reason": block.as_dict() if block is not None else None,
     }

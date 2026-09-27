@@ -3,6 +3,7 @@ recorded separately from the label (plan section 2, neutrality inputs)."""
 import random
 
 import pytest
+from fsvc_testkit import enter  # noqa: E402
 
 from fsvc_testkit import make_prop, make_user, svc
 
@@ -19,8 +20,8 @@ def fill_many(settings, n=N):
     out = []
     for _ in range(n):
         topic = make_prop()
-        conv = svc().enter_proposition(first, topic)
-        svc().enter_proposition(second, topic)
+        conv = enter(first, topic)
+        enter(second, topic)
         conv.refresh_from_db()
         p1, p2 = conv.participants.order_by("join_order")
         out.append((conv, p1, p2))
@@ -110,7 +111,7 @@ def test_the_assignment_can_be_reproduced_from_the_stored_seed(filled):
 
 def test_a_waiting_conversation_has_a_single_participant_and_nobody_is_told_a_label():
     """While waiting there is nothing to reproduce yet; the conversation just must not claim a full assignment."""
-    conv = svc().enter_proposition(make_user(), make_prop())
+    conv = enter(make_user(), make_prop())
     conv.refresh_from_db()
     assert conv.participants.count() == 1
     assert conv.status == "open"
@@ -123,8 +124,8 @@ def test_labels_are_independent_of_who_the_users_are(settings):
     first_as_a = 0
     for _ in range(N):
         topic = make_prop()
-        conv = svc().enter_proposition(first, topic)
-        svc().enter_proposition(second, topic)
+        conv = enter(first, topic)
+        enter(second, topic)
         if conv.participants.get(user=first).label == "A":
             first_as_a += 1
     assert 8 <= first_as_a <= N - 8, first_as_a
@@ -136,8 +137,8 @@ def test_labels_do_not_depend_on_the_order_of_entering_when_the_other_person_sta
     second_as_a = 0
     for _ in range(N):
         topic = make_prop()
-        svc().enter_proposition(second, topic)
-        conv = svc().enter_proposition(first, topic)
+        enter(second, topic)
+        conv = enter(first, topic)
         if conv.participants.get(user=second).label == "A":
             second_as_a += 1
         assert conv.participants.get(user=second).join_order == 1
