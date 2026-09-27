@@ -123,25 +123,26 @@ def test_already_raised_issues_are_rendered_with_their_outcomes(install_fake):
     assert prompting  # the module is what rendered the expectation
 
 
-def test_already_raised_issues_render_time_sensitive_true_and_false_lowercase(install_fake):
-    """Step 20a item 4c (docs/step20a_brief.md): _render_issue's new `time_sensitive` field must render the lowercase
-    words "true"/"false" (like `intensity=None` already renders as the lowercase word "none"), not Python's True/False,
-    and it must carry the real value already_raised_for/render_master_input received for each issue."""
+def test_already_raised_issues_render_needs_verification_true_and_false_lowercase(install_fake):
+    """Step 20a item 4c (docs/step20a_brief.md; renamed/broadened per docs/step20a_revision_brief.md):
+    _render_issue's `needs_verification` field must render the lowercase words "true"/"false" (like
+    `intensity=None` already renders as the lowercase word "none"), not Python's True/False, and it must carry the
+    real value already_raised_for/render_master_input received for each issue."""
     sc = kit.make_human_scenario()
     already = [
         {"id": "i7", "message_id": sc.msgs[0].pk, "issue_type": "possible_factual_error", "quote": "12 percent",
-         "explanation": "The figure looks too high.", "outcome": "acted", "time_sensitive": True},
+         "explanation": "The figure looks too high.", "outcome": "acted", "needs_verification": True},
         {"id": "i8", "message_id": sc.msgs[1].pk, "issue_type": "unsupported_claim", "quote": "reduce the supply",
-         "explanation": "No source is given.", "outcome": "declined", "time_sensitive": False},
+         "explanation": "No source is given.", "outcome": "declined", "needs_verification": False},
     ]  # fmt: skip
     fake = install_fake(kit.master_out())
     kit.agents().call_master(sc.run, sc.transcript, topic=sc.topic, already_raised=already)
     sent = _sent_user_text(fake)
-    assert "<time_sensitive>true</time_sensitive>" in sent
-    assert "<time_sensitive>false</time_sensitive>" in sent
-    assert "<time_sensitive>True</time_sensitive>" not in sent and "<time_sensitive>False</time_sensitive>" not in sent
+    assert "<needs_verification>true</needs_verification>" in sent
+    assert "<needs_verification>false</needs_verification>" in sent
+    assert "<needs_verification>True</needs_verification>" not in sent and "<needs_verification>False</needs_verification>" not in sent
     block = sent[sent.index('<issue id="i7">'): sent.index("</issue>", sent.index('<issue id="i7">'))]
-    assert block.index("<intensity>") < block.index("<time_sensitive>") < block.index("<quote>")
+    assert block.index("<intensity>") < block.index("<needs_verification>") < block.index("<quote>")
 
 
 def test_no_already_raised_block_by_default(install_fake):
@@ -200,25 +201,25 @@ def test_intervenor_input_has_transcript_issues_and_map(install_fake):
     assert set(ids) in ({"i1", "i2"}, {str(i.pk) for i in issues})
 
 
-def test_intervenor_issues_render_time_sensitive_true_and_false_lowercase(install_fake):
+def test_intervenor_issues_render_needs_verification_true_and_false_lowercase(install_fake):
     """Step 20a item 4c: the same rendering rule for render_intervenor_input's <issues> block, using real stored
     `Issue` rows (so this also exercises `_field`'s attribute-access path, not just a dict)."""
     sc = kit.make_human_scenario()
     issues = [
-        kit.make_issue(sc.run, sc.msgs[0], "i1", time_sensitive=True),
-        kit.make_issue(sc.run, sc.msgs[1], "i2", time_sensitive=False),
+        kit.make_issue(sc.run, sc.msgs[0], "i1", needs_verification=True),
+        kit.make_issue(sc.run, sc.msgs[1], "i2", needs_verification=False),
     ]
     fake = install_fake(kit.intervenor_out())
     kit.agents().call_intervenor(sc.run, sc.transcript, topic=sc.topic, valid_issues=issues)
     sent = _sent_user_text(fake)
-    assert "<time_sensitive>true</time_sensitive>" in sent
-    assert "<time_sensitive>false</time_sensitive>" in sent
-    assert "<time_sensitive>True</time_sensitive>" not in sent and "<time_sensitive>False</time_sensitive>" not in sent
+    assert "<needs_verification>true</needs_verification>" in sent
+    assert "<needs_verification>false</needs_verification>" in sent
+    assert "<needs_verification>True</needs_verification>" not in sent and "<needs_verification>False</needs_verification>" not in sent
     # the id shown is the stored issue's pk (raw Issue rows carry no "id" attribute of their own; see
     # test_intervenor_input_has_transcript_issues_and_map above for the same id-shown ambiguity)
     marker = f'<issue id="{issues[0].pk}">'
     block = sent[sent.index(marker): sent.index("</issue>", sent.index(marker))]
-    assert block.index("<intensity>") < block.index("<time_sensitive>") < block.index("<quote>")
+    assert block.index("<intensity>") < block.index("<needs_verification>") < block.index("<quote>")
 
 
 def test_intervenor_discussion_map_may_be_a_dict_or_the_pydantic_model(install_fake):

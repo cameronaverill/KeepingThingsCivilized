@@ -11,7 +11,7 @@ pytestmark = pytest.mark.django_db
 CONTENT = "The moon is made of green cheese, everybody knows that."
 ISSUE_FIELDS = [
     "run", "local_id", "message", "issue_type", "dimension", "quote", "quote_start", "quote_end", "quote_match", "explanation",
-    "confidence", "intensity", "time_sensitive", "validity", "rejection_reason",
+    "confidence", "intensity", "needs_verification", "validity", "rejection_reason",
 ]  # fmt: skip
 
 

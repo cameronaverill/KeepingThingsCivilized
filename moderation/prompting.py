@@ -104,11 +104,11 @@ def _field(issue, name):
 
 def _render_issue(issue, *, with_outcome=False):
     lines = [f'<issue id="{_attr(_field(issue, "id"))}">']
-    for name in ("message_id", "issue_type", "confidence", "intensity", "time_sensitive", "quote", "explanation"):
+    for name in ("message_id", "issue_type", "confidence", "intensity", "needs_verification", "quote", "explanation"):
         value = _field(issue, name)
         if name == "intensity" and value is None:
             value = "none"
-        elif name == "time_sensitive":
+        elif name == "needs_verification":
             value = "true" if value else "false"
         lines.append(f"<{name}>{_text(value)}</{name}>")
     if with_outcome:

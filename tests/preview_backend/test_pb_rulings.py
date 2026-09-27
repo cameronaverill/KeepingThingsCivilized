@@ -342,7 +342,7 @@ def master_with(**changes):
 def bad_issue(**changes):
     issue = {
         "id": "i1", "message_id": 1, "issue_type": "unsupported_claim", "quote": pk.QUOTE, "explanation": "e",
-        "confidence": 0.5, "intensity": None, "time_sensitive": False,
+        "confidence": 0.5, "intensity": None, "needs_verification": False,
     }  # fmt: skip
     return master_with(issues=[{**issue, **changes}])
 

@@ -373,7 +373,7 @@ def issue_d(message, quote, issue_id="i1"):
     return {
         "id": issue_id, "message_id": message.pk, "issue_type": "unsupported_claim", "quote": quote,
         "explanation": "The claim is stated without support.", "confidence": 0.8, "intensity": None,
-        "time_sensitive": False,
+        "needs_verification": False,
     }  # fmt: skip
 
 

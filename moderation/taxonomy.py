@@ -131,9 +131,9 @@ DEFINITIONS = {
         "question that was put to them."
     ),
     "offer_research": (
-        "Offer the participants an independent factual check on a claim whose true answer might have changed, or only "
-        "become known, after the model's training; it takes no position on the claim itself and does not perform any "
-        "check — it only offers one, unlike provide_information or correct_factual_error, which state something as fact."
+        "Offer the participants an independent factual check on a claim the Master could not confidently vouch for "
+        "itself; it takes no position on the claim itself and does not perform any check — it only offers one, unlike "
+        "provide_information or correct_factual_error, which state something as fact."
     ),
     # --- Decisions ---
     "intervene": "Post a moderator message consisting of one to three acts.",

@@ -223,9 +223,9 @@ def test_hundred_kilobyte_inputs_take_well_under_a_second(size, text, quote):
 MASTER_REPLY = {
     "issues": [
         {"id": "i1", "message_id": 4, "issue_type": "possible_factual_error", "quote": "in 1991", "explanation": "The date looks wrong.",
-         "confidence": 0.9, "intensity": 3, "time_sensitive": False},
+         "confidence": 0.9, "intensity": 3, "needs_verification": False},
         {"id": "i2", "message_id": 4, "issue_type": "unclear_statement", "quote": "that history", "explanation": "Unclear referent.",
-         "confidence": 0.4, "intensity": None, "time_sensitive": False},
+         "confidence": 0.4, "intensity": None, "needs_verification": False},
     ],
     "discussion_map": {"agreements": ["Attendance matters."], "disagreements": [{"summary": "Whether it scales.", "kind": "factual"}]},
 }
