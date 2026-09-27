@@ -24,7 +24,9 @@ def test_migration_0002_exists_and_follows_0001():
     loader = MigrationExecutor(connection).loader
     migration = loader.get_migration("accounts", name)
     assert ("accounts", "0001_initial") in migration.dependencies
-    assert loader.graph.leaf_nodes("accounts") == [("accounts", name)]
+    # 0003 (step 6c) now follows it and is the leaf.
+    assert loader.graph.leaf_nodes("accounts") != [("accounts", name)]
+    assert ("accounts", name) in loader.graph.forwards_plan(loader.graph.leaf_nodes("accounts")[0])
 
 
 def test_migration_0001_is_left_as_it_was():
@@ -101,8 +103,13 @@ def test_after_0002_the_old_constraints_are_gone_and_the_key_columns_are_unique(
 @pytest.mark.django_db(transaction=True)
 def test_0002_can_be_reversed_and_reapplied():
     name = second_migration_name()
-    executor = MigrationExecutor(connection)
-    executor.migrate([FIRST])
-    executor = MigrationExecutor(connection)
-    executor.migrate([("accounts", name)])
-    assert ("accounts", name) in MigrationExecutor(connection).loader.applied_migrations
+    try:
+        executor = MigrationExecutor(connection)
+        executor.migrate([FIRST])
+        assert ("accounts", name) not in MigrationExecutor(connection).loader.applied_migrations
+        executor = MigrationExecutor(connection)
+        executor.migrate([("accounts", name)])
+        assert ("accounts", name) in MigrationExecutor(connection).loader.applied_migrations
+    finally:  # leave the shared test database at the newest migration, whatever happened
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())

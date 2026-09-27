@@ -2,7 +2,7 @@
 import re
 
 import pytest
-from auth_testkit import PASSWORD, alice, clean_axes, csrf_token, force_login, is_logged_in, login_post
+from auth_testkit import PASSWORD, alice, clean_axes, csrf_token, force_login, is_logged_in, login_post, text
 from django.conf import settings
 from django.contrib.messages import get_messages
 from django.test import Client
@@ -26,6 +26,16 @@ def test_logout_says_you_are_logged_out(client, alice):
     response = client.post(reverse(LOGOUT))
     shown = [str(message) for message in get_messages(response.wsgi_request)]
     assert any(re.search(r"(logged|signed) out", m, re.I) for m in shown), shown
+
+
+def test_every_logout_form_on_the_get_page_carries_a_csrf_token(client, alice):
+    force_login(client, alice)
+    page = text(client.get(reverse(LOGOUT)))
+    forms = re.findall(r"<form\b.*?</form>", page, re.S)
+    holding = [f for f in forms if 'action="/accounts/logout/"' in f]
+    assert len(holding) == 2, "the header form and the page's own form"
+    for form in holding:
+        assert 'name="csrfmiddlewaretoken"' in form
 
 
 @pytest.mark.parametrize("method", ["get", "head", "put", "patch", "delete"])

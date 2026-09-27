@@ -147,3 +147,34 @@ def test_email_key_column_has_room_for_the_worst_case_expansion():
     worst = normalize_key("ﷺ" * 254)
     assert User._meta.get_field("email_key").max_length >= len(worst)
     assert User._meta.get_field("username_key").max_length >= 30
+
+
+# --- migration 0003 (step 6c) keeps its own frozen copy too ---------------------------------------------------------------
+
+
+def third_migration_module():
+    found = sorted(p.stem for p in (REPO_ROOT / "accounts" / "migrations").glob("0003_*.py"))
+    assert len(found) == 1, found
+    return found[0], importlib.import_module(f"accounts.migrations.{found[0]}")
+
+
+def test_migration_0003_never_imports_the_app_normalisation_and_matches_it_today():
+    stem, migration = third_migration_module()
+    tree = ast.parse((REPO_ROOT / "accounts" / "migrations" / f"{stem}.py").read_text())
+    for node in ast.walk(tree):
+        names = []
+        if isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            names = [(node.module or "") + "." + alias.name for alias in node.names] + [node.module or ""]
+        assert "accounts.keys" not in names and "accounts.keys.normalize_key" not in names
+        assert not (isinstance(node, ast.ImportFrom) and node.level and (node.module or "").endswith("keys"))
+    sample = [chr(cp) for cp in range(0x20, 0x2600)] + ["  Alice  ", "Straße", "İ", "ẞ", "Ω", "ﷺ" * 3]
+    assert [migration.normalize_key(s) for s in sample] == [normalize_key(s) for s in sample]
+
+
+@pytest.mark.django_db
+def test_email_key_length_did_not_shrink_with_0003():
+    from accounts.models import User
+
+    assert User._meta.get_field("email_key").max_length >= len(normalize_key("ﷺ" * 254))

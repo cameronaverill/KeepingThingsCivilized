@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import CommandError, call_command
 from django.db import IntegrityError, connection, transaction
+from django.db.models import Q
 
 from config import tunables
 
@@ -33,13 +34,25 @@ def all_messages(error):
 
 
 @pytest.mark.parametrize("name", ["username_key", "email_key"])
-def test_key_fields_are_unique_non_editable_and_never_blank(name):
+def test_key_fields_are_non_editable_and_never_null(name):
     field = User._meta.get_field(name)
     assert field.get_internal_type() == "CharField"
-    assert field.unique is True
     assert field.editable is False
     assert field.blank is False
     assert field.null is False
+
+
+def test_username_key_is_unique_outright():
+    assert User._meta.get_field("username_key").unique is True
+
+
+def test_email_key_is_unique_only_when_not_empty():
+    assert User._meta.get_field("email_key").unique is False
+    matching = [c for c in User._meta.constraints if c.name == "accounts_user_email_key_unique_when_set"]
+    assert len(matching) == 1
+    constraint = matching[0]
+    assert list(constraint.fields) == ["email_key"]
+    assert constraint.condition == ~Q(email_key="")
 
 
 def test_key_fields_are_long_enough_for_what_they_hold():
@@ -105,10 +118,79 @@ def test_full_clean_accepts_a_valid_new_user():
     User(username="fine_name", email="fine@example.com").full_clean(exclude=["password"])
 
 
-def test_email_key_is_never_blank_even_for_blank_email():
-    with pytest.raises(ValidationError):
-        make("dave", "")
-    assert not User.objects.filter(username="dave").exists()
+def test_a_blank_email_is_allowed_and_gets_a_blank_key():
+    user = make("dave", "")
+    user.refresh_from_db()
+    assert (user.email, user.email_key) == ("", "")
+    assert User.objects.filter(username="dave").exists()
+
+
+def test_a_whitespace_only_email_counts_as_no_email():
+    user = make("dave", "   ")
+    user.refresh_from_db()
+    assert (user.email, user.email_key) == ("", "")
+
+
+def test_save_no_longer_demands_an_email():
+    user = User(username="dave")
+    user.set_password(PASSWORD)
+    user.save()
+    assert User.objects.get(username="dave").email_key == ""
+
+
+def test_save_without_an_email_never_says_enter_an_email_address():
+    user = User(username="ab")  # invalid for another reason: only that reason may be reported
+    with pytest.raises(ValidationError) as excinfo:
+        user.save()
+    assert set(excinfo.value.message_dict) == {"username"}
+    assert "Enter an email address." not in all_messages(excinfo.value)
+
+
+def test_any_number_of_accounts_can_have_no_email():
+    for name in ("dave", "erin", "frank"):
+        make(name, "")
+    User(username="grace", password="x").save()
+    User.objects.create_user(username="heidi", password=PASSWORD)
+    assert User.objects.filter(email_key="").count() == 5
+
+
+def test_accounts_without_an_email_do_not_collide_with_one_that_has_one():
+    make("dave", "")
+    make("erin", "erin@example.com")
+    make("frank", "")
+    assert User.objects.count() == 3
+
+
+def test_full_clean_accepts_two_blank_email_accounts():
+    make("dave", "")
+    User(username="erin", email="").full_clean(exclude=["password"])
+
+
+def test_clearing_an_email_frees_its_address_and_blanks_the_key():
+    user = make("dave", "dave@example.com")
+    user.email = ""
+    user.save()
+    user.refresh_from_db()
+    assert (user.email, user.email_key) == ("", "")
+    make("erin", "dave@example.com")  # the address is free again
+
+
+def test_giving_an_account_an_email_later_checks_the_address_for_a_collision():
+    make("dave", "")
+    make("erin", "erin@example.com")
+    user = User.objects.get(username="dave")
+    user.email = "ERIN@example.com"
+    with pytest.raises(ValidationError) as excinfo:
+        user.save()
+    assert "email" in excinfo.value.message_dict
+    assert User.objects.get(username="dave").email == ""
+
+
+def test_the_friendly_email_error_is_still_the_documented_sentence():
+    make("dave", "dave@example.com")
+    with pytest.raises(ValidationError) as excinfo:
+        make("erin", "Dave@Example.com")
+    assert excinfo.value.message_dict == {"email": ["A user with that email address already exists."]}
 
 
 # --- username format, on every path ---------------------------------------------------------------------------------
@@ -314,38 +396,49 @@ def test_ascii_lookalike_of_an_existing_name_is_a_duplicate_not_a_new_account():
 # --- createsuperuser --noinput -------------------------------------------------------------------------------------
 
 
-def run_createsuperuser(username, email):
-    call_command("createsuperuser", interactive=False, username=username, email=email, verbosity=0)
+@pytest.fixture
+def superuser_password(monkeypatch):
+    """createsuperuser --noinput reads the password from this environment variable (no prompt, no --password)."""
+    monkeypatch.setenv("DJANGO_SUPERUSER_PASSWORD", PASSWORD)
 
 
-def test_createsuperuser_noinput_creates_a_valid_superuser():
-    run_createsuperuser("Root", "Root@Example.com")
+def run_createsuperuser(username):
+    call_command("createsuperuser", interactive=False, username=username, verbosity=0)
+
+
+def test_createsuperuser_noinput_creates_a_valid_superuser_with_no_email(superuser_password):
+    run_createsuperuser("Root")
     root = User.objects.get(username="Root")
-    assert root.is_superuser and root.is_staff
-    assert (root.username_key, root.email_key) == ("root", "root@example.com")
+    assert root.is_superuser and root.is_staff and root.is_active
+    assert (root.username_key, root.email, root.email_key) == ("root", "", "")
+    assert root.check_password(PASSWORD)
 
 
-def test_createsuperuser_noinput_reports_a_duplicate_username_as_a_command_error():
+def test_createsuperuser_takes_no_email_option(superuser_password):
+    with pytest.raises(TypeError):
+        call_command("createsuperuser", interactive=False, username="root", email="root@example.com", verbosity=0)
+    assert User.objects.count() == 0
+
+
+def test_two_superusers_can_be_created_without_an_email(superuser_password):
+    run_createsuperuser("Root")
+    run_createsuperuser("Other")
+    assert User.objects.filter(is_superuser=True, email_key="").count() == 2
+
+
+def test_createsuperuser_noinput_reports_a_duplicate_username_as_a_command_error(superuser_password):
     make("Alice", "alice@example.com")
     with pytest.raises(CommandError) as excinfo:
-        run_createsuperuser("ALICE", "someone@example.com")
+        run_createsuperuser("ALICE")
     assert "already" in str(excinfo.value).lower()
     assert User.objects.count() == 1
 
 
-def test_createsuperuser_noinput_reports_a_duplicate_email_as_a_command_error():
-    make("alice", "alice@example.com")
-    with pytest.raises(CommandError) as excinfo:
-        run_createsuperuser("rooty", "ALICE@Example.com")
-    assert "email" in str(excinfo.value).lower()
-    assert User.objects.count() == 1
-
-
-def test_createsuperuser_noinput_reports_a_bad_username_as_a_command_error():
+def test_createsuperuser_noinput_reports_a_bad_username_as_a_command_error(superuser_password):
     with pytest.raises(CommandError):
-        run_createsuperuser("bad name", "bad@example.com")
+        run_createsuperuser("bad name")
     with pytest.raises(CommandError):
-        run_createsuperuser("\u00c9mile", "emile@example.com")
+        run_createsuperuser("\u00c9mile")
     assert User.objects.count() == 0
 
 
@@ -394,3 +487,23 @@ def test_old_lower_constraints_are_gone_from_the_model_and_the_database():
     constraints, _ = unique_column_sets()
     assert not old_names & set(constraints)
     assert not any(getattr(c, "expressions", None) for c in User._meta.constraints)
+
+
+def test_database_allows_any_number_of_blank_email_keys():
+    User.objects.bulk_create(
+        [User(username=f"nomail{n}", username_key=f"nomail{n}", email_key="", password="x") for n in range(3)]
+    )
+    assert User.objects.filter(email_key="").count() == 3
+
+
+def test_database_still_rejects_a_duplicate_non_empty_email_key_on_insert():
+    make("alice", "alice@example.com")
+    twin = User(username="carol", username_key="carol", email_key="alice@example.com", password="x")
+    with pytest.raises(IntegrityError), transaction.atomic():
+        User.objects.bulk_create([twin])
+
+
+def test_database_constraint_on_email_key_is_named_and_only_covers_non_empty_keys():
+    constraints, _ = unique_column_sets()
+    assert constraints["accounts_user_email_key_unique_when_set"]["unique"] is True
+    assert constraints["accounts_user_email_key_unique_when_set"]["columns"] == ["email_key"]

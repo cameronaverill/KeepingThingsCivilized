@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models, router
+from django.db.models import Q
 
 from config import tunables
 
@@ -16,15 +17,19 @@ EMAIL_KEY_MAX_LENGTH = 254 * 18 + 8
 
 
 class User(AbstractUser):
-    """A forum account. Usernames and emails are unique regardless of case and Unicode form.
+    """A forum account. Usernames (and emails, when given) are unique regardless of case and Unicode form.
 
     Two derived columns, username_key and email_key, hold normalize_key() of each value. They are filled in by save()
     and carry the real unique constraints. save() also checks them first, so every code path (forms, create_user,
     createsuperuser, admin, plain save()) gets a friendly ValidationError instead of an IntegrityError. The unique
     constraints stay as the database backstop.
 
-    Registration (step 6) creates accounts with is_active=False until the emailed link is followed.
+    Email is optional and never asked for (step 6c): an empty email has an empty email_key, and the email key is
+    unique only when it is not empty. Registration creates accounts that are active at once.
     """
+
+    # createsuperuser asks only for a username and a password.
+    REQUIRED_FIELDS = []
 
     username = models.CharField(
         "username",
@@ -37,11 +42,20 @@ class User(AbstractUser):
         validators=[validate_username],
         error_messages={"unique": USERNAME_TAKEN},
     )
-    # Required, unlike Django's default.
-    email = models.EmailField("email address", max_length=254)
+    # Optional and unused (step 6c); kept as a column so a real email flow can come back later.
+    email = models.EmailField("email address", max_length=254, blank=True, default="")
     email_verified_at = models.DateTimeField(null=True, blank=True)
     username_key = models.CharField(max_length=tunables.USERNAME_MAX_LENGTH, unique=True, editable=False)
-    email_key = models.CharField(max_length=EMAIL_KEY_MAX_LENGTH, unique=True, editable=False)
+    email_key = models.CharField(max_length=EMAIL_KEY_MAX_LENGTH, editable=False)
+
+    class Meta(AbstractUser.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=["email_key"],
+                condition=~Q(email_key=""),
+                name="accounts_user_email_key_unique_when_set",
+            ),
+        ]
 
     # --- keys -------------------------------------------------------------------------------------------------
 
@@ -88,6 +102,10 @@ class User(AbstractUser):
         if errors:
             raise ValidationError(errors)
 
+    def validate_constraints(self, exclude=None):
+        # The email key is derived and its collisions are reported by validate_unique() with a friendly message.
+        super().validate_constraints(exclude=set(exclude or ()) | {"email_key"})
+
     def save(self, *args, **kwargs):
         self._strip_and_set_keys()
         errors = {}
@@ -95,8 +113,6 @@ class User(AbstractUser):
             validate_username(self.username)
         except ValidationError as error:
             errors["username"] = error.messages
-        if not self.email_key:
-            errors["email"] = ["Enter an email address."]
         if not errors:
             errors = self._key_collisions(using=kwargs.get("using"))
         if errors:

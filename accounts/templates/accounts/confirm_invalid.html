@@ -1,8 +1,0 @@
-{% extends "accounts/base.html" %}
-{% block title %}Link not valid{% endblock %}
-{% block content %}
-<h1>This link is not valid</h1>
-<p>This link is not valid. It may have been copied incompletely. Open the link exactly as it appears in the email, or request a new one below.</p>
-{% include "accounts/resend_form.html" %}
-<p><a href="{% url 'accounts:register' %}">Create an account</a> · <a href="{% url 'accounts:login' %}">Log in</a></p>
-{% endblock %}

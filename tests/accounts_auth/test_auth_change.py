@@ -1,4 +1,6 @@
 """Password change (login required, old password required, validators, the session stays valid) and LOGIN_URL redirects."""
+import re
+
 import pytest
 from auth_testkit import (
     NEW_PASSWORD,
@@ -9,6 +11,8 @@ from auth_testkit import (
     force_login,
     is_logged_in,
     login_post,
+    make_user,
+    old_account,
     template_names,
     text,
 )
@@ -86,6 +90,10 @@ def test_the_form_page_renders_on_the_accounts_shell(client, member):
     for field in ("old_password", "new_password1", "new_password2"):
         assert f'name="{field}"' in page
     assert "csrfmiddlewaretoken" in page
+    forms = re.findall(r"<form\b.*?</form>", page, re.S)
+    holding = [f for f in forms if 'name="old_password"' in f]
+    assert len(holding) == 1, "the site header has its own logout form; the password form must carry its own token"
+    assert 'name="csrfmiddlewaretoken"' in holding[0]
 
 
 def test_a_correct_change_stores_the_new_password_and_shows_the_done_page(client, member):
@@ -153,8 +161,8 @@ def test_mismatched_new_passwords_are_refused_with_a_reason(client, member):
 
 @pytest.mark.parametrize(
     "bad",
-    ["short" + "1", "qwerty" + "123456", "48151623" * 3, "alice@" + "example.com"],
-    ids=["too-short", "too-common", "all-digits", "similar-to-email"],
+    ["short" + "1", "qwerty" + "123456", "48151623" * 3],
+    ids=["too-short", "too-common", "all-digits"],
 )
 def test_the_password_validators_apply(client, member, bad):
     try:
@@ -172,10 +180,44 @@ def test_the_password_validators_apply(client, member, bad):
     assert unchanged(member)
 
 
+def test_a_password_too_like_the_username_is_refused(client, clean_axes):
+    """Alice's name is too short to be 'similar' to a 12-character password, so this account has a long one."""
+    member = make_user("alice_wonderland")
+    force_login(client, member)
+    bad = "alice_wonderland" + "1"
+    with pytest.raises(ValidationError):
+        validate_password(bad, member)
+    response = change(client, new=bad)
+    assert response.status_code == 200
+    assert "too similar to the username" in text(response)
+    assert unchanged(member)
+
+
 def test_passwords_typed_into_the_form_are_never_shown_back(client, member):
     page = text(change(client, old=WRONG_PASSWORD, new=NEW_PASSWORD, confirm=NEW_PASSWORD + "x"))
     for secret in (WRONG_PASSWORD, NEW_PASSWORD, NEW_PASSWORD + "x"):
         assert secret not in page
+
+
+def test_a_change_needs_no_email_address_on_the_account(client, member):
+    assert member.email == ""
+    assert change(client).status_code == 302
+    member.refresh_from_db()
+    assert member.check_password(NEW_PASSWORD)
+
+
+def test_an_old_account_with_an_email_can_change_its_password_too(client, old_account):
+    force_login(client, old_account)
+    assert change(client).status_code == 302
+    old_account.refresh_from_db()
+    assert old_account.check_password(NEW_PASSWORD)
+    assert old_account.email == "olivia@example.com"
+
+
+def test_the_form_page_has_no_email_or_reset_wording(client, member):
+    page = text(client.get(reverse(CHANGE))).lower()
+    for word in ("email", "e-mail", "reset", "forgot"):
+        assert word not in page
 
 
 def test_a_failed_change_does_not_count_toward_the_login_lockout(client, member):

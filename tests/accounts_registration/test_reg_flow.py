@@ -1,8 +1,10 @@
-"""Step 6a: the happy path (register, one email, confirm once, never logged in), from docs/step6_brief.md."""
+"""Step 6c: the happy path. A username and a password create an ACTIVE account, log the person in and lead to the home
+page. No email, no confirmation, no mail (docs/step6c_brief.md)."""
 from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from django.utils import timezone
 
 import reg_testkit as kit
@@ -10,77 +12,91 @@ from reg_testkit import STRONG_A, STRONG_B
 
 User = get_user_model()
 
-CHECK_EMAIL_TEXT = "We sent a confirmation link to that address. It expires in {days} days. Check your spam folder."
+
+def sign_up(client, username="alice", password=STRONG_A):
+    return kit.register(client, username, password)
 
 
-def sign_up(client, username="alice", email="alice@example.com", password=STRONG_A):
-    return kit.register(client, username, email, password)
-
-
-def test_register_page_renders_a_csrf_protected_form(client):
+def test_register_page_renders_a_csrf_protected_post_form(client):
     response = client.get(kit.url("register"))
     assert response.status_code == 200
-    form = kit.find_form(response, kit.url("register"), with_input="username")
+    form = kit.find_form(response, with_input="username")
     assert form is not None and form["method"] == "post"
+    assert form["action"] in ("", None, kit.url("register"))
     names = {i["name"] for i in form["inputs"]}
-    assert {"username", "email", "csrfmiddlewaretoken"} <= names
+    assert {"username", "csrfmiddlewaretoken"} <= names
     assert len([i for i in form["inputs"] if i["type"] == "password"]) == 2
+
+
+def test_register_form_has_no_email_input_at_all(client):
+    form = kit.find_form(client.get(kit.url("register")), with_input="username")
+    assert [i["name"] for i in form["inputs"] if i["type"] == "email" or "email" in (i["name"] or "").lower()] == []
 
 
 def test_register_page_is_reachable_at_the_documented_path():
     assert kit.url("register") == "/accounts/register/"
-    assert kit.url("check_email") == "/accounts/register/check-email/"
-    assert kit.url("resend") == "/accounts/resend-confirmation/"
-    assert kit.url("confirm", "abc") == "/accounts/confirm/abc/"
 
 
-def test_successful_registration_redirects_to_check_email(client):
+def test_successful_registration_redirects_to_the_forum_home(client):
     response = sign_up(client)
     assert response.status_code == 302
-    assert response["Location"] == kit.url("check_email")
+    assert response["Location"] == reverse("forum:home")
 
 
-def test_registration_creates_an_inactive_unverified_user(client):
+def test_the_redirect_target_loads_for_the_new_member(client):
+    home = kit.register(client, "alice", STRONG_A)["Location"]
+    response = client.get(home)
+    assert response.status_code == 200
+    assert response.wsgi_request.user.username == "alice"
+    assert response.wsgi_request.user.is_authenticated is True
+
+
+def test_registration_creates_an_active_user_with_no_email(client):
     sign_up(client)
     user = User.objects.get(username="alice")
-    assert user.is_active is False
+    assert user.is_active is True
+    assert user.email == ""
+    assert user.email_key == ""
     assert user.email_verified_at is None
-    assert user.email == "alice@example.com"
+    assert user.is_staff is False and user.is_superuser is False
 
 
-def test_registration_sends_exactly_one_email_to_the_address(client, mailoutbox):
+def test_registration_keeps_the_username_as_typed_and_stores_its_key(client):
+    sign_up(client, "Alice_B")
+    user = User.objects.get(username_key="alice_b")
+    assert user.username == "Alice_B"
+
+
+def test_registration_logs_the_person_in_and_sets_a_session_cookie(client, settings):
     sign_up(client)
-    assert len(mailoutbox) == 1
-    assert mailoutbox[0].to == ["alice@example.com"]
+    user = User.objects.get(username="alice")
+    assert settings.SESSION_COOKIE_NAME in client.cookies
+    assert client.session["_auth_user_id"] == str(user.pk)
 
 
-def test_registration_creates_no_login_session(client, settings):
+def test_the_session_uses_a_configured_backend_so_axes_and_login_agree(client, settings):
     sign_up(client)
-    kit.follow(client, client.get(kit.url("check_email")))
-    assert "_auth_user_id" not in client.session
+    assert client.session["_auth_user_backend"] in settings.AUTHENTICATION_BACKENDS
 
 
-def test_check_email_page_says_what_the_contract_says(client, settings):
-    response = kit.follow(client, sign_up(client))
-    assert response.status_code == 200
-    assert CHECK_EMAIL_TEXT.format(days=settings.EMAIL_CONFIRM_MAX_AGE_DAYS) in kit.page_text(response)
+def test_registration_stamps_last_login_like_a_real_login(client):
+    sign_up(client)
+    stamp = User.objects.get(username="alice").last_login
+    assert stamp is not None
+    assert abs(stamp - timezone.now()) < timedelta(seconds=30)
 
 
-def test_check_email_page_names_the_configured_number_of_days(client, settings):
-    settings.EMAIL_CONFIRM_MAX_AGE_DAYS = 5
-    response = kit.follow(client, sign_up(client))
-    assert "It expires in 5 days." in kit.page_text(response)
+def test_the_new_member_can_log_out_and_log_in_again_with_the_same_password(client, settings):
+    sign_up(client)
+    assert client.post(kit.url("logout")).status_code == 302
+    assert kit.logged_in_user_id(client, settings) is None
+    assert client.post(kit.url("login"), {"username": "alice", "password": STRONG_A}).status_code == 302
+    assert client.session["_auth_user_id"] == str(User.objects.get(username="alice").pk)
 
 
-def test_check_email_page_links_to_resend(client):
-    response = kit.follow(client, sign_up(client))
-    assert kit.leads_to(response, kit.url("resend"))
-
-
-def test_check_email_page_can_be_opened_directly(client):
-    response = client.get(kit.url("check_email"))
-    assert response.status_code == 200
-    assert "Check your spam folder." in kit.page_text(response)
+def test_registration_sends_no_email(client, mailoutbox):
+    sign_up(client)
+    assert mailoutbox == []
 
 
 def test_password_is_stored_as_an_argon2_hash(client):
@@ -99,81 +115,26 @@ def test_password_is_kept_exactly_as_typed_including_edge_spaces(client):
     assert not user.check_password(STRONG_A)
 
 
-def test_the_emailed_link_activates_the_account(client, mailoutbox):
-    sign_up(client)
-    link, _ = kit.only_link(mailoutbox[0])
-    response = kit.open_link(client, link)
-    assert response.status_code == 200
-    user = User.objects.get(username="alice")
-    assert user.is_active is True
-    assert user.email_verified_at is not None
-    assert abs(user.email_verified_at - timezone.now()) < timedelta(seconds=5)
-
-
-def test_confirmation_page_says_so_and_links_to_login(client, mailoutbox):
-    sign_up(client)
-    response = kit.open_link(client, kit.only_link(mailoutbox[0])[0])
-    assert "Your email is confirmed. You can now log in" in kit.page_text(response)
-    assert kit.leads_to(response, kit.login_url())
-
-
-def test_confirming_never_logs_the_user_in(client, mailoutbox, settings):
-    sign_up(client)
-    kit.open_link(client, kit.only_link(mailoutbox[0])[0])
-    assert "_auth_user_id" not in client.session
-    # Not from a second browser either, and the home page does not know the user.
+def test_two_people_register_independently_each_in_their_own_session(client, settings):
     other = type(client)()
-    kit.open_link(other, kit.only_link(mailoutbox[0])[0])
-    assert "_auth_user_id" not in other.session
-
-
-def test_confirm_stamps_the_time_of_confirmation(client, mailoutbox, clock):
-    sign_up(client)
-    clock.advance(days=2)
-    kit.open_link(client, kit.only_link(mailoutbox[0])[0])
-    user = User.objects.get(username="alice")
-    assert abs(user.email_verified_at - clock.now()) < timedelta(seconds=5)
-
-
-def test_the_link_works_exactly_once(client, mailoutbox):
-    sign_up(client)
-    link = kit.only_link(mailoutbox[0])[0]
-    kit.open_link(client, link)
-    stamp = User.objects.get(username="alice").email_verified_at
-    second = kit.open_link(client, link)
-    text = kit.page_text(second)
-    assert "Your email is already confirmed. You can log in." in text
-    assert "Your email is confirmed." not in text
-    assert User.objects.get(username="alice").email_verified_at == stamp
-    assert kit.leads_to(second, kit.login_url())
-
-
-def test_a_used_link_cannot_reactivate_an_account_that_was_deactivated_afterwards(client, mailoutbox):
-    sign_up(client)
-    link = kit.only_link(mailoutbox[0])[0]
-    kit.open_link(client, link)
-    User.objects.filter(username="alice").update(is_active=False)  # for example a moderator banned the account
-    response = kit.open_link(client, link)
-    assert User.objects.get(username="alice").is_active is False
-    assert "Your email is confirmed. You can now log in" not in kit.page_text(response)
-
-
-def test_a_link_only_confirms_its_own_account(client, mailoutbox):
-    sign_up(client, "alice", "alice@example.com")
-    sign_up(client, "bobby", "bobby@example.com")
-    alice_link = kit.only_link(mailoutbox[0])[0]
-    kit.open_link(client, alice_link)
-    assert User.objects.get(username="alice").is_active is True
-    assert User.objects.get(username="bobby").is_active is False
-    assert User.objects.get(username="bobby").email_verified_at is None
-
-
-def test_two_people_register_independently(client, mailoutbox):
-    sign_up(client, "alice", "alice@example.com", STRONG_A)
-    sign_up(client, "bobby", "bobby@example.com", STRONG_B)
-    assert [m.to for m in mailoutbox] == [["alice@example.com"], ["bobby@example.com"]]
-    assert kit.only_link(mailoutbox[0])[1] != kit.only_link(mailoutbox[1])[1]
+    sign_up(client, "alice", STRONG_A)
+    kit.register(other, "bobby", STRONG_B)
     assert User.objects.count() == 2
+    assert client.session["_auth_user_id"] == str(User.objects.get(username="alice").pk)
+    assert other.session["_auth_user_id"] == str(User.objects.get(username="bobby").pk)
+
+
+def test_two_registrations_never_share_an_email_key_or_collide_on_it(client):
+    sign_up(client, "alice", STRONG_A)
+    kit.register(type(client)(), "bobby", STRONG_B)
+    assert list(User.objects.order_by("username").values_list("email_key", flat=True)) == ["", ""]
+
+
+def test_registering_after_a_failed_attempt_in_the_same_browser_works(client):
+    kit.register(client, "alice", STRONG_A, confirm=STRONG_B)
+    assert User.objects.count() == 0
+    assert sign_up(client).status_code == 302
+    assert User.objects.filter(username="alice").count() == 1
 
 
 @pytest.mark.parametrize("method", ["put", "delete", "patch"])
@@ -183,8 +144,7 @@ def test_register_rejects_other_methods_without_a_server_error(client, method):
     assert not User.objects.exists()
 
 
-def test_a_second_registration_of_the_same_person_after_confirming_creates_no_second_account(client, mailoutbox):
-    sign_up(client)
-    kit.open_link(client, kit.only_link(mailoutbox[0])[0])
-    sign_up(client, "alice2", "alice@example.com", STRONG_B)
-    assert User.objects.count() == 1
+def test_a_get_never_creates_or_logs_in_anyone(client, settings):
+    client.get(kit.url("register") + "?username=alice&password1=x")
+    assert not User.objects.exists()
+    assert kit.logged_in_user_id(client, settings) is None

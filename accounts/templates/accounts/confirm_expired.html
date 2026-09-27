@@ -1,7 +1,0 @@
-{% extends "accounts/base.html" %}
-{% block title %}Link expired{% endblock %}
-{% block content %}
-<h1>This link has expired</h1>
-<p>This link has expired. Request a new one. Confirmation links work for {{ expiry_days }} day{{ expiry_days|pluralize }}.</p>
-{% include "accounts/resend_form.html" %}
-{% endblock %}

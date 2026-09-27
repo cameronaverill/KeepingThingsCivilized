@@ -134,6 +134,15 @@ def test_spelling_a_username_with_other_capitals_does_not_dodge_the_lock(client,
     assert not is_logged_in(client)
 
 
+def test_spelling_an_unknown_username_with_other_capitals_locks_it_the_same_way(client, alice):
+    """Otherwise a real name would lock across spellings and an unknown one would not: that difference reveals which exist."""
+    spellings = ["ghost_user", "GHOST_USER", "Ghost_User", "gHoSt_UsEr", "ghost_USER"][:LIMIT]
+    spellings += ["ghost_user"] * (LIMIT - len(spellings))
+    for i, name in enumerate(spellings):
+        login_post(client, name, WRONG_PASSWORD, ip=f"10.6.0.{i + 1}")
+    assert_locked(login_post(client, "ghost_user", WRONG_PASSWORD, ip="10.6.9.9"))
+
+
 def test_failures_from_one_address_lock_that_address_for_every_username(client, alice):
     make_user("bob")
     lock_out_ip(client, "10.7.7.7")
@@ -215,6 +224,17 @@ def test_the_lockout_still_holds_just_before_the_cool_off_ends(client, alice):
         response = login_post(client, "alice", PASSWORD, ip="10.0.0.1")
     assert_locked(response)
     assert not is_logged_in(client)
+
+
+def test_attempts_made_during_the_lockout_do_not_extend_it(client, alice):
+    """The wait the page states must stay true, so a try while locked must not restart the clock."""
+    fail_logins(client, "alice", LIMIT)
+    with time_travel(cooloff() - timedelta(minutes=1)):
+        assert_locked(login_post(client, "alice", WRONG_PASSWORD, ip="10.0.0.1"))
+    with time_travel(cooloff() + timedelta(minutes=1)):
+        response = login_post(client, "alice", PASSWORD, ip="10.0.0.1")
+    assert response.status_code == 302
+    assert is_logged_in(client)
 
 
 def test_the_address_lock_also_ends_after_the_cool_off(client, alice):

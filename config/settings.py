@@ -34,12 +34,12 @@ IS_PRODUCTION = ENVIRONMENT == "production"
 
 DEBUG = not IS_PRODUCTION
 
-DEV_SECRET_KEY = "dev-only-insecure-key-never-use-in-production"  # secret-scan: allow (deliberately public) # secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow
+DEV_SECRET_KEY = "dev-only-insecure-key-never-use-in-production"  # secret-scan: allow (deliberately public)
 SECRET_KEY = _env("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     if IS_PRODUCTION:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_ENV=production")
-    SECRET_KEY = "dev-only-insecure-key-never-use-in-production" #secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow # secret-scan: allow
+    SECRET_KEY = "dev-only-insecure-key-never-use-in-production" # secret-scan: allow
 elif IS_PRODUCTION and (SECRET_KEY == DEV_SECRET_KEY or len(SECRET_KEY) < 50):
     raise ImproperlyConfigured(
         "DJANGO_SECRET_KEY must be at least 50 characters and not the development key when DJANGO_ENV=production"
@@ -186,7 +186,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # --- Email ---------------------------------------------------------------------------
 # Django 6.1's MAILERS setting (EMAIL_BACKEND and the EMAIL_HOST-style settings are deprecated).
-# Development prints emails to the terminal. Real SMTP options arrive in step 6.
+# Development prints emails to the terminal. Only the circuit breaker's alert email uses it (accounts have no email, step 6c).
 # EMAIL_BACKEND below is our own environment variable, not Django's deprecated setting.
 MAILERS = {
     "default": {

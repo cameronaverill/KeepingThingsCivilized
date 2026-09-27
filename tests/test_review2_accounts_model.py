@@ -59,3 +59,55 @@ def test_full_clean_with_an_excluded_field_does_not_report_it():
     make("Alice", "alice@example.com")
     twin = User(username="ALICE", email="other@example.com")
     twin.full_clean(exclude=["password", "username"])
+
+
+# --- step 6c: the email is optional -------------------------------------------------------------------------------
+
+
+def make_without_email(username):
+    return User.objects.create_user(username=username, password=PASSWORD)
+
+
+def test_save_with_update_fields_email_to_blank_clears_the_email_key_too():
+    user = make("alice", "alice@example.com")
+    user.email = ""
+    user.save(update_fields=["email"])
+    assert stored(user.pk) == {"username": "alice", "username_key": "alice", "email": "", "email_key": ""}
+
+
+def test_save_with_update_fields_email_from_blank_sets_the_email_key():
+    user = make_without_email("alice")
+    user.email = "  Late@Example.COM "
+    user.save(update_fields=["email"])
+    assert stored(user.pk) == {
+        "username": "alice", "username_key": "alice", "email": "Late@Example.COM", "email_key": "late@example.com",
+    }
+
+
+def test_validate_unique_never_reports_blank_emails_as_duplicates_of_each_other():
+    make_without_email("alice")
+    twin = User(username="bobby")
+    twin.clean_fields(exclude=["password"])
+    twin.validate_unique()  # two accounts without an email are not a collision
+
+
+def test_validate_unique_still_reports_a_username_collision_for_a_blank_email_twin():
+    make_without_email("Alice")
+    twin = User(username="ALICE")
+    twin.clean_fields(exclude=["password"])
+    with pytest.raises(Exception) as excinfo:
+        twin.validate_unique()
+    assert set(excinfo.value.message_dict) == {"username"}
+
+
+def test_full_clean_of_a_blank_email_twin_does_not_trip_the_conditional_constraint_check():
+    make_without_email("alice")
+    User(username="bobby").full_clean(exclude=["password"])
+
+
+def test_full_clean_reports_a_duplicate_email_once_and_only_on_the_email_field():
+    make("alice", "alice@example.com")
+    with pytest.raises(Exception) as excinfo:
+        User(username="bobby", email="ALICE@example.com").full_clean(exclude=["password"])
+    assert excinfo.value.message_dict == {"email": ["A user with that email address already exists."]}
+

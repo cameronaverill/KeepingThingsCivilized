@@ -1,77 +1,31 @@
-"""Helpers for the step 6a tests (registration, email confirmation, resend). Never imported from a conftest.
+"""Helpers for the registration tests (step 6c: a username and a password, nothing else). Never imported from a conftest.
 
 Design choices, so the tests do not depend on the builder's internals:
-- Form field names for the two password inputs are discovered from the rendered page (the contract only fixes
-  "username" and "email"); every other detail is checked through what a user (or a mail client) would see.
-- Time is controlled by a Clock that patches time.time (used by django.core.signing, the cache and any rate limiter
-  built on them) and django.utils.timezone.now (used for database timestamps). The clock is FROZEN, so nothing is
-  ever slept on and counted-down messages ("wait 60 seconds") are exactly reproducible; tests call advance().
-- Mail failures are produced by pointing MAILERS at SwitchBackend below (an in-memory backend that raises on demand),
-  so any code path that sends through the default mailer is covered, however it is called.
+- The two password inputs are discovered from the rendered page by their type (the contract fixes the wording of the
+  page, and that the field for the username is called "username"); everything else is checked through what a person
+  would see or what the database holds.
+- Nothing here sleeps, mails or touches the network.
 """
 import re
-import time
-from datetime import datetime, timedelta, timezone as dt_timezone
 from html.parser import HTMLParser
-from urllib.parse import quote, urlsplit
+from urllib.parse import urlsplit
 
-from django.core.mail.backends.locmem import EmailBackend as _LocmemBackend
-from django.urls import NoReverseMatch, reverse
-from django.utils import timezone
+from django.urls import reverse
 
 # Built from pieces so the repo-wide secret scan does not mistake them for credential assignments. Neither is
-# similar to any username or address used in these tests, and both pass every validator.
+# similar to any username used in these tests, and both pass every validator.
 STRONG_A = "Zebra-Lantern" + "-Quartz-42x"
 STRONG_B = "Marble-Falcon" + "-Orbit-77y"
 
-REAL_TIME = time.time
-REAL_NOW = timezone.now
-
-
-# --- time ------------------------------------------------------------------------------------------------------------
-class Clock:
-    """A frozen clock that only moves when a test calls advance()."""
-
-    def __init__(self):
-        self._start = REAL_TIME()
-        self.offset = 0.0
-
-    def time(self):
-        return self._start + self.offset
-
-    def now(self):
-        return datetime.fromtimestamp(self.time(), tz=dt_timezone.utc)
-
-    def advance(self, seconds=0, days=0):
-        self.offset += seconds + days * 86400
-
-
-# --- mail ------------------------------------------------------------------------------------------------------------
-class SwitchBackend(_LocmemBackend):
-    """The in-memory mailbox, except that it raises SwitchBackend.error (an exception instance) while one is set."""
-
-    error = None
-
-    def send_messages(self, messages):
-        if SwitchBackend.error is not None:
-            raise SwitchBackend.error
-        return super().send_messages(messages)
-
-
-SWITCH_MAILERS = {"default": {"BACKEND": "reg_testkit.SwitchBackend", "OPTIONS": {}}}
-
-LINK_RE = re.compile(r"https?://[^\s<>\"']+?/confirm/([^\s/<>\"']+)/")
-
-
-def confirmation_links(message):
-    """Every confirmation link in a message body, as (absolute_url, token)."""
-    return [(m.group(0), m.group(1)) for m in LINK_RE.finditer(message.body)]
-
-
-def only_link(message):
-    links = confirmation_links(message)
-    assert len(links) == 1, f"expected exactly one confirmation link, found {len(links)} in: {message.body!r}"
-    return links[0]
+# The exact user-facing sentences of docs/step6c_brief.md ("Register page text"). The owner reviews these.
+TITLE = "Create an account"
+INTRO = "Choose a username and a password. You do not need an email address."
+PASSWORD_NOTE = (
+    "There is no password reset by email. If you forget your password, ask the person running this site to reset it."
+)
+BUTTON = "Create account"
+LOGIN_LINK_SENTENCE = "Already have an account? Log in"
+TAKEN = "That username is taken."
 
 
 # --- urls ------------------------------------------------------------------------------------------------------------
@@ -79,35 +33,19 @@ def url(name, *args):
     return reverse(f"accounts:{name}", args=args)
 
 
-def url_or(name, fallback):
-    """reverse() for a name owned by step 6b, with a literal fallback so 6a tests do not depend on 6b's timing."""
-    try:
-        return url(name)
-    except NoReverseMatch:
-        return fallback
-
-
-def login_url():
-    return url_or("login", "/accounts/login/")
-
-
-def reset_url():
-    return url_or("password_reset", "/accounts/password-reset/")
-
-
-def confirm_path(token):
-    return url("confirm", token)
-
-
 # --- html ------------------------------------------------------------------------------------------------------------
 class _Page(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.forms = []
-        self.links = []
+        self.links = []  # (href, text)
         self.text = []
+        self.buttons = []
+        self.headings = []
+        self.title = ""
         self._skip = 0
         self._form = None
+        self._open = []  # stack of [tag, collected text] for a, button, h1, title
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -120,16 +58,34 @@ class _Page(HTMLParser):
             self._form["inputs"].append(
                 {"name": a.get("name"), "type": (a.get("type") or "text").lower(), "value": a.get("value")}
             )
-        elif tag == "a" and a.get("href"):
-            self.links.append(a["href"])
+            if tag == "input" and (a.get("type") or "").lower() in ("submit", "button"):
+                self.buttons.append(a.get("value") or "")
+        if tag in ("a", "button", "h1", "title"):
+            self._open.append([tag, [], a.get("href")])
 
     def handle_endtag(self, tag):
         if tag in ("script", "style"):
             self._skip = max(0, self._skip - 1)
         elif tag == "form":
             self._form = None
+        if tag in ("a", "button", "h1", "title"):
+            for index in range(len(self._open) - 1, -1, -1):
+                if self._open[index][0] == tag:
+                    _, chunks, href = self._open.pop(index)
+                    text = " ".join("".join(chunks).split())
+                    if tag == "a" and href:
+                        self.links.append((href, text))
+                    elif tag == "button":
+                        self.buttons.append(text)
+                    elif tag == "h1":
+                        self.headings.append(text)
+                    elif tag == "title":
+                        self.title = text
+                    break
 
     def handle_data(self, data):
+        for entry in self._open:
+            entry[1].append(data)
         if not self._skip:
             self.text.append(data)
 
@@ -145,11 +101,8 @@ def page_text(response):
     return " ".join(" ".join(parse(response).text).split())
 
 
-def find_form(response, action_path=None, with_input=None):
-    """The first form whose action is action_path (an empty action means 'this page') and that has an input."""
+def find_form(response, with_input=None):
     for form in parse(response).forms:
-        if action_path is not None and form["action"] not in (action_path, "", None):
-            continue
         if with_input is not None and not any(i["name"] == with_input for i in form["inputs"]):
             continue
         return form
@@ -160,31 +113,27 @@ def form_values(form):
     return {i["name"]: i["value"] for i in form["inputs"] if i["name"]}
 
 
-def leads_to(response, *paths):
-    """True if the page links to, or has a form posting to, any of the given paths."""
-    page = parse(response)
-    targets = set(page.links) | {f["action"] for f in page.forms if f["action"]}
-    targets = {urlsplit(t).path for t in targets}
-    return any(p in targets for p in paths)
+def link_targets(response):
+    return [urlsplit(href).path for href, _ in parse(response).links] + [
+        urlsplit(f["action"]).path for f in parse(response).forms if f["action"]
+    ]
 
 
 # --- requests --------------------------------------------------------------------------------------------------------
-_FIELDS = {}
+_NAMES = {}
 
 
-def register_fields(client):
-    """{'username','email','password','confirm'} input names, discovered from the register page."""
-    if not _FIELDS:
+def password_names(client):
+    """(password, password again) input names, discovered from the register page by their type."""
+    if not _NAMES:
         response = client.get(url("register"))
         assert response.status_code == 200
-        form = find_form(response, url("register"), with_input="username")
+        form = find_form(response, with_input="username")
         assert form is not None, "the register page must have a form with a 'username' input"
-        names = [i["name"] for i in form["inputs"]]
-        assert "email" in names, "the register form must have an 'email' input"
-        passwords = [i["name"] for i in form["inputs"] if i["type"] == "password"]
-        assert len(passwords) == 2, f"expected a password and a confirmation input, found {passwords}"
-        _FIELDS.update(username="username", email="email", password=passwords[0], confirm=passwords[1])
-    return _FIELDS
+        names = [i["name"] for i in form["inputs"] if i["type"] == "password"]
+        assert len(names) == 2, f"expected a password and a repeat input, found {names}"
+        _NAMES["names"] = tuple(names)
+    return _NAMES["names"]
 
 
 def csrf_value(client, path):
@@ -194,82 +143,23 @@ def csrf_value(client, path):
     return form_values(form)["csrfmiddlewaretoken"]
 
 
-def register(client, username, email, password, confirm=None, csrf=True, **extra):
-    fields = register_fields(client)
-    data = {
-        fields["username"]: username,
-        fields["email"]: email,
-        fields["password"]: password,
-        fields["confirm"]: password if confirm is None else confirm,
-    }
+def register(client, username, password, confirm=None, csrf=True, **extra):
+    first, second = password_names(client)
+    data = {"username": username, first: password, second: password if confirm is None else confirm}
     if csrf:
         data["csrfmiddlewaretoken"] = csrf_value(client, url("register"))
     return client.post(url("register"), data, **extra)
 
 
-def resend(client, email, csrf=True, **extra):
-    data = {"email": email}
-    if csrf:
-        data["csrfmiddlewaretoken"] = csrf_value(client, url("resend"))
-    return client.post(url("resend"), data, **extra)
-
-
-def follow(client, response, limit=5):
-    """Follow redirects like a browser; returns the final response."""
-    hops = 0
-    while response.status_code in (301, 302, 303, 307, 308) and hops < limit:
-        response = client.get(response["Location"])
-        hops += 1
-    return response
-
-
-def open_link(client, link):
-    """Click a confirmation link (an absolute URL or a path) and follow any redirects."""
-    return follow(client, client.get(urlsplit(link).path))
-
-
-def normalise(text, hide=()):
-    """Replace each value in `hide` (addresses, usernames), plain and URL-quoted, by a placeholder."""
-    for value in hide:
-        for variant in {value, value.lower(), quote(value), quote(value, safe="")}:
-            text = re.sub(re.escape(variant), "<HIDDEN>", text, flags=re.I)
-    return text
-
-
-def snapshot(client, response, hide=()):
-    """Everything a visitor can observe about a response chain, with the given values hidden."""
-    chain = []
-    hops = 0
-    while response.status_code in (301, 302, 303, 307, 308) and hops < 5:
-        chain.append((response.status_code, normalise(response["Location"], hide)))
-        response = client.get(response["Location"])
-        hops += 1
-    page = parse(response)
-    return {
-        "chain": chain,
-        "status": response.status_code,
-        "text": normalise(page_text(response), hide),
-        "links": sorted(normalise(h, hide) for h in page.links),
-        "forms": sorted(
-            (normalise(f["action"] or "", hide), f["method"], tuple(sorted((i["name"] or "", i["type"]) for i in f["inputs"])))
-            for f in page.forms
-        ),
-    }
-
-
-def cookie_names(client):
-    return sorted(client.cookies.keys())
-
-
-def session_keys(client, settings):
-    """Keys stored in the visitor's session, or None when they have no session."""
+def logged_in_user_id(client, settings):
+    """The id of the user the visitor's session belongs to, or None when nobody is logged in."""
     if settings.SESSION_COOKIE_NAME not in client.cookies:
         return None
-    return sorted(client.session.keys())
+    return client.session.get("_auth_user_id")
 
 
 INTERNAL_MARKERS = re.compile(
-    r"Traceback|BadSignature|SignatureExpired|django\.|IntegrityError|ValueError|KeyError|Exception|"
+    r"Traceback|BadSignature|django\.|IntegrityError|ValueError|KeyError|Exception|"
     r"\{\{|\{%|\bNone\b|\bNoneType\b|object at 0x|<function",
 )
 

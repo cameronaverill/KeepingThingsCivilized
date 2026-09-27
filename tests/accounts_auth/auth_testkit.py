@@ -1,4 +1,4 @@
-"""Shared helpers for the step 6b tests (login, logout, throttling, password reset and change).
+"""Shared helpers for the step 6b/6c tests (login, logout, throttling, password change; no email, no reset).
 
 Nothing here imports from conftest. Test modules import the fixtures they need from this module by name.
 Password literals are built at runtime so the repo-wide secret scan does not mistake them for credentials.
@@ -25,12 +25,10 @@ NEW_PASSWORD = "brand-new-" + "secret-Phrase-42"
 MODEL_BACKEND = "django.contrib.auth.backends.ModelBackend"
 
 GENERIC_LOGIN_ERROR = "Incorrect username or password."
-CONFIRM_FIRST = "Please confirm your email first"
 LOCKED_PREFIX = "Too many failed attempts."
-RESET_SENT = "If an account exists for that address, we sent instructions"
 
-# axes may answer a lockout with the login page (200) or a lockout status; the contract fixes the words, not the status.
-LOCKOUT_STATUSES = (200, 403, 429)
+# The lockout page is the login page with the wait stated, served with HTTP 429 (step 6b contract, kept in 6c).
+LOCKOUT_STATUSES = (429,)
 
 
 # --- axes state ----------------------------------------------------------------------------------------------------
@@ -66,8 +64,9 @@ def cooloff():
 # --- accounts ------------------------------------------------------------------------------------------------------
 
 
-def make_user(username="alice", email=None, active=True, password=PASSWORD):
-    user = User.objects.create_user(username=username, email=email or f"{username}@example.com", password=password)
+def make_user(username="alice", email="", active=True, password=PASSWORD):
+    """An account. Since step 6c people register with no email, so the default is none; pass one for an old account."""
+    user = User.objects.create_user(username=username, email=email, password=password)
     if not active:
         user.is_active = False
         user.save(update_fields=["is_active"])
@@ -80,9 +79,15 @@ def alice(clean_axes):
 
 
 @pytest.fixture
-def pending(clean_axes):
-    """An account whose email link has not been followed yet."""
-    return make_user("pending_pat", active=False)
+def old_account(clean_axes):
+    """An account from before step 6c: it has an email address."""
+    return make_user("olivia", email="olivia@example.com")
+
+
+@pytest.fixture
+def switched_off(clean_axes):
+    """An account an administrator has deactivated (is_active False)."""
+    return make_user("dormant_dan", active=False)
 
 
 def is_logged_in(client):
@@ -160,26 +165,3 @@ def lock_out_ip(client, ip, names=None):
     names = names or [f"someone_{i}" for i in range(settings.LOGIN_MAX_FAILURES)]
     for name in names:
         login_post(client, name, WRONG_PASSWORD, ip=ip)
-
-
-# --- password reset ------------------------------------------------------------------------------------------------
-
-
-def reset_link(message):
-    """The absolute reset link inside an email."""
-    found = re.search(r"https?://[^\s<>\"']+/accounts/reset/[^\s<>\"']+", message.body)
-    assert found, f"no reset link in the email body: {message.body!r}"
-    return found.group(0).rstrip(".,;)")
-
-
-def open_reset_link(client, link):
-    """Follow the emailed link the way a browser does. Returns (response, url of the page that holds the form)."""
-    from urllib.parse import urlparse
-
-    response = client.get(urlparse(link).path, follow=True)
-    final = response.redirect_chain[-1][0] if response.redirect_chain else urlparse(link).path
-    return response, final
-
-
-def request_reset(client, email):
-    return client.post(reverse("accounts:password_reset"), {"email": email})

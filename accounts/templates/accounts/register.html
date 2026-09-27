@@ -2,7 +2,7 @@
 {% block title %}Create an account{% endblock %}
 {% block content %}
 <h1>Create an account</h1>
-<p>Already registered? <a href="{% url 'accounts:login' %}">Log in</a>.</p>
+<p>Choose a username and a password. You do not need an email address.</p>
 <form method="post" novalidate>
   {% csrf_token %}
   {% if form.non_field_errors %}<div role="alert">{{ form.non_field_errors }}</div>{% endif %}
@@ -16,8 +16,8 @@
     <ul>{% for text in password_help %}<li>{{ text }}</li>{% endfor %}</ul>{% endif %}
   </p>
   {% endfor %}
+  <p><small>There is no password reset by email. If you forget your password, ask the person running this site to reset it.</small></p>
   <button type="submit">Create account</button>
 </form>
-<p><small>We will email you a link to confirm your address. Your account works after you follow it.</small></p>
-<p><small>Did not get a link? <a href="{% url 'accounts:resend' %}">Ask for a new one</a>.</small></p>
+<p><a href="{% url 'accounts:login' %}">Already have an account? Log in</a></p>
 {% endblock %}

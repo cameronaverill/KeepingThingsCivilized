@@ -1,18 +1,19 @@
-"""Login (step 6b): success, the one generic failure message, unconfirmed accounts, safe `next`, page shell."""
+"""Login (step 6b, adapted in 6c): success, the one generic failure message, deactivated and old accounts, safe `next`, page shell."""
+import re
+
 import pytest
 from auth_testkit import (
-    CONFIRM_FIRST,
     GENERIC_LOGIN_ERROR,
     PASSWORD,
     WRONG_PASSWORD,
     alice,
     clean_axes,
     is_logged_in,
-    links_to,
     login_post,
     make_user,
     normalized,
-    pending,
+    old_account,
+    switched_off,
     template_names,
     text,
 )
@@ -66,13 +67,12 @@ def test_unknown_user_with_the_right_looking_password_of_another_account_is_stil
     assert not is_logged_in(client)
 
 
-def test_wrong_password_on_an_unconfirmed_account_does_not_reveal_that_it_is_unconfirmed(client, pending):
-    response = login_post(client, "pending_pat", WRONG_PASSWORD)
-    page = text(response)
-    assert GENERIC_LOGIN_ERROR in page
-    assert CONFIRM_FIRST not in page
+def test_wrong_password_on_a_deactivated_account_looks_like_an_unknown_user(client, switched_off):
+    response = login_post(client, "dormant_dan", WRONG_PASSWORD)
     unknown = login_post(client, "ghost_user", WRONG_PASSWORD)
-    assert normalized(response, "pending_pat") == normalized(unknown, "ghost_user")
+    assert GENERIC_LOGIN_ERROR in text(response)
+    assert response.status_code == unknown.status_code
+    assert normalized(response, "dormant_dan") == normalized(unknown, "ghost_user")
 
 
 def test_failed_login_keeps_the_typed_username_but_never_the_password(client, alice):
@@ -91,36 +91,85 @@ def test_blank_fields_are_refused_with_a_reason_and_the_form_again(client, alice
     assert not is_logged_in(client)
 
 
-def test_unconfirmed_account_with_the_correct_password_is_told_to_confirm_and_gets_the_resend_link(client, pending):
-    response = login_post(client, "pending_pat", PASSWORD)
-    page = text(response)
+def test_a_deactivated_account_with_the_correct_password_gets_the_generic_message_and_no_session(client, switched_off):
+    """There is no 'unconfirmed' state any more: an inactive account is refused exactly like a wrong password."""
+    response = login_post(client, "dormant_dan", PASSWORD)
+    unknown = login_post(client, "ghost_user", PASSWORD)
     assert response.status_code == 200
-    assert CONFIRM_FIRST in page
-    assert links_to(response, "accounts:resend")
-    assert GENERIC_LOGIN_ERROR not in page
+    assert GENERIC_LOGIN_ERROR in text(response)
     assert not is_logged_in(client)
+    assert normalized(response, "dormant_dan") == normalized(unknown, "ghost_user")
 
 
-def test_a_confirmed_flag_alone_is_not_enough_inactive_means_no_login(client, clean_axes):
-    user = make_user("flagged", active=False)
-    assert user.email_verified_at is None
-    login_post(client, "flagged", PASSWORD)
+def test_activating_a_deactivated_account_lets_the_same_credentials_in(client, switched_off):
+    login_post(client, "dormant_dan", PASSWORD)
     assert not is_logged_in(client)
-
-
-def test_activating_the_account_lets_the_same_credentials_in(client, pending):
-    login_post(client, "pending_pat", PASSWORD)
-    assert not is_logged_in(client)
-    pending.is_active = True
-    pending.save(update_fields=["is_active"])
-    response = login_post(client, "pending_pat", PASSWORD)
+    switched_off.is_active = True
+    switched_off.save(update_fields=["is_active"])
+    response = login_post(client, "dormant_dan", PASSWORD)
     assert response.status_code == 302 and is_logged_in(client)
+
+
+def test_an_account_with_no_email_logs_in(client, alice):
+    assert alice.email == ""
+    response = login_post(client, "alice", PASSWORD)
+    assert response.status_code == 302
+    assert client.session["_auth_user_id"] == str(alice.pk)
+
+
+def test_an_old_account_that_has_an_email_still_logs_in(client, old_account):
+    assert old_account.email == "olivia@example.com"
+    response = login_post(client, "olivia", PASSWORD)
+    assert response.status_code == 302
+    assert response["Location"] == settings.LOGIN_REDIRECT_URL
+    assert client.session["_auth_user_id"] == str(old_account.pk)
+
+
+def test_an_old_account_cannot_log_in_with_its_email_address_as_the_username(client, old_account):
+    response = login_post(client, "olivia@example.com", PASSWORD)
+    assert GENERIC_LOGIN_ERROR in text(response)
+    assert not is_logged_in(client)
+
+
+def test_any_spelling_of_the_username_logs_in(client, alice):
+    response = login_post(client, "ALICE", PASSWORD)
+    assert response.status_code == 302
+    assert client.session["_auth_user_id"] == str(alice.pk)
+
+
+def test_an_already_logged_in_visitor_is_sent_on_from_the_login_page(client, alice):
+    login_post(client, "alice", PASSWORD)
+    response = client.get(reverse(LOGIN))
+    assert response.status_code == 302
+    assert response["Location"] == settings.LOGIN_REDIRECT_URL
 
 
 def test_get_login_is_safe_and_does_not_log_anyone_in(client, alice):
     response = client.get(reverse(LOGIN), {"username": "alice", "password": PASSWORD})
     assert response.status_code == 200
     assert not is_logged_in(client)
+
+
+def form_html(response, field_name):
+    """The <form> element of the page that holds `field_name` (the site header has its own logout form)."""
+    forms = re.findall(r"<form\b.*?</form>", text(response), re.S)
+    holding = [f for f in forms if f'name="{field_name}"' in f]
+    assert len(holding) == 1
+    return holding[0]
+
+
+def test_the_login_form_itself_carries_a_csrf_token(client, clean_axes):
+    assert 'name="csrfmiddlewaretoken"' in form_html(client.get(reverse(LOGIN)), "username")
+
+
+def test_the_login_form_carries_a_safe_next_along_as_a_hidden_field(client, clean_axes):
+    response = client.get(reverse(LOGIN), {"next": "/accounts/password-change/"})
+    assert 'name="next" value="/accounts/password-change/"' in form_html(response, "username")
+
+
+def test_a_failed_login_keeps_the_next_so_the_second_try_still_lands_there(client, alice):
+    failed = login_post(client, "alice", WRONG_PASSWORD, next_in_query="/accounts/password-change/")
+    assert 'name="next" value="/accounts/password-change/"' in form_html(failed, "username")
 
 
 # --- ?next= ----------------------------------------------------------------------------------------------------------
