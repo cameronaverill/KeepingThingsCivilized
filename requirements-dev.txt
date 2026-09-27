@@ -2,3 +2,7 @@
 -r requirements.txt
 pytest==9.1.1
 pytest-django==4.14.0
+
+# Offline analysis (analysis/metrics.py); the deployed site does not need these.
+pandas==3.0.6
+numpy==2.5.3
