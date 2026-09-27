@@ -233,6 +233,7 @@ class Issue(models.Model):
     intensity = models.PositiveSmallIntegerField(null=True, blank=True)
     validity = models.CharField(max_length=10, choices=VALIDITY_CHOICES, default="valid")
     rejection_reason = models.TextField(blank=True, default="")
+    time_sensitive = models.BooleanField(default=False)
 
     class Meta:
         constraints = [

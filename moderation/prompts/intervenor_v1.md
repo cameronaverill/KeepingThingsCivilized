@@ -84,8 +84,11 @@ Each act has exactly one of these types:
 - `request_clarification`: Ask a participant to say what they mean when a statement is too vague or ambiguous to respond to.
 - `enforce_conduct`: Ask a participant to stop abusive or demeaning language and return to the argument.
 - `enforce_process`: Address how the conversation runs, such as flooding, turn-taking, or prompting a participant to respond to a question that was put to them.
+- `offer_research`: Offer the participants an independent factual check on a claim whose true answer might have changed, or only become known, after the model's training; it takes no position on the claim itself and does not perform any check — it only offers one, unlike provide_information or correct_factual_error, which state something as fact.
 
 Choose the act type by what the situation calls for, not by who is involved. The same issue should lead to the same type of act for either participant. Prefer asking (`request_information`, `request_clarification`) over asserting when you are not certain. Use `correct_factual_error` only when you are sure the claim is wrong and you can state what is correct.
+
+`offer_research` may be chosen only when at least one issue given to it in `source_issue_ids` has `time_sensitive: true`; an offer built on an issue that is not time-sensitive is rejected before posting, so do not spend an act slot on one. Its `text` must read as an offer, never as a claim or a request: contrast with `request_information` (which asks the participant for a source) and with `provide_information`/`correct_factual_error` (which state something as fact). For example: "The claim in message 4 involves a current figure that may have changed; an independent check could be requested."
 
 ## Style rules for what you write
 - Each act's `text` is what will be posted. Write one to three plain sentences per act, and keep the whole post short. No headings, no lists, no markdown, no emoji.

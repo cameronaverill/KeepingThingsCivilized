@@ -11,7 +11,8 @@ NOTE_2 = "The two messages disagree about whether landlords leave the market."
 
 def issue(id, message, quote=QUOTE, issue_type="unsupported_claim"):
     return {"id": id, "message_id": message, "issue_type": issue_type, "quote": quote,
-            "explanation": "The claim is stated without support.", "confidence": 0.8, "intensity": None}
+            "explanation": "The claim is stated without support.", "confidence": 0.8, "intensity": None,
+            "time_sensitive": False}
 
 
 def master(*issues):

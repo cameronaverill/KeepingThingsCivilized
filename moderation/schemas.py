@@ -37,6 +37,7 @@ ActType = Literal[
     "request_clarification",
     "enforce_conduct",
     "enforce_process",
+    "offer_research",
 ]
 Decision = Literal["intervene", "no_intervention"]
 Tone = Literal["gentle", "neutral", "firm"]
@@ -65,6 +66,9 @@ class MasterIssue(_Strict):
     explanation: str  # one or two sentences saying what the problem is, in neutral wording
     confidence: float  # 0.0 to 1.0: how sure the Master is that this is a real issue
     intensity: int | None  # 0 to 4 on the rubric for the issue type's dimension; null for issue types without one
+    time_sensitive: bool  # true only if the claim's true answer could have changed, or only become knowable, after
+                           # training; meaningless (always false) for issue types other than possible_factual_error /
+                           # unsupported_claim, but still required on every issue since the API schema forbids defaults
 
     @field_validator("confidence")
     @classmethod

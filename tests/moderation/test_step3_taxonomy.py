@@ -42,9 +42,9 @@ def test_value_sets_are_exactly_the_documented_ones(tax, name, expected):
     assert all(isinstance(v, str) for v in values)
 
 
-def test_there_are_eight_issue_types_and_ten_act_types(tax):
+def test_there_are_eight_issue_types_and_eleven_act_types(tax):
     assert len(set(tax.ISSUE_TYPES)) == 8
-    assert len(set(tax.ACT_TYPES)) == 10
+    assert len(set(tax.ACT_TYPES)) == 11
 
 
 def test_intensity_range_is_zero_to_four(tax):

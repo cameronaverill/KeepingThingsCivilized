@@ -23,13 +23,15 @@ import json
 import pytest
 
 FROZEN_SHA256 = {
-    "MasterOutput": "b88b439e9efa44c4ad635cbfb661af7fc2a0df851b38884af8f7ed34e7995667",
-    "IntervenorOutput": "bacf74969a4b29d4122b96a3eb3b994816e5963a1eecb6b94a34da57333f400f",
+    "MasterOutput": "c2710bb5689e3e45af5d8220c10dc984e31b4b47bb81c9607e85f25df6f062e9",
+    "IntervenorOutput": "baae2f155b83b5c4dddf9f8953fbb25d90ea10c79ccb38d7cf16632864e11470",
 }
 
 FROZEN_FIELDS = {
     "MasterOutput": ["discussion_map", "issues"],
-    "MasterIssue": ["confidence", "explanation", "id", "intensity", "issue_type", "message_id", "quote"],
+    "MasterIssue": [
+        "confidence", "explanation", "id", "intensity", "issue_type", "message_id", "quote", "time_sensitive",
+    ],
     "DiscussionMap": ["agreements", "disagreements"],
     "Disagreement": ["kind", "summary"],
     "IntervenorOutput": ["acts", "decision", "issue_dispositions", "rationale"],

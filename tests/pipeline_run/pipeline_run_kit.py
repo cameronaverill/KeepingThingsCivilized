@@ -131,10 +131,11 @@ def _mid(message):
 
 
 def issue_d(id, message, issue_type="unsupported_claim", quote=QUOTE_1, *, confidence=0.8, intensity=None,
-            explanation="The claim is stated without support."):
+            explanation="The claim is stated without support.", time_sensitive=False):
     return {
         "id": id, "message_id": _mid(message), "issue_type": issue_type, "quote": quote,
         "explanation": explanation, "confidence": confidence, "intensity": intensity,
+        "time_sensitive": time_sensitive,
     }  # fmt: skip
 
 

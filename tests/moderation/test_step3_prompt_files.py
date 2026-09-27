@@ -204,3 +204,94 @@ def test_intervenor_prompt_requires_request_information_text_to_be_phrased_as_a_
     assert re.search(r"request_information.{0,400}\bquestion\b", lowered, re.S) or \
         re.search(r"\bquestion\b.{0,400}request_information", lowered, re.S)
     assert "Could a source be given for the figure in message 4?" in text
+
+
+# --- Step 20a items 5 and 6 (docs/step20a_brief.md): the Master's `time_sensitive` flag and the Intervenor's
+# `offer_research` act. No real LLM call can be made here (same constraint as the wave16 section above), so these
+# are static-text checks on the prompt files themselves, using substring/regex on the key phrases the brief
+# introduces rather than a brittle exact match. They depend on step20a item 1 (moderation/taxonomy.py's
+# "offer_research" entry and its DEFINITIONS text), built separately from the prompt files themselves.
+
+def test_master_prompt_gives_time_sensitive_guidance():
+    """5: after the usual factual judgement, the Master additionally asks whether the claim's true answer could
+    have changed, or only become knowable, after training, and records that as `time_sensitive`; the field is
+    independent of confidence/intensity and never changes whether an issue is reported at all."""
+    text = prompt_text("master_v1")
+    lowered = text.lower()
+    assert "time_sensitive" in text
+    assert re.search(r"chang(e|ed|ing)|only become known|only become knowable", lowered)
+    assert "training" in lowered
+    assert "confidence" in lowered and "intensity" in lowered
+
+
+def test_master_prompt_restricts_time_sensitive_to_the_two_factual_issue_types():
+    """5: time_sensitive is meaningless (always false) for issue types other than possible_factual_error /
+    unsupported_claim, and for a factual issue whose answer is timeless."""
+    text = prompt_text("master_v1")
+    assert "possible_factual_error" in text and "unsupported_claim" in text
+    lowered = text.lower()
+    assert re.search(r"time_sensitive.{0,600}(possible_factual_error|unsupported_claim)", lowered, re.S) or \
+        re.search(r"(possible_factual_error|unsupported_claim).{0,600}time_sensitive", lowered, re.S)
+    assert re.search(r"timeless|historical date|mathematical fact|scientific constant", lowered)
+
+
+def test_master_prompt_has_the_time_sensitive_worked_example():
+    """5's worked example pair: a checkable, currently-changing fact versus a checkable but timeless one, close to
+    the brief's suggested shape (unemployment rate vs. the Treaty of Westphalia)."""
+    lowered = prompt_text("master_v1").lower()
+    assert re.search(r"unemployment rate", lowered)
+    assert re.search(r"treaty of westphalia|\b1648\b", lowered)
+
+
+def test_master_prompt_says_time_sensitive_takes_no_position_on_whether_the_claim_is_still_true():
+    """5: the Master is not asked to guess whether the claim is now outdated, only whether it could be -- which it
+    usually cannot know."""
+    text = prompt_text("master_v1")
+    lowered = text.lower()
+    assert "time_sensitive" in text
+    assert re.search(r"no position.{0,80}(actually|whether)|not.{0,40}(guess|asked to guess).{0,80}outdated", lowered) or \
+        re.search(r"carries no position|takes no position", lowered)
+
+
+def test_time_sensitive_guidance_sits_near_the_factual_accuracy_rubric():
+    """5: the natural home is next to the existing factual_accuracy rubric text, since only possible_factual_error
+    and unsupported_claim issues can carry `time_sensitive: true`."""
+    text = prompt_text("master_v1")
+    idx_rubric, idx_ts = text.find("factual_accuracy"), text.find("time_sensitive")
+    assert idx_rubric != -1 and idx_ts != -1
+    assert abs(idx_ts - idx_rubric) < 6000, "time_sensitive guidance is not near the factual_accuracy rubric text"
+
+
+def test_the_intervenor_prompt_mentions_offer_research_with_its_taxonomy_definition():
+    """6: offer_research is added to the Act types list using the same definition text as taxonomy.py (item 1),
+    verbatim -- the same pattern as test_act_type_definitions_appear_verbatim_in_the_intervenor_prompt above, but
+    exercised directly for this one new value so it is covered even before ACT_TYPES carries it."""
+    from moderation import taxonomy
+
+    text = prompt_text("intervenor_v1")
+    assert "offer_research" in text
+    assert "offer_research" in taxonomy.DEFINITIONS, "moderation/taxonomy.py has no offer_research definition yet"
+    assert squash(taxonomy.DEFINITIONS["offer_research"]) in squash(text)
+
+
+def test_the_intervenor_prompt_restricts_offer_research_to_time_sensitive_issues():
+    """6: offer_research may be chosen only when at least one issue given to the Intervenor has
+    `time_sensitive: true`, mirroring the code-level rule in moderation/pipeline.py's validate_acts (item 4b)."""
+    text = prompt_text("intervenor_v1")
+    lowered = text.lower()
+    assert "offer_research" in text and "time_sensitive" in text
+    assert re.search(r"offer_research.{0,900}time_sensitive", lowered, re.S) or \
+        re.search(r"time_sensitive.{0,900}offer_research", lowered, re.S)
+
+
+def test_the_intervenor_prompt_says_offer_research_takes_no_position_and_contrasts_it_with_other_acts():
+    """6: offer_research takes no position on whether the claim is right or wrong, and its text must read as an
+    offer, not a claim or a request -- contrast with request_information and provide_information/
+    correct_factual_error."""
+    text = prompt_text("intervenor_v1")
+    lowered = text.lower()
+    assert re.search(r"offer_research.{0,700}no position", lowered, re.S) or \
+        re.search(r"no position.{0,700}offer_research", lowered, re.S)
+    assert re.search(r"offer_research.{0,700}request_information", lowered, re.S) or \
+        re.search(r"request_information.{0,700}offer_research", lowered, re.S)
+    assert "offer" in lowered

@@ -221,10 +221,10 @@ def make_issue(run, message, local_id="i1", **kwargs):
 
 # --- Scripted model outputs ---------------------------------------------------------------------------------------
 
-def issue_d(id="i1", message_id=1, issue_type="unsupported_claim", quote="a quote", explanation="why", confidence=0.6, intensity=None):
+def issue_d(id="i1", message_id=1, issue_type="unsupported_claim", quote="a quote", explanation="why", confidence=0.6, intensity=None, time_sensitive=False):
     return {
         "id": id, "message_id": message_id, "issue_type": issue_type, "quote": quote, "explanation": explanation,
-        "confidence": confidence, "intensity": intensity,
+        "confidence": confidence, "intensity": intensity, "time_sensitive": time_sensitive,
     }  # fmt: skip
 
 

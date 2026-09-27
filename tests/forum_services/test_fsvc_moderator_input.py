@@ -170,6 +170,7 @@ def master_and_intervenor_scripts(message):
                 {
                     "id": "i1", "message_id": message.pk, "issue_type": "unsupported_claim", "quote": quote,
                     "explanation": "The claim is stated without support.", "confidence": 0.8, "intensity": None,
+                    "time_sensitive": False,
                 }
             ],
             "discussion_map": {"agreements": [], "disagreements": []},

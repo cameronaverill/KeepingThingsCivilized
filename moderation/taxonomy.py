@@ -30,6 +30,7 @@ ACT_TYPES = (
     "request_clarification",
     "enforce_conduct",
     "enforce_process",
+    "offer_research",
 )
 
 DECISIONS = ("intervene", "no_intervention")
@@ -128,6 +129,11 @@ DEFINITIONS = {
     "enforce_process": (
         "Address how the conversation runs, such as flooding, turn-taking, or prompting a participant to respond to a "
         "question that was put to them."
+    ),
+    "offer_research": (
+        "Offer the participants an independent factual check on a claim whose true answer might have changed, or only "
+        "become known, after the model's training; it takes no position on the claim itself and does not perform any "
+        "check — it only offers one, unlike provide_information or correct_factual_error, which state something as fact."
     ),
     # --- Decisions ---
     "intervene": "Post a moderator message consisting of one to three acts.",

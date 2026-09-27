@@ -272,6 +272,7 @@ def issue_master_answer(spec, quote):
             {
                 "id": "i1", "message_id": spec_trigger(spec).pk, "issue_type": "unsupported_claim", "quote": quote,
                 "explanation": "The claim is stated without support.", "confidence": 0.8, "intensity": None,
+                "time_sensitive": False,
             }
         ],
         "discussion_map": {"agreements": [], "disagreements": []},

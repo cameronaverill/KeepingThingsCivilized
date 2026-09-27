@@ -49,6 +49,7 @@ ACT_TYPES = {
     "request_clarification",
     "enforce_conduct",
     "enforce_process",
+    "offer_research",
 }
 DECISIONS = {"intervene", "no_intervention"}
 TONES = {"gentle", "neutral", "firm"}
@@ -272,7 +273,7 @@ def _try_issue(id_v, mid_v, conf_v):
     try:
         MasterIssue(
             id=id_v, message_id=mid_v, issue_type="unsupported_claim", quote="q", explanation="e",
-            confidence=conf_v, intensity=None,
+            confidence=conf_v, intensity=None, time_sensitive=False,
         )
     except Exception:
         return False
@@ -299,10 +300,10 @@ def make_mid(seq):
     return int(seq) if style()["mid"] == "int" else str(seq)
 
 
-def issue_dict(n, seq, quote, *, issue_type="unsupported_claim", explanation="An explanation.", intensity=None):
+def issue_dict(n, seq, quote, *, issue_type="unsupported_claim", explanation="An explanation.", intensity=None, time_sensitive=False):
     return dict(
         id=make_id(n), message_id=make_mid(seq), issue_type=issue_type, quote=quote, explanation=explanation,
-        confidence=style()["conf"], intensity=intensity,
+        confidence=style()["conf"], intensity=intensity, time_sensitive=time_sensitive,
     )
 
 

@@ -19,8 +19,8 @@ Rules this module keeps:
 Rejection reason codes (stored verbatim in `rejection_reason`):
   issues: unknown_message, outside_window, moderator_message, not_new, quote_not_found, duplicate_id,
           intensity_without_dimension
-  acts:   empty_text, bad_label, names_participant, bad_source_issue, bad_source_message, act_cap,
-          decision_no_intervention
+  acts:   empty_text, bad_label, names_participant, bad_source_issue, bad_source_message, not_time_sensitive,
+          act_cap, decision_no_intervention
 """
 import logging
 import re
@@ -165,6 +165,7 @@ def already_raised_for(*, conversation_id, kind, replicate, snapshot_seq, exclud
                 "issue_type": issue.issue_type,
                 "confidence": issue.confidence,
                 "intensity": issue.intensity,
+                "time_sensitive": issue.time_sensitive,
                 "quote": issue.quote,
                 "explanation": issue.explanation,
                 "outcome": disposition.disposition if disposition is not None else "declined",
@@ -287,6 +288,7 @@ def _store_issues(run, transcript, output):
                 explanation=item.explanation,
                 confidence=item.confidence,
                 intensity=item.intensity if verdict.has_dimension else None,
+                time_sensitive=item.time_sensitive,
                 validity="valid" if verdict.reason is None else "rejected",
                 rejection_reason=verdict.reason or "",
             )
@@ -361,6 +363,10 @@ def validate_acts(output, *, labels, window_ids, valid_local_ids, cap):
             reason = "bad_source_issue"
         elif any(m not in window_ids for m in act.source_message_ids):
             reason = "bad_source_message"
+        elif act.type == "offer_research" and not (
+            act.source_issue_ids and all(valid_local_ids[i].time_sensitive for i in act.source_issue_ids)
+        ):
+            reason = "not_time_sensitive"
         elif valid_count >= cap:
             reason = "act_cap"
         if reason is None:
