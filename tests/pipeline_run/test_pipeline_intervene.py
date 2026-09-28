@@ -1,4 +1,6 @@
 """The intervene path and the no-intervention paths of run_moderation (plan sections 2 and 6, brief "5b details" 2 to 6)."""
+import logging
+
 import pipeline_run_kit as kit
 import pytest
 
@@ -20,6 +22,16 @@ class TestIntervenePath:
         assert stored.rationale == "A source would help both readers."
         assert stored.failure_reason == ""
         assert stored.error == ""
+
+    def test_the_done_log_line_reports_the_decision_and_that_something_was_posted(self, fake, caplog):
+        world, run = intervene_world()
+        fake(*kit.simple_success(world))
+        with caplog.at_level(logging.INFO, logger="moderation.pipeline"):
+            _, stored = kit.go(run)
+        [record] = [r for r in caplog.records if "done" in r.getMessage()]
+        message = record.getMessage()
+        assert str(run.pk) in message
+        assert "decision=intervene" in message and "posted=True" in message
 
     def test_both_agents_are_called_once_each_and_both_calls_are_ledgered_against_the_run(self, fake):
         world, run = intervene_world()

@@ -200,6 +200,7 @@ def block(request, username):
     except services.PostRejected as exc:
         return _render_home(request, error=_error_context(exc))
     name = target.get_username()
+    logger.info("block: user %s blocked user %s (a shared conversation ended: %s)", request.user.pk, target.pk, ended)
     if ended:  # a conversation they shared has ended
         flash.success(request, f"You blocked {name}. The conversation has ended.")
         return redirect("forum:mine")
@@ -217,6 +218,7 @@ def unblock(request, username):
         services.unblock_user(request.user, target)
     except services.PostRejected as exc:
         return _render_home(request, error=_error_context(exc))
+    logger.info("unblock: user %s unblocked user %s", request.user.pk, target.pk)
     flash.success(request, f"You unblocked {target.get_username()}.")
     return redirect("forum:blocked")
 
@@ -292,6 +294,7 @@ def enter(request, topic_id):
         conversation = services.enter_proposition(request.user, topic, side)
     except services.PostRejected as exc:
         return _render_home(request, error=_error_context(exc))
+    logger.debug("enter: user %s entered conversation %s on topic %s (side %s)", request.user.pk, conversation.pk, topic.pk, side)
     return redirect("forum:conversation", conversation_id=conversation.pk)
 
 
@@ -501,11 +504,16 @@ def request_research(request, conversation_id, act_id):
                 source_act=act,
                 requested_by=participant,
             )
+        logger.debug(
+            "request_research: created run %s for act %s (conversation %s, requested by participant %s)",
+            run.pk, act.pk, found.pk, participant.pk,
+        )
     except IntegrityError:
         run = ModerationRun.objects.filter(source_act_id=act.pk, kind="research").first()
         if run is None:  # the constraint fired for some other reason; nothing to report back
             logger.exception("request_research: IntegrityError creating a research run but none found afterwards")
             return _check_json({"status": "unavailable", "act_id": act.pk}, status=500)
+        logger.debug("request_research: act %s already has run %s (participant %s hit the race)", act.pk, run.pk, participant.pk)
     state = "pending" if run.status in ("pending", "running") else "done"
     return _check_json({"status": state, "act_id": act.pk, "run_id": run.pk})
 
@@ -529,6 +537,7 @@ def post(request, conversation_id):
         # Details go to the log, never to the page. The person's text stays in the box.
         logger.exception("post_message failed for conversation %s", conversation_id)
         return _render_conversation(request, found, error=_plain_error(OUR_SIDE_FAILED), draft=text, status=500)
+    logger.debug("post: message %s posted to conversation %s (seq %s)", message.pk, found.pk, message.seq_no)
     _resolve_posted_check(request, found, message)
     return redirect("forum:conversation", conversation_id=found.pk)
 
@@ -546,6 +555,7 @@ def end(request, conversation_id):
         if exc.code == "not_participant":
             return _not_found(request)
         return _render_conversation(request, found, error=_error_context(exc))
+    logger.info("end: conversation %s ended by user %s", found.pk, request.user.pk)
     return redirect("forum:conversation", conversation_id=found.pk)
 
 

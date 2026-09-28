@@ -172,6 +172,18 @@ def make_call(run, conv, *, cost, purpose="moderation", agent="master", attempt=
     )
 
 
+def make_preview_check(conv, participant, call, *, outcome="concern", mode="on", draft_text="a draft reply"):
+    """A `PreviewCheck` of `conv`/`participant` whose `llm_call_ids` names `call` (normally an unattached `LLMCall`
+    of the same conversation): the shape `_preview_call_ids` (moderation/queries.py) looks for to identify a draft
+    check's ledger row and suppress its raw fields on export."""
+    from moderation.models import PreviewCheck
+
+    return PreviewCheck.objects.create(
+        conversation_id=conv.pk, participant_id=participant.pk, draft_text=draft_text, char_count=len(draft_text),
+        draft_sha256="d" * 64, snapshot_seq=0, mode=mode, outcome=outcome, llm_call_ids=[call.pk],
+    )
+
+
 def make_issue(run, local_id, message, issue_type, quote, *, match="exact", start="find", validity="valid",
                reason="", intensity=None, confidence=0.8, explanation="The claim is stated without support.",
                disposition=None, disposition_reason=""):

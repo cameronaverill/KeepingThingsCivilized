@@ -2,11 +2,15 @@
 an eligible act, the click endpoint (`forum:request_research`), and the pending/done states on the conversation page.
 
 Button eligibility was widened 2026-09-27 (owner decision, recorded in the brief): the button is not `offer_research`
--only any more. It is available on any VALID act whose `act_type` is `offer_research`, `correct_factual_error`, or
-`provide_information` -- any act that addresses a checkable factual claim, whether or not the Master flagged
-`needs_verification`. The endpoint, the `ModerationRun(kind="research")` it creates, and the pending/done states work
-identically regardless of which of the three eligible types triggered them (the brief: "`research.py` needs no
-change for this -- it already builds its query from the act's cited issue(s), not from which act type triggered it").
+-only any more. It is available on any VALID act whose `act_type` is `offer_research`, `correct_factual_error`,
+`provide_information`, or `request_information` -- any act that addresses a checkable factual claim, whether or not
+the Master flagged `needs_verification`. `request_information` was added in a second pass the same day (an owner
+report: a real "Could a source or study be given for..." message had no button) -- it fits the same rationale even
+more directly than the first three, since it is the Intervenor explicitly signalling it has no confident answer of
+its own and is asking someone else for one. The endpoint, the `ModerationRun(kind="research")` it creates, and the
+pending/done states work identically regardless of which of the four eligible types triggered them (the brief:
+"`research.py` needs no change for this -- it already builds its query from the act's cited issue(s), not from which
+act type triggered it").
 
 Written from the contract in the brief, against `forum/urls.py`, `forum/views.py`, `forum/viewmodels.py` and
 `forum/templates/forum/_message.html` as they are SPECIFIED there -- a coding agent builds those concurrently in this
@@ -27,10 +31,10 @@ BUTTON_TEXT = "Provide factual background"
 PENDING_TEXT = "Checking — this may take a moment"
 BANNED_WORDS = ("cost", "spend", "budget", "spending", "running cost", "api cost")
 
-# The three act types the button (and the endpoint) must treat alike (widened 2026-09-27).
-ELIGIBLE_ACT_TYPES = ("offer_research", "correct_factual_error", "provide_information")
+# The four act types the button (and the endpoint) must treat alike (widened 2026-09-27, twice).
+ELIGIBLE_ACT_TYPES = ("offer_research", "correct_factual_error", "provide_information", "request_information")
 # A representative sample of the act types that must never show the button or accept a click.
-INELIGIBLE_ACT_TYPES = ("request_clarification", "request_information", "enforce_conduct")
+INELIGIBLE_ACT_TYPES = ("request_clarification", "enforce_conduct", "improve_argumentation")
 
 
 # --- building blocks for this file only (fviews_kit.py's add_moderator_post hardcodes act_type="request_clarification"

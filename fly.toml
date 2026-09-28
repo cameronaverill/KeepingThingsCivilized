@@ -1,0 +1,57 @@
+# Fly.io app config (docs/deployment_plan.md). Replace `app` below (fly generates a real name on first
+# `fly launch`, or run `fly apps create <name>` yourself first). Two process groups share one image and one volume:
+# "web" (gunicorn) and "worker" (manage.py run_moderator). Both are pinned to exactly one machine each -- see the
+# plan's "hard constraint" section: SQLite has one writer, so this must never autoscale past one of each.
+
+app = "think-together"
+primary_region = "iad"  # pick the region nearest you; see `fly platform regions`
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  DJANGO_ENV = "production"
+  DJANGO_DB_PATH = "/data/db.sqlite3"
+  # Non-secret Litestream/B2 values from your bucket's own page -- fill in once the bucket exists (see litestream.yml).
+  LITESTREAM_B2_BUCKET = "ThinkTogetherBucket"
+  LITESTREAM_B2_ENDPOINT = "s3.us-east-005.backblazeb2.com"
+  LITESTREAM_B2_REGION = "us-east-005" 
+  # Secrets (never set here): DJANGO_SECRET_KEY, DJANGO_ALLOWED_HOSTS, DJANGO_CSRF_TRUSTED_ORIGINS,
+  # ANTHROPIC_API_KEY, EMAIL_BACKEND, EMAIL_HOST, EMAIL_PORT, EMAIL_USE_TLS, EMAIL_HOST_USER,
+  # EMAIL_HOST_PASSWORD, ALERT_EMAIL, LITESTREAM_ACCESS_KEY_ID, LITESTREAM_SECRET_ACCESS_KEY --
+  # set each with `fly secrets set NAME=value` (the B2 application key pair, scoped to the one bucket above).
+
+[[mounts]]
+  source = "think_together_data"  # create once: `fly volumes create think_together_data --size 1 --region iad`
+  destination = "/data"
+
+[processes]
+  # `migrate` runs here, not as [deploy].release_command: Fly's release-command machine does not get the volume
+  # mounted (it isn't guaranteed to run on the same host the volume lives on), so /data would not exist there.
+  # web's own machine does have the volume, and web is pinned to exactly one instance, so this is safe.
+  # 1 worker process + threads (not 2 sync workers): the app is loaded into memory once, not twice, which matters
+  # on a small machine -- see the memory comment on web's [[vm]] below.
+  web = "sh -c \"python manage.py migrate --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:8080 --workers 1 --worker-class gthread --threads 4 --timeout 60\""
+  # Litestream wraps the worker (not a separate machine, to avoid a third always-on cost) so it starts, stops and
+  # restarts with it, continuously streaming the shared /data/db.sqlite3 WAL to B2 regardless of which process
+  # (web or worker) wrote to it.
+  worker = "litestream replicate -config /etc/litestream.yml -exec \"python manage.py run_moderator\""
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false   # keep the single web machine always on (see plan: no scale-to-zero, no scale-out)
+  auto_start_machines = true
+  min_machines_running = 1
+  max_machines_running = 1
+  processes = ["web"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"  # 256mb OOM-killed a gunicorn worker on real login traffic, 2026-09-28 -- see deployment_plan.md
+  processes = ["web"]
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  processes = ["worker"]

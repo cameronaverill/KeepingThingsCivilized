@@ -1,4 +1,5 @@
 """moderation/llm.py: every refusal path (order of checks, row written, no client call, right exception)."""
+import logging
 from decimal import Decimal
 
 import pytest
@@ -107,6 +108,21 @@ def test_the_api_key_is_never_written_to_a_refusal_row(fake, settings):
         run_call()
     row = rows()[0]
     assert FAKE_KEY not in f"{row.error}{row.request}{row.raw_response}"
+
+
+def test_a_refusal_is_logged_at_debug_with_the_fixed_fields_but_not_the_exception_text(fake, settings, caplog):
+    from moderation.errors import LLMDisabled
+
+    settings.LLM_ENABLED = False
+    with caplog.at_level(logging.DEBUG, logger="moderation.llm"):
+        with pytest.raises(LLMDisabled) as excinfo:
+            run_call(conversation_id=7, run_id=8)
+    row = rows()[0]
+    [record] = [r for r in caplog.records if r.levelname == "DEBUG"]
+    message = record.getMessage()
+    for expected in (str(row.pk), "refused_disabled", "moderation", "master", SONNET, "7", "8"):
+        assert expected in message, message
+    assert str(excinfo.value) not in message  # the refusal text itself stays out of the log line
 
 
 # --- breaker ----------------------------------------------------------------------------------------------------------

@@ -460,6 +460,10 @@ def _finish(run, *, decision, rationale, discussion_map, valid_acts, notes):
         if posted is not None:
             fields["posted_message"] = posted
         _update(run, **fields)
+    logger.info(
+        "moderation run %s done: kind=%s conversation=%s decision=%s posted=%s issues=%d acts=%d",
+        run.pk, run.kind, run.conversation_id, decision, posted is not None, len(run.issues.all()), len(valid_acts),
+    )
 
 
 def _terminate(run, *, status, failure_reason="", error=""):
@@ -469,6 +473,13 @@ def _terminate(run, *, status, failure_reason="", error=""):
         failure_reason=failure_reason,
         error=scrub(error),
         finished_at=clock.now(),
+    )
+    # `error` is deliberately excluded from the log line itself (it can hold provider or exception text that
+    # scrub() only partially sanitizes) -- failure_reason is the fixed, safe-to-log code for what happened.
+    log = logger.info if status in ("skipped_budget", "skipped_disabled") else logger.warning
+    log(
+        "moderation run %s terminated: kind=%s conversation=%s status=%s reason=%s",
+        run.pk, run.kind, run.conversation_id, status, failure_reason,
     )
 
 

@@ -83,7 +83,9 @@ def claim_next_run(*, now=None):
             .update(status="running", claimed_at=claimed_at)
         )
         if updated:
-            return ModerationRun.objects.get(pk=pk)
+            claimed = ModerationRun.objects.get(pk=pk)
+            logger.debug("worker claimed run %s: kind=%s conversation=%s", claimed.pk, claimed.kind, claimed.conversation_id)
+            return claimed
     return None
 
 

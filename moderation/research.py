@@ -56,6 +56,11 @@ def _terminate(run, *, status, failure_reason="", error=""):
     from moderation.scrub import scrub
 
     _update(run, status=status, failure_reason=failure_reason, error=scrub(error), finished_at=clock.now())
+    log = logger.info if status in ("skipped_budget", "skipped_disabled") else logger.warning
+    log(
+        "research run %s terminated: conversation=%s source_act=%s status=%s reason=%s",
+        run.pk, run.conversation_id, run.source_act_id, status, failure_reason,
+    )
 
 
 def _escape(value):
@@ -219,3 +224,7 @@ def _run(run):
             content=content,
         )
         _update(run, posted_message=posted, status="done", finished_at=clock.now())
+    logger.info(
+        "research run %s done: conversation=%s source_act=%s sources=%d",
+        run.pk, run.conversation_id, run.source_act_id, len(sources),
+    )

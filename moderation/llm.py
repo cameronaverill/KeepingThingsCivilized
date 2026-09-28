@@ -210,6 +210,14 @@ def _write_refusal(base, exc, text):
             finished_at=clock.now(),
         )
         exc.call_id = row.pk
+        # Debug, not warning/error: a refusal is the guard doing its job (budget, kill switch, breaker), not a
+        # fault. Never includes `text` (may echo user-controlled content, e.g. a breaker cooldown message) --
+        # exc.status is a fixed code, safe to log as-is.
+        logger.debug(
+            "llm call %s refused: purpose=%s agent=%s model=%s status=%s run=%s conversation=%s",
+            row.pk, base.get("purpose"), base.get("agent"), base.get("model"), exc.status,
+            base.get("run_id"), base.get("conversation_id"),
+        )
     except Exception:
         logger.exception("could not write the refusal row for %s", exc.status)
 
@@ -222,6 +230,13 @@ def _finish_row(row, session, reserved, cost, **fields):
     row.save()
     if session is not None:
         session.spent += cost - reserved
+    # One line per finished call, whatever the outcome -- purpose/agent/model/status/cost/latency only, never the
+    # prompt, the response text or any error message (which can echo provider or user-controlled content).
+    log = logger.warning if row.status == "error" else logger.info
+    log(
+        "llm call %s finished: purpose=%s agent=%s model=%s status=%s error_code=%s cost=%s latency_ms=%s run=%s",
+        row.pk, row.purpose, row.agent, row.model, row.status, row.error_code, cost, row.latency_ms, row.run_id,
+    )
 
 
 def _preflight(

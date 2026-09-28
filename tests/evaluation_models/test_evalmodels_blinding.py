@@ -306,3 +306,27 @@ def test_an_acts_context_includes_the_message_that_triggered_it_but_nothing_afte
     act = add_moderation_and_rater_output(world)
     text = flat(blinded_view(act))
     assert M3.lower() in text and LATER.lower() not in text
+
+
+# --- content that happens to look like a sentinel --------------------------------------------------------------------
+class TestAdversarialContentSentinel:
+    """The other tests above plant forbidden sentinels only in structured fields, never inside a message's own
+    content, so they cannot tell "leaked from a DB field" apart from "legitimately part of what a participant
+    wrote". Here a message's content itself legitimately contains another user's real username (a participant
+    naming someone in their post). The blinding function must keep that occurrence, because it is the content being
+    rated, while still stripping every real structured field on the same conversation, including the very same
+    sentinel value where it appears as a DB field rather than as message text."""
+
+    def test_a_username_mentioned_inside_a_messages_own_text_survives_while_structured_fields_stay_blinded(self, world):
+        from forum.models import Message
+
+        content = f"I disagree with {USER_B}'s claim about traffic; the numbers do not add up."
+        decoy = Message.objects.create(
+            conversation=world.conv, author_type="user", participant=world.pa, content=content, in_reply_to=world.later,
+        )
+
+        view = blinded_view(decoy)
+
+        assert USER_B.lower() in flat(view)
+        still_forbidden = [item for item in FORBIDDEN_ALWAYS if item not in (USER_B, LATER)]
+        assert_no(view, still_forbidden + FORBIDDEN_MODERATOR_OUTPUT + [ACT_TEXT, MOD_POST])

@@ -8,6 +8,7 @@ The fixture is built by `exports_kit.build_world()`:
 """
 import json
 from decimal import Decimal
+from types import SimpleNamespace
 
 import exports_kit as kit
 import pytest
@@ -348,6 +349,50 @@ class TestRawFieldsOnlyOnRequest:
         raw = kit.bundle(world.h, include_raw=True)["unattached_llm_calls"][0]
         assert set(kit.RAW_KEYS).isdisjoint(plain)
         assert raw["request"] == {"marker": "unattached-raw"}
+
+
+class TestPreviewCheckRawSuppression:
+    """`_preview_call_ids` (moderation/queries.py) finds the unattached ledger rows a `PreviewCheck` names (its
+    request embeds the participant's unposted draft, which can quote or reveal the other participant's own draft)
+    and hides `request`/`raw_response`/`parsed` for exactly those rows, even with `include_raw=True`. Every other
+    unattached row of the same conversation still gets its raw fields, so this is a targeted rule, not a blanket
+    ban on raw fields for unattached rows."""
+
+    @pytest.fixture
+    def rows(self, db):
+        conv = kit.make_conversation(source="synthetic")
+        author = kit.make_participant(conv, "A", 1)
+        preview_call = kit.make_call(
+            None, conv, cost="0.000100", purpose="preview", request={"marker": "preview-draft"}, raw="{}", parsed={}
+        )
+        kit.make_preview_check(conv, author, preview_call)
+        ordinary_call = kit.make_call(
+            None, conv, cost="0.000200", purpose="golden", request={"marker": "ordinary"}, raw="{}", parsed={}
+        )
+        return SimpleNamespace(conv=conv, preview_call=preview_call, ordinary_call=ordinary_call)
+
+    def test_the_preview_calls_raw_fields_are_absent_even_with_include_raw(self, rows):
+        bundle = kit.bundle(rows.conv, include_raw=True)
+
+        entry = bundle["unattached_llm_calls"][0]
+
+        assert entry["id"] == rows.preview_call.pk
+        assert set(kit.RAW_KEYS).isdisjoint(entry)
+
+    def test_the_preview_calls_non_raw_fields_are_still_exported(self, rows):
+        bundle = kit.bundle(rows.conv, include_raw=True)
+
+        entry = bundle["unattached_llm_calls"][0]
+
+        assert (entry["purpose"], entry["cost_usd"]) == ("preview", 0.0001)
+
+    def test_an_ordinary_unattached_call_in_the_same_conversation_keeps_its_raw_fields(self, rows):
+        bundle = kit.bundle(rows.conv, include_raw=True)
+
+        entry = bundle["unattached_llm_calls"][1]
+
+        assert entry["id"] == rows.ordinary_call.pk
+        assert entry["request"] == {"marker": "ordinary"}
 
 
 class TestSyntheticConversation:

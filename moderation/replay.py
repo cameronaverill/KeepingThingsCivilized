@@ -31,7 +31,12 @@ Choices made where the brief is silent (all reported to the architect):
   budget by itself. The only remaining wrapper around `llm.call` (`_Gateway`) exists for `model_overrides` and the
   per-call `SessionBudget(max_usd)`, which agents.py cannot take; it touches only the current replay run's calls.
 - **Plan order.** Replicate-major, then pair (`pair_id`, else the transcript id), then variant, then assignment (as-is before
-  swapped), so a budget stop leaves complete pairs and both label assignments together.
+  swapped), so that *when a run ends for a reason unrelated to cost* (e.g. plain completion), complete pairs and both label
+  assignments land together. **This is not a guarantee once real spend is involved** (owner decision, 2026-09-28, after a
+  test audit found `test_replay_budget.py` contradicting the older wording here): `execute_runs` checks the *ledger's
+  actual* spend before each run, not a look-ahead over the rest of a pair, so a budget stop can and does land mid-pair
+  when real cost diverges from the worst-case estimate. A hard dollar cap wins over pair-completeness by design; the
+  plan order still makes pairs land together in the common case (no early stop), it just isn't a hard promise.
 - **Snapshot.** The pipeline overwrites `config_snapshot` when it claims a run, so `factors` and `replay` are written at
   creation and merged back after the run finishes.
 """
@@ -39,6 +44,7 @@ import contextlib
 import copy
 import datetime
 import hashlib
+import logging
 import re
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -55,6 +61,8 @@ from moderation import agents, budget, llm, pipeline, pricing, prompting
 from moderation.management.commands import spike
 from moderation.models import ModerationRun
 from moderation.series import compute_features
+
+logger = logging.getLogger(__name__)
 
 ASSIGNMENTS = ("as-is", "swapped")
 ASSIGNMENT_CHOICES = ASSIGNMENTS + ("both",)
@@ -442,7 +450,12 @@ def load_experiment(name, transcripts, *, assignments="as-is", replicates=1, kin
         )
         experiment.config = config
         experiment.save(update_fields=["config"])
-    return ExperimentPlan(experiment=experiment, conversations=planned, assignments=chosen, replicates=replicates)
+    plan = ExperimentPlan(experiment=experiment, conversations=planned, assignments=chosen, replicates=replicates)
+    logger.info(
+        "replay: experiment %s loaded, %d conversation(s) (%d new)",
+        experiment.pk, len(planned), len(plan.created_conversations),
+    )
+    return plan
 
 
 # --- Planning runs -----------------------------------------------------------------------------------------------------
@@ -765,6 +778,10 @@ def execute_runs(specs, *, max_usd, model_overrides=None, on_result=None):
                 if report.not_run:
                     report.stopped_reason = f"a run ended {run.status} ({run.failure_reason or 'no reason'}); later runs would be refused too"
                 break
+    logger.info(
+        "replay: executed %d run(s), %d already done, %d not run, cost=%s",
+        len(report.results), len(report.already_done), len(report.not_run), report.total_cost,
+    )
     return report
 
 

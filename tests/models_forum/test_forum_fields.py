@@ -1,7 +1,7 @@
 """Topic, Experiment, Conversation: fields, defaults, choices and constraints (brief 4a)."""
 import pytest
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import IntegrityError, models
 
 from forum_testkit import make_conversation, make_experiment, make_topic, refused, refused_by_database
 
@@ -102,6 +102,26 @@ def test_saving_a_duplicate_topic_title_is_refused():
     make_topic("same")
     with refused():
         Topic.objects.create(title="same", description="", proposition="")
+
+
+def test_an_empty_proposition_is_rejected_by_validation():
+    from forum.models import Topic
+
+    with pytest.raises(ValidationError) as excinfo:
+        Topic(title="", description="", proposition="").full_clean()
+
+    assert excinfo.value.message_dict == {"__all__": ["Constraint “forum_topic_proposition_not_empty” is violated."]}
+
+
+def test_an_empty_proposition_is_refused_by_the_database_even_when_full_clean_is_skipped():
+    from django.db import transaction
+
+    from forum.models import Topic
+
+    with pytest.raises(IntegrityError) as excinfo, transaction.atomic():
+        Topic.objects.create(title="", description="", proposition="")
+
+    assert str(excinfo.value) == "CHECK constraint failed: forum_topic_proposition_not_empty"
 
 
 # --- Experiment ----------------------------------------------------------------------------------------------------

@@ -50,6 +50,7 @@ variables, all listed in `.env.example`:
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | Comma-separated `https://...` origins, only if the site is served from another origin than its host name. |
 | `DJANGO_DB_PATH` | Where the SQLite file lives. Default `db.sqlite3` in the project folder. A relative path is relative to the project folder, and its folder must already exist. |
 | `EMAIL_BACKEND`, `DEFAULT_FROM_EMAIL` | The mail backend (default: print to the terminal) and sender address. Only the circuit-breaker alert uses email (section 4). |
+| `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | Only used when `EMAIL_BACKEND` is the SMTP backend; left out of the mailer's options entirely when blank. See `.env.example` for a worked example. |
 | `ALERT_EMAIL` | The address that gets one email when the AI moderator pauses itself. Blank means no email; the pause is only logged. Put your own address in `.env`, never in a tracked file. |
 
 The kill switch `LLM_ENABLED` is **not** in `.env`; it is in `config/tunables.py` (section 3).
@@ -334,9 +335,10 @@ docs/                     plan, summary, neutrality criteria, briefs, schema, us
 
 ## 11. Known limits and what is deliberately not built yet
 
-- **Real email sending.** The site has no email at all for accounts. Only the circuit-breaker alert can send email,
-  and the mail settings only choose a backend (the default prints to the terminal); SMTP host and login options are not wired up. Whether to add email (account recovery,
-  confirmation) is a deployment decision.
+- **Real email sending.** The site still has no email at all for accounts (no verification, no password reset by
+  email). The circuit-breaker alert can now send real email if `EMAIL_BACKEND`/`EMAIL_HOST`/etc. are set to a real
+  SMTP provider (see `.env.example`); the default remains printing to the terminal. Whether to add account email
+  (recovery, confirmation) is a separate, still-open deployment decision.
 - **HTTPS and hosting.** Nothing is deployed. Passwords must only travel over HTTPS outside your own machine, so this
   is needed before anyone else uses the site. `manage.py check --deploy` currently reports the console mail backend as an error and the HTTPS, HSTS and
   secure-cookie settings as warnings (with `DJANGO_ENV` unset).

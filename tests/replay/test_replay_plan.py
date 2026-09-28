@@ -115,6 +115,22 @@ class TestDeterministicOrder:
         assert forward == backward
 
 
+class TestPairIdGroupingOrder:
+    """plan_runs orders by (pair_id or source_id, variant, assignment-index, source_id): a transcript's pair_id need not
+    be a prefix of its own id, so alphabetical-by-id ordering must not be mistaken for pair_id grouping."""
+
+    def test_conversations_are_grouped_by_pair_id_not_by_alphabetical_transcript_id(self):
+        zeta_left = kit.transcript("aaa_left", pair_id="zeta", variant="left")
+        zeta_right = kit.transcript("aaa_right", pair_id="zeta", variant="right")
+        alpha_solo = kit.transcript("zzz_solo", pair_id="alpha")
+        experiment_plan = kit.load(NAME, [zeta_left, zeta_right, alpha_solo], assignments="as-is")
+
+        specs = kit.plan(experiment_plan, replicates=1)
+
+        got = [kit.spec_conversation(s).transcript_id for s in specs]
+        assert got == ["zzz_solo", "aaa_left", "aaa_right"]
+
+
 class TestFactors:
     def test_factors_equal_series_compute_features_on_the_transcript(self):
         from moderation import replay

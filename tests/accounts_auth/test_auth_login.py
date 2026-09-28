@@ -2,8 +2,10 @@
 import re
 
 import pytest
+from accounts.authviews import LoginForm
 from auth_testkit import (
     GENERIC_LOGIN_ERROR,
+    INACTIVE_AWARE_BACKEND,
     PASSWORD,
     WRONG_PASSWORD,
     alice,
@@ -18,6 +20,8 @@ from auth_testkit import (
     text,
 )
 from django.conf import settings
+from django.core.exceptions import NON_FIELD_ERRORS
+from django.test import override_settings
 from django.urls import reverse
 
 pytestmark = pytest.mark.django_db
@@ -227,3 +231,26 @@ def test_a_failed_login_with_next_does_not_redirect_anywhere(client, alice):
     response = login_post(client, "alice", WRONG_PASSWORD, next_in_query="/accounts/password-change/")
     assert response.status_code == 200
     assert not is_logged_in(client)
+
+
+# --- LoginForm's own guard, isolated from ModelBackend's -------------------------------------------------------------
+#
+# On every path above, an inactive account never reaches LoginForm.clean()'s own self.confirm_login_allowed() call:
+# ModelBackend already refuses to authenticate() an inactive user, so that call is dead code on every tested path.
+# This swaps in a backend that skips that check and hands back the inactive user anyway, to prove LoginForm enforces
+# the rule itself rather than merely relying on the backend having already filtered it out.
+
+
+class TestLoginFormOwnInactiveUserGuard:
+
+    @override_settings(AUTHENTICATION_BACKENDS=[INACTIVE_AWARE_BACKEND])
+    def test_clean_raises_its_own_inactive_error_when_the_backend_returns_an_inactive_user(self, rf, switched_off):
+        request = rf.post(reverse(LOGIN), {"username": "dormant_dan", "password": PASSWORD})
+        form = LoginForm(request, data={"username": "dormant_dan", "password": PASSWORD})
+
+        is_valid = form.is_valid()
+
+        assert is_valid is False
+        assert form.user_cache is not None
+        assert form.user_cache.is_active is False
+        assert form.has_error(NON_FIELD_ERRORS, code="inactive")
