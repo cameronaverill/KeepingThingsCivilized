@@ -5,6 +5,7 @@ turns an `offer_research` act into a posted, sourced moderator note, or ends the
 Expected to fail with an ImportError on `moderation.research` (or on ModerationRun/InterventionAct fields these
 fixtures build on) until the coding agent's moderation/research.py lands; that is expected, not a bug here.
 """
+import logging
 import re
 
 import pytest
@@ -169,6 +170,20 @@ class TestFailures:
         assert "upstream exploded" in stored.error
         assert kit.message_count(scenario.conv) == before
         assert stored.posted_message is None
+
+    def test_the_termination_log_line_carries_the_failure_reason_but_not_the_error_text(self, fake, caplog):
+        from moderation.fake_llm import FakeProviderError
+
+        scenario, run = setup()
+        fake(FakeProviderError(500, "api_error", "a sensitive upstream detail"))
+        with caplog.at_level(logging.WARNING, logger="moderation.research"):
+            _, stored = kit.go(run)
+        assert stored.status == "failed"
+        [record] = [r for r in caplog.records if r.name == "moderation.research"]
+        message = record.getMessage()
+        assert "status=failed" in message and "reason=api_error" in message
+        assert str(run.pk) in message
+        assert "a sensitive upstream detail" not in message
 
     def test_an_unparseable_output_fails_the_run_with_reason_structural(self, fake):
         """Matches pipeline.run_moderation's TestStructuralFailure -> ('failed', 'structural') for LLMOutputError.

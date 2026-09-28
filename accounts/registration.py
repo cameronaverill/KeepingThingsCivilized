@@ -10,6 +10,8 @@ Design notes
 - Logging in uses the same backend the login view ends up with (ModelBackend, behind django-axes' backend), so the
   session looks exactly like one from the login page. Registering is not a failed login and is not throttled here.
 """
+import logging
+
 from django import forms
 from django.conf import settings
 from django.contrib.auth import login
@@ -24,6 +26,8 @@ from django.views.decorators.http import require_http_methods
 from .keys import normalize_key
 from .models import User
 from .validators import validate_username
+
+logger = logging.getLogger(__name__)
 
 USERNAME_TAKEN_MESSAGE = "That username is taken."
 LOGIN_BACKEND = "django.contrib.auth.backends.ModelBackend"
@@ -86,6 +90,7 @@ def _create_user(form):
         errors = error.message_dict if hasattr(error, "error_dict") else {}
         if "username" in errors:
             form.add_error("username", USERNAME_TAKEN_MESSAGE)
+            logger.info("register: rejected, username taken")
         else:
             form.add_error(None, error)
         return None
@@ -103,6 +108,7 @@ def register(request):
     if request.method == "POST" and form.is_valid():
         user = _create_user(form)
         if user is not None:
+            logger.info("register: user %s registered", user.pk)
             login(request, user, backend=LOGIN_BACKEND)
             return redirect("forum:home")
     return _render_form(request, form)

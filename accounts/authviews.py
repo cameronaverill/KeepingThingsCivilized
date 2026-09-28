@@ -8,6 +8,7 @@ Decisions worth knowing:
   reset by the site owner (`manage.py changepassword <username>`).
 - A wrong username and a wrong password give the same message.
 """
+import logging
 import math
 
 from django.conf import settings
@@ -23,6 +24,8 @@ from django.utils.cache import add_never_cache_headers
 from django.views.decorators.debug import sensitive_variables
 
 from .keys import normalize_key
+
+logger = logging.getLogger(__name__)
 
 INVALID_LOGIN = "Incorrect username or password. Check both and try again."
 
@@ -84,6 +87,8 @@ def lockout_response(request, response=None, credentials=None):
     }
     lockout = render(request, "accounts/login.html", context, status=429)
     add_never_cache_headers(lockout)
+    # No username here either -- axes already counted the failures; this just records that the lock was served.
+    logger.warning("login: locked out, %s minute(s) remaining", minutes)
     return lockout
 
 
@@ -108,8 +113,12 @@ class LoginForm(AuthenticationForm):
         real_username = account.get_username() if account else username
         self.user_cache = authenticate(self.request, username=real_username, password=password)
         if self.user_cache is None:
+            # Never the username itself -- `account` is the row it resolved to (or None, an unknown name), an id
+            # not a credential.
+            logger.info("login: failed attempt (account=%s)", getattr(account, "pk", None))
             raise self.get_invalid_login_error()
         self.confirm_login_allowed(self.user_cache)
+        logger.info("login: user %s authenticated", self.user_cache.pk)
         return self.cleaned_data
 
 
@@ -143,6 +152,11 @@ class PasswordChangeView(auth_views.PasswordChangeView):
 
     template_name = "accounts/password_change_form.html"
     success_url = reverse_lazy("accounts:password_change_done")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        logger.info("password change: user %s changed their password", self.request.user.pk)
+        return response
 
 
 class PasswordChangeDoneView(auth_views.PasswordChangeDoneView):

@@ -1,4 +1,5 @@
 """moderation/llm.py after the request went out: provider errors, unusable output, breaker feed, concurrent-looking calls."""
+import logging
 from decimal import Decimal
 
 import pytest
@@ -70,6 +71,29 @@ def test_a_provider_error_is_logged_as_error_with_its_code(install_fake, llm_rea
     assert row.finished_at is not None
     assert (row.purpose, row.agent, row.model, row.conversation_id, row.run_id) == ("moderation", "master", SONNET, 3, 4)
     assert row.reserved_usd > 0  # the reservation is kept for the record
+
+
+def test_an_errored_call_is_logged_at_warning_with_the_status_but_not_the_provider_message(install_fake, llm_ready, caplog):
+    from moderation.errors import LLMAPIError
+
+    install_fake(provider_error(500, "api_error", "a sensitive upstream detail"))
+    with caplog.at_level(logging.WARNING, logger="moderation.llm"):
+        with pytest.raises(LLMAPIError):
+            run_call()
+    [record] = [r for r in caplog.records if r.levelname == "WARNING"]
+    message = record.getMessage()
+    assert "status=error" in message
+    assert "a sensitive upstream detail" not in message
+
+
+def test_a_successful_call_is_logged_at_info_without_the_request_or_response_text(install_fake, caplog):
+    install_fake(reply())
+    with caplog.at_level(logging.INFO, logger="moderation.llm"):
+        run_call()
+    [record] = [r for r in caplog.records if "finished" in r.getMessage()]
+    message = record.getMessage()
+    assert "status=ok" in message
+    assert "Hello there, this is a test message." not in message
 
 
 def test_a_provider_error_without_a_code(install_fake):

@@ -39,6 +39,7 @@ import contextlib
 import copy
 import datetime
 import hashlib
+import logging
 import re
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -55,6 +56,8 @@ from moderation import agents, budget, llm, pipeline, pricing, prompting
 from moderation.management.commands import spike
 from moderation.models import ModerationRun
 from moderation.series import compute_features
+
+logger = logging.getLogger(__name__)
 
 ASSIGNMENTS = ("as-is", "swapped")
 ASSIGNMENT_CHOICES = ASSIGNMENTS + ("both",)
@@ -442,7 +445,12 @@ def load_experiment(name, transcripts, *, assignments="as-is", replicates=1, kin
         )
         experiment.config = config
         experiment.save(update_fields=["config"])
-    return ExperimentPlan(experiment=experiment, conversations=planned, assignments=chosen, replicates=replicates)
+    plan = ExperimentPlan(experiment=experiment, conversations=planned, assignments=chosen, replicates=replicates)
+    logger.info(
+        "replay: experiment %s loaded, %d conversation(s) (%d new)",
+        experiment.pk, len(planned), len(plan.created_conversations),
+    )
+    return plan
 
 
 # --- Planning runs -----------------------------------------------------------------------------------------------------
@@ -765,6 +773,10 @@ def execute_runs(specs, *, max_usd, model_overrides=None, on_result=None):
                 if report.not_run:
                     report.stopped_reason = f"a run ended {run.status} ({run.failure_reason or 'no reason'}); later runs would be refused too"
                 break
+    logger.info(
+        "replay: executed %d run(s), %d already done, %d not run, cost=%s",
+        len(report.results), len(report.already_done), len(report.not_run), report.total_cost,
+    )
     return report
 
 

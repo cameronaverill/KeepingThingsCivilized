@@ -1,5 +1,6 @@
 """Failure paths of run_moderation (brief "5b details" step 7): structural failure, refusals, API errors. The run row always
 ends in a terminal status, nothing is posted, and rows that were already stored stay."""
+import logging
 from datetime import timedelta
 
 import pipeline_run_kit as kit
@@ -246,6 +247,18 @@ class TestApiErrors:
         assert kit.issue_summary(stored) == [("i1", "valid", "")]
         assert_no_acts_or_dispositions(stored)
         assert_nothing_posted(world, stored, before)
+
+    def test_the_termination_log_line_carries_the_failure_reason_but_not_the_error_text(self, fake, caplog):
+        world, run = setup()
+        fake(self.provider_error(500, "api_error", "a sensitive upstream detail"))
+        with caplog.at_level(logging.WARNING, logger="moderation.pipeline"):
+            _, stored = kit.go(run)
+        assert stored.status == "failed"
+        [record] = [r for r in caplog.records if r.name == "moderation.pipeline"]
+        message = record.getMessage()
+        assert f"status=failed" in message and "reason=api_error" in message
+        assert str(run.pk) in message
+        assert "a sensitive upstream detail" not in message
 
     def test_no_key_material_reaches_the_stored_error(self, fake, settings):
         configured = "configured-secret-value-0123456789"
