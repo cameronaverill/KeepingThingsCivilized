@@ -96,6 +96,49 @@ class TestTheCheckMustBeOfTheSameAuthor:
         run, client = live_run(fake, w, message)
         assert_ran_as_today(run, client, check)
 
+    def test_a_direct_call_to_claim_reusable_check_finds_nothing_for_the_wrong_participant(self, fake):
+        """Bypasses the live-run dispatch entirely (no `prk.go`, no model call scripted): calls the guard function
+        itself, the way `moderation.pipeline` does, to prove the refusal at that exact entry point rather than through
+        the full pipeline's side effects."""
+        from moderation import preview
+
+        w, check = previewed(fake, who="A")
+        message = w.add_user("B", pk.DRAFT)
+        run = prk.new_run(message)
+
+        result = preview.claim_reusable_check(run)
+
+        assert result is None
+        assert reload_check(check).reused_by_run_id is None
+
+
+class TestAWrongParticipantCandidateNeverWinsOverTheRightOne:
+    def test_the_right_participants_check_is_claimed_even_though_a_same_shaped_check_of_the_other_participant_exists_too(
+        self, fake
+    ):
+        """Two checks of the same conversation, same snapshot_seq and the same draft hash, one per participant: the
+        participant filter must be a real filter (not a matter of which row happens to be unclaimed or newest), so both
+        rows are live candidates by every other key at once, not "the one candidate happens to be wrong"."""
+        from moderation.models import PreviewCheck
+
+        w = pk.world()
+        fake(*pk.concern(w, pk.PLACEHOLDER))
+        check = pk.check(w, "B", pk.DRAFT)[1]
+        fake(*pk.two_notes(w, pk.PLACEHOLDER))
+        decoy = pk.check(w, "A", pk.DRAFT)[1]
+        assert (decoy.snapshot_seq, decoy.draft_sha256) == (check.snapshot_seq, check.draft_sha256)
+        assert decoy.pk > check.pk  # created later, so it would be tried first were the candidates ordering alone relied on
+
+        client = fake()
+        message, run = pk.post(w, "B", pk.DRAFT)
+        _, stored = prk.go(run)
+
+        assert client.calls == []
+        assert stored.config_snapshot["preview_check_id"] == check.pk
+        assert stored.posted_message.content == pk.NOTE
+        assert PreviewCheck.objects.get(pk=check.pk).reused_by_run_id == stored.pk
+        assert PreviewCheck.objects.get(pk=decoy.pk).reused_by_run_id is None
+
 
 class TestTheCheckMustHaveAnAnswer:
     def test_an_unavailable_check_is_never_reused(self, fake, tune):

@@ -5,6 +5,7 @@ The seeded users have recognisable names and explicit primary keys (48211 and 59
 finds any leak, including a leak through a nested structure or a key.
 """
 import hashlib
+from types import SimpleNamespace
 
 import exports_kit as kit
 import pytest
@@ -160,3 +161,33 @@ class TestPseudonyms:
 
     def test_a_synthetic_participant_has_no_pseudonym(self, world):
         assert self.pseudonyms(world.s) == [None, None]
+
+
+class TestOmissionIsFieldLevelNotContentScanning:
+    """A message may legitimately contain a string identical to another participant's real username or email (a
+    quote, a mention). The identity rule removes the `username`/`email` keys from a participant's own record; it is
+    not a scan of message text, so a message that happens to contain such a string is exported unchanged."""
+
+    @pytest.fixture
+    def collision(self, db):
+        conv = kit.make_conversation()
+        user_a = kit.make_user()
+        user_b = kit.make_user()
+        kit.make_participant(conv, "A", 1, user=user_a)
+        speaker = kit.make_participant(conv, "B", 2, user=user_b)
+        text = f"Someone using the handle {user_a.username} said this exact thing, reachable at {user_a.email}."
+        kit.make_message(conv, "user", speaker, text)
+        return SimpleNamespace(conv=conv, user_a=user_a, text=text)
+
+    def test_the_colliding_message_content_is_exported_byte_for_byte(self, collision):
+        bundle = kit.bundle(collision.conv)
+
+        assert bundle["messages"][0]["content"] == collision.text
+
+    def test_the_named_users_identity_fields_are_still_omitted(self, collision):
+        bundle = kit.bundle(collision.conv)
+
+        participant_a = bundle["participants"][0]
+
+        assert "username" not in participant_a
+        assert "email" not in participant_a

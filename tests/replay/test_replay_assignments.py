@@ -108,6 +108,24 @@ class TestAssignments:
         assert after == before
 
 
+class TestLabelSeedIsDeterministic:
+    """The module docstring promises label_seed is a deterministic function of
+    make_label_seed(experiment_name, transcript_id, assignment)."""
+
+    @pytest.mark.parametrize("swapped, assignment", [(False, "as-is"), (True, "swapped")])
+    def test_label_seed_equals_make_label_seed_of_experiment_transcript_and_assignment(self, swapped, assignment):
+        from moderation import replay
+
+        data = kit.transcript("seeddet")
+        kit.load(NAME, [data], assignments="both")
+
+        exp = kit.experiment(NAME)
+        conv = kit.conv_for(exp, data, swapped=swapped)
+
+        expected = replay.make_label_seed(NAME, data["id"], assignment)
+        assert conv.label_seed == expected
+
+
 def shape(conv):
     return [(m.planted, m.char_count, m.author_type) for m in kit.messages_of(conv)]
 

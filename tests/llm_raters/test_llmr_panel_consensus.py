@@ -5,12 +5,14 @@ from decimal import Decimal
 
 import llmr_kit as kit
 import pytest
+from django.conf import settings as django_settings
 
 FACT, ABUSE = "factual_accuracy", "abusiveness"
 TEXT = "The moon is made of cheese, obviously. Anyone who disagrees is an idiot."
 CHEESE = "The moon is made of cheese"
 SPAN = (0, len(CHEESE))
 TOKENS = dict(input_tokens=1000, output_tokens=100)
+ALPHA = "abcdefghijklmnopqrstuvwxyz"  # a run of 26 distinct characters, for nested spans of an exact length
 
 
 def setup(*, raters=None, **panel_extra):
@@ -235,3 +237,101 @@ class TestWhichRatingsFeedTheConsensus:
         kit.run_panel(panel, [message])
         (found,) = kit.consensus_rows(target_id=message.pk)
         assert (found.n_raters, found.intensity_mean) == (2, 4.0)
+
+
+class TestSameRaterDedupThroughThePipeline:
+    """`_cluster` (evaluation/consensus.py) never merges two findings by the same rater, even when their spans overlap
+    enough to merge otherwise; a mutation audit found that removing that guard survives the whole suite because nothing
+    exercises it through `run_panel`. This scripts ONE rater with two findings on one dimension whose spans overlap well
+    past the panel's own `span_match_min_iou` (the pair the rest of this file already uses for "the panels own span
+    threshold decides what merges": 26 characters against 37, IoU 0.70)."""
+
+    def test_one_raters_two_overlapping_findings_are_kept_as_two_separate_consensus_findings(self, fake):
+        solo = kit.make_rater("solo", kit.SONNET)
+        panel = kit.make_panel([solo])
+        _, message = kit.single(TEXT)
+        both = kit.answer(
+            kit.finding("f1", FACT, CHEESE, 4), kit.finding("f2", FACT, CHEESE + ", obviously", 4)
+        )
+        fake(both)
+
+        kit.run_panel(panel, [message])
+
+        rows = kit.consensus_rows(panel=panel)
+        assert sorted(row.n_raters for row in rows) == [1, 1]
+        assert sorted((row.start, row.end) for row in rows) == sorted([(0, len(CHEESE)), (0, len(CHEESE) + len(", obviously"))])
+
+
+class TestSpanIoUBoundaryThroughThePipeline:
+    """`_cluster`'s `score >= threshold` comparison (evaluation/consensus.py), exercised through `run_panel` with the
+    panel's own `span_match_min_iou` (defaulting to `settings.SPAN_MATCH_MIN_IOU`). Two raters' spans share the same
+    start so their IoU is `shorter / longer`; the shorter one is sized to land exactly on the threshold, and one
+    character short of it."""
+
+    UNION_LEN = 20
+    AT_THRESHOLD_LEN = round(django_settings.SPAN_MATCH_MIN_IOU * UNION_LEN)
+    BELOW_THRESHOLD_LEN = AT_THRESHOLD_LEN - 1
+
+    @pytest.mark.parametrize(
+        ("narrow_len", "expected_signature"),
+        [
+            (AT_THRESHOLD_LEN, [(2, False)]),
+            (BELOW_THRESHOLD_LEN, [(1, True), (1, True)]),
+        ],
+        ids=["exactly_at_the_threshold_merges", "one_character_below_the_threshold_stays_separate"],
+    )
+    def test_the_merge_and_its_adjudication_flip_at_the_panels_iou_threshold(self, fake, narrow_len, expected_signature):
+        first, second = kit.make_rater("rater-a", kit.SONNET), kit.make_rater("rater-b", kit.SONNET)
+        panel = kit.make_panel([first, second])
+        _, message = kit.single(ALPHA)
+        wide = kit.answer(kit.finding("f1", FACT, ALPHA[: self.UNION_LEN], 4))
+        narrow = kit.answer(kit.finding("f2", FACT, ALPHA[:narrow_len], 4))
+        fake(wide, narrow)
+
+        kit.run_panel(panel, [message])
+
+        rows = kit.consensus_rows(panel=panel)
+        assert sorted((row.n_raters, row.needs_adjudication) for row in rows) == sorted(expected_signature)
+
+
+class TestIntensityDisagreementBoundaryThroughThePipeline:
+    """The `intensity_range >= panel.intensity_disagreement_threshold` comparison (evaluation/consensus.py), exercised
+    through `run_panel` with the panel's own threshold (defaulting to `settings.INTENSITY_DISAGREEMENT_THRESHOLD`). Both
+    raters point at the same phrase (`CHEESE`), so only the intensities differ."""
+
+    THRESHOLD = django_settings.INTENSITY_DISAGREEMENT_THRESHOLD
+
+    @pytest.mark.parametrize(
+        ("high_intensity", "expected_needs_adjudication"),
+        [(THRESHOLD, True), (THRESHOLD - 1, False)],
+        ids=["differs_by_exactly_the_threshold", "differs_by_one_less_than_the_threshold"],
+    )
+    def test_needs_adjudication_flips_at_the_panels_intensity_threshold(
+        self, fake, high_intensity, expected_needs_adjudication
+    ):
+        panel, message = setup()
+        fake(cheese(0), cheese(high_intensity))
+
+        kit.run_panel(panel, [message])
+
+        (found,) = kit.consensus_rows(panel=panel)
+        assert (found.intensity_range, found.needs_adjudication) == (high_intensity, expected_needs_adjudication)
+
+
+class TestScorabilityDisagreementThroughThePipeline:
+    """The `0 < scorable_count < len(cluster)` check (evaluation/consensus.py): a merged finding where one rater scored
+    the phrase and another declined it needs adjudication even though the (single) scorable intensity has no range to
+    disagree over."""
+
+    def test_an_intensity_against_a_not_scorable_answer_on_the_same_phrase_needs_adjudication(self, fake):
+        panel, message = setup()
+        scored = cheese(3)
+        declined = kit.answer(kit.finding("f1", FACT, CHEESE, None, reason="contested"))
+        fake(scored, declined)
+
+        kit.run_panel(panel, [message])
+
+        (found,) = kit.consensus_rows(panel=panel)
+        assert (found.n_raters, found.intensity_mean, found.intensity_range, found.needs_adjudication) == (
+            2, 3.0, 0, True,
+        )

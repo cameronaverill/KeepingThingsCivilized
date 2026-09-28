@@ -9,6 +9,7 @@ import random
 
 import evalmodels_testkit as kit
 import pytest
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
 from evaluation.calibration import CalibrationShortfall, build_calibration_set
@@ -201,6 +202,27 @@ def test_both_variants_are_represented_though_one_is_rare():
         cset = build_calibration_set(f"sides{seed}", seed, per_dimension=20, dimensions=(AB,))
         variants = {m.conversation.variant for m in messages_of(cset).values()}
         assert variants == {"left", "right"}, seed
+
+
+class TestPerStratumSideBalance:
+    """The module docstring promises the draw is balanced across sides WITHIN a stratum. The pooled check above
+    (test_both_variants_are_represented_though_one_is_rare) stays green even when one specific stratum draws every
+    item from a single side, as long as some other stratum supplies the missing side. rich_spec's candidate pool has
+    at least one message of each known side for every stratum whose default CALIBRATION_STRATUM_SHARES quota is
+    nonzero, so each such stratum's own achieved draw, not just the pooled total, must show both sides."""
+
+    def test_every_nonzero_quota_stratum_draws_from_both_sides_when_both_are_available(self):
+        make_population(rich_spec())
+
+        cset = build_calibration_set("per stratum sides", 2, per_dimension=20, dimensions=(AB,))
+
+        quotas_used = {stratum for stratum, share in settings.CALIBRATION_STRATUM_SHARES.items() if share > 0}
+        rows = messages_of(cset)
+        sides_by_stratum = {}
+        for label, message_id in kit.items_of(cset).values_list("stratum", "target_id"):
+            sides_by_stratum.setdefault(tail(label), set()).add(rows[message_id].conversation.variant)
+
+        assert sides_by_stratum == {stratum: {"left", "right"} for stratum in quotas_used}
 
 
 def test_planted_items_of_each_dimension_appear_when_two_dimensions_are_asked_for():

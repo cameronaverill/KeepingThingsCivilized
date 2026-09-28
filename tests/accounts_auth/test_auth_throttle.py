@@ -1,7 +1,9 @@
 """Login throttling with django-axes: lockout after LOGIN_MAX_FAILURES, by username and by IP, reset on success, cool-off."""
 from datetime import timedelta
+from unittest import mock
 
 import pytest
+from accounts.authviews import _lockout_minutes
 from auth_testkit import (
     GENERIC_LOGIN_ERROR,
     LOCKED_PREFIX,
@@ -12,6 +14,7 @@ from auth_testkit import (
     clean_axes,
     cooloff,
     fail_logins,
+    frozen_at,
     is_logged_in,
     lock_out_ip,
     lock_out_username,
@@ -23,7 +26,8 @@ from auth_testkit import (
     time_travel,
 )
 from django.conf import settings
-from django.test import Client
+from django.test import Client, RequestFactory
+from django.utils import timezone
 
 pytestmark = pytest.mark.django_db
 
@@ -250,3 +254,60 @@ def test_after_the_cool_off_the_counter_starts_again_from_zero(client, alice):
         for response in fail_logins(client, "alice", LIMIT - 1):
             assert_not_locked_but_refused(response)
         assert login_post(client, "alice", PASSWORD, ip="10.0.0.1").status_code == 302
+
+
+# --- the exact minute value reported (mutation survivors on the >= failure-count check and the max(1, ...) floor) -------
+#
+# Every test above anchors its two moments (the failures, and the later check) with two independent time_travel()
+# calls, each stamped from the real wall clock at the moment it is entered -- close enough to assert "N-1 or N" but
+# never an exact value. These use one shared `base` instant and frozen_at() to anchor both moments to it exactly,
+# so the wait can be asserted precisely instead of within a tolerance.
+
+
+def test_the_reported_wait_is_the_exact_minutes_left_partway_through_the_cooloff(client, alice):
+    """6 minutes elapsed is not either boundary the tests above already cover (one minute short of, or past, the
+    cool-off); a >= -> > mutant on the failure-count threshold would drop the qualifying failure from the tally
+    and report the full cool-off (15) here instead of the true, smaller remainder."""
+    elapsed_minutes = 6
+    base = timezone.now()
+    with frozen_at(base):
+        fail_logins(client, "alice", LIMIT)
+    with frozen_at(base + timedelta(minutes=elapsed_minutes)):
+        page = assert_locked(login_post(client, "alice", PASSWORD, ip="10.0.0.1"))
+    assert lockout_wait_minutes(page) == COOLOFF_MINUTES - elapsed_minutes
+
+
+class _FixedFailureTotals:
+    """A stand-in for the queryset `_lockout_minutes` aggregates over: fixed failures and a fixed last attempt time.
+
+    Going through a real request here would only prove axes' own cleanup ordering (it deletes an access attempt
+    exactly as it expires, at the same instant `_lockout_minutes` would compute a zero remainder, so that case
+    never actually reaches the `max(1, ...)` floor in production). This isolates `_lockout_minutes`'s own
+    arithmetic against the exact inputs the floor exists for.
+    """
+
+    def __init__(self, failures, last):
+        self._failures = failures
+        self._last = last
+
+    def aggregate(self, failures, last):
+        return {"failures": self._failures, "last": self._last}
+
+
+@pytest.mark.parametrize(
+    "overrun",
+    [timedelta(0), timedelta(minutes=5)],
+    ids=["cooloff-exactly-elapsed", "cooloff-elapsed-and-then-some"],
+)
+def test_the_reported_wait_never_drops_to_zero_or_below_once_the_cooloff_has_fully_elapsed(overrun):
+    """`remaining = latest + cooloff - now` is zero or negative once `now` reaches or passes `latest + cooloff`;
+    the `max(1, ...)` floor in `_lockout_minutes` must still report a positive wait, never 0 or a negative number."""
+    latest = timezone.now()
+    request = RequestFactory().post("/accounts/login/")
+    request.axes_attempt_time = latest + cooloff() + overrun
+
+    with mock.patch("axes.handlers.proxy.AxesProxyHandler.get_implementation") as get_implementation:
+        get_implementation.return_value.get_user_attempts.return_value = [_FixedFailureTotals(LIMIT, latest)]
+        minutes = _lockout_minutes(request, {"username": "alice"})
+
+    assert minutes == 1

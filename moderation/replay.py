@@ -31,7 +31,12 @@ Choices made where the brief is silent (all reported to the architect):
   budget by itself. The only remaining wrapper around `llm.call` (`_Gateway`) exists for `model_overrides` and the
   per-call `SessionBudget(max_usd)`, which agents.py cannot take; it touches only the current replay run's calls.
 - **Plan order.** Replicate-major, then pair (`pair_id`, else the transcript id), then variant, then assignment (as-is before
-  swapped), so a budget stop leaves complete pairs and both label assignments together.
+  swapped), so that *when a run ends for a reason unrelated to cost* (e.g. plain completion), complete pairs and both label
+  assignments land together. **This is not a guarantee once real spend is involved** (owner decision, 2026-09-28, after a
+  test audit found `test_replay_budget.py` contradicting the older wording here): `execute_runs` checks the *ledger's
+  actual* spend before each run, not a look-ahead over the rest of a pair, so a budget stop can and does land mid-pair
+  when real cost diverges from the worst-case estimate. A hard dollar cap wins over pair-completeness by design; the
+  plan order still makes pairs land together in the common case (no early stop), it just isn't a hard promise.
 - **Snapshot.** The pipeline overwrites `config_snapshot` when it claims a run, so `factors` and `replay` are written at
   creation and merged back after the run finishes.
 """

@@ -50,10 +50,23 @@ def clean_axes(db):
 
 
 @contextmanager
+def frozen_at(target):
+    """Make axes believe the time is exactly `target` (a fixed instant, not a moving clock) for as long as this lasts.
+
+    Axes stamps every attempt with its own `now` (handlers.proxy) and reads it again (attempts) to judge cool-off.
+    Because the same `target` is returned on every call inside the block, two blocks anchored to one shared instant
+    (`base = timezone.now()`, then `frozen_at(base)` and `frozen_at(base + delta)`) give an exact elapsed time with
+    no wall-clock drift between them -- unlike two independent `time_travel()` calls, each anchored to its own
+    real-time `now()` at the moment it is entered.
+    """
+    with mock.patch("axes.handlers.proxy.now", lambda: target), mock.patch("axes.attempts.now", lambda: target):
+        yield
+
+
+@contextmanager
 def time_travel(delta):
     """Make axes believe `delta` more time has passed. Axes stamps every attempt with its own `now` (handlers.proxy)."""
-    target = timezone.now() + delta
-    with mock.patch("axes.handlers.proxy.now", lambda: target), mock.patch("axes.attempts.now", lambda: target):
+    with frozen_at(timezone.now() + delta):
         yield
 
 
@@ -165,3 +178,43 @@ def lock_out_ip(client, ip, names=None):
     names = names or [f"someone_{i}" for i in range(settings.LOGIN_MAX_FAILURES)]
     for name in names:
         login_post(client, name, WRONG_PASSWORD, ip=ip)
+
+
+# --- logging (accounts/authviews.py deliberately logs only pks, counts and fixed codes, never usernames/passwords) -----
+
+AUTHVIEWS_LOGGER = "accounts.authviews"
+
+
+def log_messages(caplog, logger_name=AUTHVIEWS_LOGGER):
+    """The formatted text of every record this module logged, as one blob (caplog also captures axes' own logging,
+    which is not this module's contract, so callers checking this module's privacy promise filter to its logger)."""
+    return "\n".join(record.getMessage() for record in caplog.records if record.name == logger_name)
+
+
+# --- a second authentication backend, for isolating LoginForm.clean()'s own confirm_login_allowed call -----------------
+
+
+class ReturnsUserRegardlessOfActiveState:
+    """Test-only backend: authenticates on username + password alone, with none of ModelBackend's own checks.
+
+    In particular it does not call `user_can_authenticate`, so it hands back an inactive user instead of None.
+    Used to prove that `LoginForm.clean()` (accounts/authviews.py) enforces the active-account rule itself, through
+    its own call to `confirm_login_allowed`, rather than merely relying on ModelBackend having already filtered
+    the user out before `authenticate()` returns -- which is what every other tested login path exercises.
+    """
+
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        try:
+            user = User._default_manager.get(username=username)
+        except User.DoesNotExist:
+            return None
+        return user if user.check_password(password) else None
+
+    def get_user(self, user_id):
+        try:
+            return User._default_manager.get(pk=user_id)
+        except User.DoesNotExist:
+            return None
+
+
+INACTIVE_AWARE_BACKEND = "auth_testkit.ReturnsUserRegardlessOfActiveState"
