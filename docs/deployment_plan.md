@@ -1,8 +1,16 @@
 # Deployment plan (the website only)
 
-Status: proposed, not yet executed. Nothing has been deployed. Scope, per the owner's own framing: deploy the forum
-(Phase A) only. The evaluation pipeline (`evaluation/`, `analysis/`, rater/panel machinery, `docs/plan.md` §9/§14
-Steps 11-17) is not deployed — it never runs against the live database and needs nothing hosted.
+Status: **deployed** (Fly.io, app `think-together`, first real deploy 2026-09-28). Scope, per the owner's own
+framing: deploy the forum (Phase A) only. The evaluation pipeline (`evaluation/`, `analysis/`, rater/panel
+machinery, `docs/plan.md` §9/§14 Steps 11-17) is not deployed — it never runs against the live database and needs
+nothing hosted.
+
+**Live incident, 2026-09-28 (see item 9): moderator replies stopped appearing on the deployed site.** Root cause:
+the original two-machine "web"/"worker" split never actually worked — a Fly Volume mounts on one host at a time,
+so the worker machine could never attach `/data` and crashed on every start, forever. Fixed by combining web and
+worker into one process on one machine (§1, §3 item 9). This section's language below still describes them as "two
+long-running processes" because that remains true logically; §3 item 9 is where the "two machines" framing was
+corrected to "two processes, one machine."
 
 ## 1. What actually needs hosting
 
@@ -24,17 +32,22 @@ design (two people, one conversation) means one small instance is enough traffic
 
 ## 2. Recommended platform: Fly.io
 
-Fly.io fits this shape closely: persistent volumes, multiple named process groups from one app image sharing a
-volume, automatic HTTPS via Let's Encrypt, and a free `<app>.fly.dev` subdomain (a real custom domain is optional,
-not required to launch). Cost at this scale (2 tiny always-on machines + a small volume, no custom domain):
+Fly.io fits this shape closely: persistent volumes, automatic HTTPS via Let's Encrypt, and a free `<app>.fly.dev`
+subdomain (a real custom domain is optional, not required to launch). **Corrected 2026-09-28 (§3 item 9):** a Fly
+Volume mounts on exactly one host at a time, so this can't be "multiple named process groups... sharing a volume"
+across separate machines, as the platform pitch originally read here — it's one machine, running both processes.
+Cost at this scale (1 tiny always-on machine + a small volume, no custom domain):
 
 | Item | Estimate |
 |---|---|
-| `web` machine (shared-cpu-1x, 512MB — see §3 item 8) | ~$4/month |
-| `worker` machine (shared-cpu-1x, 256MB) | ~$2/month |
+| `web` machine (shared-cpu-1x, 1024MB — runs both gunicorn and the worker, see §3 item 9) | ~$8/month |
 | Volume (1GB, plenty for SQLite + WAL at this scale) | ~$0.15/month |
 | TLS cert, `<app>.fly.dev` subdomain | free |
-| **Total** | **~$6-7/month** |
+| **Total** | **~$8-9/month** |
+
+(Previously estimated ~$6-7/month across two separate machines, 512MB + 256MB — that split never actually worked;
+see item 9. The combined single machine is sized to the sum of what both processes need, plus headroom, not
+trimmed back down to the old total.)
 
 A custom domain adds only its own registration cost (~$10-15/year), no platform fee. `manage.py check --deploy`
 already exists and should be run against the production settings before the first real deploy.
@@ -50,7 +63,8 @@ already exists and should be run against the production settings before the firs
 
 ## 3. Required repo changes before deploying
 
-Done (all local, nothing deployed, nothing committed yet):
+Done (numbered items below are in the order they were made; items 4/7/8 record real-deploy fixes made *after*
+deployment started, and item 9 records a fix made after that but not yet re-deployed — see the status line at top):
 
 1. **`gunicorn==26.2.0` and `whitenoise==6.12.0`** added to `requirements.txt` (versions resolved live via `uv`;
    installed into `.venv` and verified — full test suite still green).
@@ -119,13 +133,47 @@ Done (all local, nothing deployed, nothing committed yet):
    changed from `--workers 2 --threads 4` (2 full processes, each with its own full copy of the app in memory) to
    `--workers 1 --worker-class gthread --threads 4` (one process, real concurrency via threads, roughly half the
    baseline memory for the same request-handling capacity a 2-person forum needs).
+9. **Live-site incident, 2026-09-28: moderator replies stopped appearing at all.** Symptom, reported by the owner:
+   the intervention preview (step 19) still worked — a real, LLM-generated note appeared before posting — but the
+   actual moderator reply never showed up in the thread after posting anyway. Diagnosis (via `fly status`/`fly
+   machine status`/`fly logs`, since this sandbox has no `flyctl`): `web` was healthy; the `worker` process group
+   showed **two** machines, both `stopped`, one flagged `†`. Both had crashed within ~6 seconds of every single
+   start (`fly machine status`'s event log: `launch` immediately followed by `stopped`/`update`), repeatedly,
+   until each hit Fly's own restart cap (`"machine has reached its max restart count of 10"`, `fly logs`). The
+   actual application log line, once found:
+   ```
+   django.core.exceptions.ImproperlyConfigured: DJANGO_DB_PATH points into a folder that does not exist: /data
+   ```
+   **Root cause: a Fly Volume mounts read/write on exactly one host at a time.** The original design (item 4
+   above) already discovered and documented this exact fact once, for the release-command machine, and fixed it
+   there — but didn't generalize it to the `worker` process group, which was still given its own separate,
+   independently-pinned machine expecting the *same* `[[mounts]]` volume as `web`. Whichever machine actually holds
+   the volume (here, `web`, since it was healthy) works; the other can never attach it, on any redeploy, forever.
+   The "two worker machines" were just two separate failed attempts at starting one, not evidence of a scaling
+   mistake in the ordinary sense. Litestream (chosen for *backup* replication to B2, item 5) was never going to
+   fix this either way — it isn't a tool for sharing one *live, writable* SQLite file across machines (that would
+   be something like LiteFS); it was always going to inherit whatever host `run_moderator` ran on.
+
+   **Fix: stop splitting web and worker across two machines.** Nothing about this app's traffic needs two
+   machines — it's a two-person-at-a-time forum. `fly.toml` now has one process group (`web`), one `[[vm]]`
+   (1024MB, replacing the previous 512MB + 256MB pair — see §2's cost table), running **both** gunicorn and the
+   litestream-wrapped worker via a new entrypoint, `scripts/fly_start.sh`, which mirrors `scripts/dev.sh`'s
+   existing job-control shape for running two long-lived processes together locally (migrate once, start both,
+   forward `SIGTERM`/`SIGINT` to both, exit with whichever process's status if either one dies). `Dockerfile` and
+   `scripts/verify_docker_build.sh` (§4) are updated to match — the local verification's steps 4 and 5 are now one
+   combined check that the image's one command brings up both the HTTP endpoint and the worker together.
+
+   **Not yet done, on the real Fly account (needs the owner's own `flyctl` access, not run from here):**
+   confirm via `fly volumes list -a think-together` whether this ever produced a second, orphaned volume (in
+   addition to the two orphaned machines already found) and clean it up if so; destroy the two dead `worker`
+   machines; `fly deploy` this fix; confirm a posted message gets a moderator reply again on the real site.
 
 ## 4. Local build verification (do before the first real deploy)
 
 None of this needs a Fly account or costs anything — it just needs Docker on your own machine (this sandbox has
 neither `docker` nor `flyctl`, so none of it has been run yet; see the caveats in §3 items 4-5 above).
 
-**Run it in one go:** `scripts/verify_docker_build.sh` (new) does all five checks below back to back, fails loudly
+**Run it in one go:** `scripts/verify_docker_build.sh` does all four checks below back to back, fails loudly
 (non-zero exit, printing the container's logs) on the first one that doesn't check out, and cleans up its own
 image/volume/containers on exit either way. Same checks, spelled out here so you know what it's actually doing:
 
@@ -144,37 +192,35 @@ docker run --rm \
 # 3. Confirm Litestream actually installed -- this is the one piece I could not verify from this sandbox.
 docker run --rm think-together litestream version
 
-# 4. The real web command (migrate, then serve), using a throwaway volume standing in for Fly's /data mount.
-#    This runs the exact fly.toml "web" command, not the Dockerfile's default CMD.
+# 4. The real combined command (scripts/fly_start.sh: migrate, then gunicorn AND the litestream-wrapped worker
+#    together), using a throwaway volume standing in for Fly's /data mount. This runs the exact fly.toml "web"
+#    process group's command, not the Dockerfile's default CMD -- and it's the ONLY process group now (item 9:
+#    a Fly Volume mounts on one host at a time, so web and worker can no longer be separate machines).
+#    Fake B2 creds are fine here -- this only proves litestream starts and still runs the wrapped worker command,
+#    not that it can reach B2 (a real bucket/keys are a separate, later check once you've created them).
 docker volume create tt-smoke-data
 docker run --rm -p 8080:8080 \
-  -e DJANGO_ENV=production -e DJANGO_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')" \
-  -e DJANGO_ALLOWED_HOSTS=localhost -e DJANGO_DB_PATH=/data/db.sqlite3 \
-  -v tt-smoke-data:/data \
-  think-together sh -c "python manage.py migrate --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:8080 --workers 1 --worker-class gthread --threads 4 --timeout 60"
-# In another terminal: curl -I http://localhost:8080/accounts/login/  -> expect "HTTP/1.1 200 OK".
-# Ctrl-C the container when done looking.
-
-# 5. Confirm the worker + Litestream -exec wrapping actually starts (fake B2 creds are fine here -- you're only
-#    checking that Litestream starts and still runs the wrapped worker command, not that it can reach B2).
-docker run --rm \
   -e DJANGO_ENV=production -e DJANGO_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')" \
   -e DJANGO_ALLOWED_HOSTS=localhost -e DJANGO_DB_PATH=/data/db.sqlite3 \
   -e LITESTREAM_B2_BUCKET=test -e LITESTREAM_B2_ENDPOINT=test.example.com -e LITESTREAM_B2_REGION=test \
   -e LITESTREAM_ACCESS_KEY_ID=test -e LITESTREAM_SECRET_ACCESS_KEY=test \
   -v tt-smoke-data:/data \
-  think-together litestream replicate -config /etc/litestream.yml -exec "python manage.py run_moderator"
-# Expect: the worker's own "Worker started: mode=worker, ..." line in the output. Litestream will separately log
-# a connection failure to the fake B2 endpoint -- that's expected and fine; it only proves -exec wrapping works.
-# Ctrl-C when you've seen both lines.
+  think-together bash scripts/fly_start.sh
+# In another terminal: curl -I http://localhost:8080/accounts/login/  -> expect "HTTP/1.1 200 OK".
+# And in the container's own output: expect the worker's own "Worker started: mode=worker, ..." line alongside
+# gunicorn's. Litestream will separately log a connection failure to the fake B2 endpoint -- that's expected and
+# fine; it only proves -exec wrapping works.
+# Ctrl-C the container when done looking.
 
 # Cleanup.
 docker volume rm tt-smoke-data
 ```
 
-If step 2 or 4 fails, it's almost certainly a real settings/Dockerfile bug worth fixing before touching Fly at all.
-If step 3 or 5 fails, something about the Litestream install/wrapping (the one piece I couldn't check from here) is
-wrong and needs a look before backups can be trusted.
+If step 2 fails, it's almost certainly a real settings/Dockerfile bug worth fixing before touching Fly at all.
+If step 3 fails, something about the Litestream install (the one piece I couldn't check from here) is wrong and
+needs a look before backups can be trusted. If step 4 fails on the worker's line specifically but not on the HTTP
+check, don't just retry it — that's exactly the shape of the item 9 incident (one process starts, the other can't
+reach `/data`), so re-check `scripts/fly_start.sh` and the volume mount before assuming it's transient.
 
 ## 5. Open decisions (yours to make, not mine)
 
@@ -188,6 +234,11 @@ now decided and wired up; see §3 items 5-6.)
 
 ## 6. What I have not done
 
-Nothing has been deployed, no hosting account created, no money spent, and no DNS or GitHub push has happened. Per
-standing project rules, none of that happens without your separate, explicit go-ahead at each step (creating the
-Fly account/billing, the first real deploy, and DNS if you add a custom domain, are each their own approval point).
+**Superseded, 2026-09-28: the app is now deployed** (§0 status line, §3 items 4/7/8/9), with your Fly account,
+billing, and real deploys already in place — this section's original claim ("nothing has been deployed") no longer
+holds and is kept only as history below it. No custom domain/DNS has been set up. The item 9 fix itself (this
+document, `fly.toml`, `Dockerfile`, `scripts/fly_start.sh`, `scripts/verify_docker_build.sh`) is drafted here but
+**not yet applied to the real Fly app** — actually running `fly deploy`, destroying the two dead `worker` machines,
+and checking for an orphaned second volume are all still yours to do (I have no `flyctl`/Fly credentials in this
+sandbox). Per standing project rules, I wouldn't take any of those actions on your account even if I could without
+your separate, explicit go-ahead.

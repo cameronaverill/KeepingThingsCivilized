@@ -1,7 +1,13 @@
 # Fly.io app config (docs/deployment_plan.md). Replace `app` below (fly generates a real name on first
-# `fly launch`, or run `fly apps create <name>` yourself first). Two process groups share one image and one volume:
-# "web" (gunicorn) and "worker" (manage.py run_moderator). Both are pinned to exactly one machine each -- see the
-# plan's "hard constraint" section: SQLite has one writer, so this must never autoscale past one of each.
+# `fly launch`, or run `fly apps create <name>` yourself first).
+#
+# ONE process group ("web"), ONE always-on machine, running BOTH gunicorn and the litestream-wrapped moderator
+# worker (scripts/fly_start.sh) -- see the plan's "hard constraint" section: SQLite has one writer, so this must
+# never autoscale past one instance. This used to be two process groups (web, worker) on two separate machines
+# sharing one [[mounts]] volume; that never actually worked (docs/deployment_plan.md item 9, 2026-09-28): a Fly
+# Volume mounts read/write on exactly one host at a time, so the worker machine could never attach it and crashed
+# on every single start (`DJANGO_DB_PATH points into a folder that does not exist: /data`), forever, with no
+# moderator reply ever posted. Fixed by putting both processes on the one machine that holds the volume.
 
 app = "think-together"
 primary_region = "iad"  # pick the region nearest you; see `fly platform regions`
@@ -29,13 +35,9 @@ primary_region = "iad"  # pick the region nearest you; see `fly platform regions
   # `migrate` runs here, not as [deploy].release_command: Fly's release-command machine does not get the volume
   # mounted (it isn't guaranteed to run on the same host the volume lives on), so /data would not exist there.
   # web's own machine does have the volume, and web is pinned to exactly one instance, so this is safe.
-  # 1 worker process + threads (not 2 sync workers): the app is loaded into memory once, not twice, which matters
-  # on a small machine -- see the memory comment on web's [[vm]] below.
-  web = "sh -c \"python manage.py migrate --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:8080 --workers 1 --worker-class gthread --threads 4 --timeout 60\""
-  # Litestream wraps the worker (not a separate machine, to avoid a third always-on cost) so it starts, stops and
-  # restarts with it, continuously streaming the shared /data/db.sqlite3 WAL to B2 regardless of which process
-  # (web or worker) wrote to it.
-  worker = "litestream replicate -config /etc/litestream.yml -exec \"python manage.py run_moderator\""
+  # Both gunicorn and the litestream-wrapped worker run here, on this one machine (scripts/fly_start.sh) -- see the
+  # file header comment above for why they can no longer be two separate machines.
+  web = "bash scripts/fly_start.sh"
 
 [http_service]
   internal_port = 8080
@@ -48,10 +50,8 @@ primary_region = "iad"  # pick the region nearest you; see `fly platform regions
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"  # 256mb OOM-killed a gunicorn worker on real login traffic, 2026-09-28 -- see deployment_plan.md
+  memory = "1024mb"  # was 512mb (web alone); this machine now also carries the worker's own full Django process
+                      # plus litestream, so it needs the two previous machines' memory combined, not just web's.
+                      # 256mb separately OOM-killed a gunicorn worker on real login traffic, 2026-09-28 -- see
+                      # deployment_plan.md -- so this is not trimmed below the sum of the two prior sizes (768mb).
   processes = ["web"]
-
-[[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
-  processes = ["worker"]

@@ -14,22 +14,21 @@ fi
 
 IMAGE=think-together-verify
 VOLUME=tt-smoke-data
-WEB=tt-verify-web
-WORKER=tt-verify-worker
+APP=tt-verify-app
 PORT=18080
 
 cleanup() {
-    docker rm -f "$WEB" "$WORKER" >/dev/null 2>&1 || true
+    docker rm -f "$APP" >/dev/null 2>&1 || true
     docker volume rm "$VOLUME" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
 secret_key() { python3 -c 'import secrets; print(secrets.token_urlsafe(50))'; }
 
-echo "== 1/5: docker build =="
+echo "== 1/4: docker build =="
 docker build -t "$IMAGE" .
 
-echo "== 2/5: manage.py check --deploy =="
+echo "== 2/4: manage.py check --deploy =="
 docker run --rm \
     -e DJANGO_ENV=production \
     -e DJANGO_SECRET_KEY="$(secret_key)" \
@@ -37,59 +36,44 @@ docker run --rm \
     -e DJANGO_DB_PATH=/tmp/check.sqlite3 \
     "$IMAGE" python manage.py check --deploy
 
-echo "== 3/5: litestream is installed =="
+echo "== 3/4: litestream is installed =="
 docker run --rm "$IMAGE" litestream version
 
-echo "== 4/5: the real web command (migrate, then serve), against a throwaway volume standing in for Fly's /data =="
-# Runs the exact fly.toml "web" command, not the Dockerfile's default CMD, so this is what actually deploys.
+echo "== 4/4: the real combined command (scripts/fly_start.sh: migrate, then web + worker together), against a"
+echo "        throwaway volume standing in for Fly's /data -- this is what actually deploys as the one 'web'"
+echo "        process group (fly.toml). Fake B2 credentials: this only proves litestream starts and still runs the"
+echo "        wrapped worker command underneath it, not that it can reach B2 (a real bucket/keys are a separate,"
+echo "        later check once you've created them)."
 docker volume create "$VOLUME" >/dev/null
-docker run -d --name "$WEB" -p "$PORT":8080 \
-    -e DJANGO_ENV=production -e DJANGO_SECRET_KEY="$(secret_key)" \
-    -e DJANGO_ALLOWED_HOSTS=localhost -e DJANGO_DB_PATH=/data/db.sqlite3 \
-    -v "$VOLUME":/data \
-    "$IMAGE" sh -c "python manage.py migrate --noinput && exec gunicorn config.wsgi:application --bind 0.0.0.0:8080 --workers 1 --worker-class gthread --threads 4 --timeout 60" \
-    >/dev/null
-
-status=000
-for _ in $(seq 1 15); do
-    status="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/accounts/login/" || echo 000)"
-    [ "$status" = "200" ] && break
-    sleep 1
-done
-echo "GET /accounts/login/ -> $status"
-docker logs "$WEB" --tail 20
-docker rm -f "$WEB" >/dev/null
-if [ "$status" != "200" ]; then
-    echo "FAILED: web never returned 200 (see logs above)." >&2
-    exit 1
-fi
-
-echo "== 5/5: worker + litestream's -exec wrapping actually starts =="
-# Fake B2 credentials: this only proves litestream starts and still runs the wrapped worker command underneath it,
-# not that it can reach B2 (a real bucket/keys are a separate, later check once you've created them).
-docker run -d --name "$WORKER" \
+docker run -d --name "$APP" -p "$PORT":8080 \
     -e DJANGO_ENV=production -e DJANGO_SECRET_KEY="$(secret_key)" \
     -e DJANGO_ALLOWED_HOSTS=localhost -e DJANGO_DB_PATH=/data/db.sqlite3 \
     -e LITESTREAM_B2_BUCKET=test -e LITESTREAM_B2_ENDPOINT=test.example.com -e LITESTREAM_B2_REGION=test \
     -e LITESTREAM_ACCESS_KEY_ID=test -e LITESTREAM_SECRET_ACCESS_KEY=test \
     -v "$VOLUME":/data \
-    "$IMAGE" litestream replicate -config /etc/litestream.yml -exec "python manage.py run_moderator" >/dev/null
+    "$IMAGE" bash scripts/fly_start.sh \
+    >/dev/null
 
-started=""
+status=000
+worker_started=""
 for _ in $(seq 1 15); do
-    logs="$(docker logs "$WORKER" 2>&1)"
-    if grep -q "Worker started" <<<"$logs"; then
-        started=1
-        break
-    fi
+    status="$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/accounts/login/" || echo 000)"
+    logs="$(docker logs "$APP" 2>&1)"
+    grep -q "Worker started" <<<"$logs" && worker_started=1
+    [ "$status" = "200" ] && [ -n "$worker_started" ] && break
     sleep 1
 done
+echo "GET /accounts/login/ -> $status"
 echo "$logs"
-docker rm -f "$WORKER" >/dev/null
-if [ -z "$started" ]; then
-    echo "FAILED: worker did not start under litestream -exec (see logs above)." >&2
+docker rm -f "$APP" >/dev/null
+if [ "$status" != "200" ]; then
+    echo "FAILED: web never returned 200 (see logs above)." >&2
+    exit 1
+fi
+if [ -z "$worker_started" ]; then
+    echo "FAILED: worker did not start under litestream -exec, in the same container as web (see logs above)." >&2
     exit 1
 fi
 
 echo
-echo "All checks passed."
+echo "All checks passed (both web and the worker came up together, in one container, sharing one volume)."

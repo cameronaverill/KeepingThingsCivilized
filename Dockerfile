@@ -1,5 +1,6 @@
-# Deploy image for Fly.io (docs/deployment_plan.md). Runs as either the "web" or "worker" process
-# (see fly.toml); both come from this same image, sharing the same volume-mounted SQLite file.
+# Deploy image for Fly.io (docs/deployment_plan.md). fly.toml's one "web" process group runs BOTH gunicorn and the
+# litestream-wrapped moderator worker from this image, via scripts/fly_start.sh -- a Fly Volume mounts on only one
+# host at a time, so these can no longer be two separate machines (docs/deployment_plan.md item 9, 2026-09-28).
 FROM python:3.13-slim
 
 # django-axes/argon2-cffi need a C toolchain to build from source on some platforms; kept minimal. curl is only for
