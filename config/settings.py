@@ -75,6 +75,13 @@ CSRF_COOKIE_SECURE = IS_PRODUCTION
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 
+# Fly (like any TLS-terminating proxy) forwards requests to the app over plain HTTP, marking the real scheme in
+# this header. Without trusting it, request.is_secure() is always False behind Fly, which breaks the CSRF Origin
+# check (Django compares the browser's "https://..." Origin against its own, wrongly-computed "http://..." one) --
+# safe to trust unconditionally: the app is never reachable except through Fly's own proxy, which sets this header
+# itself and does not forward a client-supplied one through.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 # --- Secrets ------------------------------------------------------------------
 ANTHROPIC_API_KEY = _env("ANTHROPIC_API_KEY")
 
@@ -103,6 +110,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "axes.middleware.AxesMiddleware",  # last, as django-axes requires
 ]
+if IS_PRODUCTION:
+    # Only in production: it expects STATIC_ROOT to exist (collectstatic already ran at image build time), and
+    # dev/test are already served by runserver's own staticfiles app.
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
@@ -188,10 +199,30 @@ AUTH_PASSWORD_VALIDATORS = [
 # Django 6.1's MAILERS setting (EMAIL_BACKEND and the EMAIL_HOST-style settings are deprecated).
 # Development prints emails to the terminal. Only the circuit breaker's alert email uses it (accounts have no email, step 6c).
 # EMAIL_BACKEND below is our own environment variable, not Django's deprecated setting.
+# The SMTP options below are only meaningful when EMAIL_BACKEND is the SMTP backend; an unset one is left out of
+# OPTIONS entirely rather than passed as None, so the console/other backends never see them.
+_MAIL_OPTIONS = {}
+_EMAIL_HOST = _env("EMAIL_HOST")
+if _EMAIL_HOST:
+    _MAIL_OPTIONS["host"] = _EMAIL_HOST
+_EMAIL_PORT = _env("EMAIL_PORT")
+if _EMAIL_PORT:
+    if not _EMAIL_PORT.isdigit():
+        raise ImproperlyConfigured(f"EMAIL_PORT must be a number, not {_EMAIL_PORT!r}")
+    _MAIL_OPTIONS["port"] = int(_EMAIL_PORT)
+_EMAIL_HOST_USER = _env("EMAIL_HOST_USER")
+if _EMAIL_HOST_USER:
+    _MAIL_OPTIONS["username"] = _EMAIL_HOST_USER
+_EMAIL_HOST_PASSWORD = _env("EMAIL_HOST_PASSWORD")
+if _EMAIL_HOST_PASSWORD:
+    _MAIL_OPTIONS["password"] = _EMAIL_HOST_PASSWORD
+if _env("EMAIL_USE_TLS").lower() == "true":
+    _MAIL_OPTIONS["use_tls"] = True
+
 MAILERS = {
     "default": {
         "BACKEND": _env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"),
-        "OPTIONS": {},
+        "OPTIONS": _MAIL_OPTIONS,
     }
 }
 DEFAULT_FROM_EMAIL = _env("DEFAULT_FROM_EMAIL", "forum@localhost")
@@ -206,6 +237,20 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"  # `collectstatic` target; whitenoise serves from here in production
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # The manifest storage requires collectstatic to have already run (it errors on any {% static %} lookup
+    # otherwise), which is only true of a deployed image, never of dev/test. Non-production keeps the plain
+    # storage so runserver and the test suite work without ever running collectstatic.
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if IS_PRODUCTION
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        )
+    },
+}
 
 # --- Tunables: expose every UPPERCASE name from config/tunables.py as a Django setting ---
 globals().update({name: value for name, value in vars(tunables).items() if name.isupper()})

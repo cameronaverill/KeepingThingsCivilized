@@ -5,3 +5,7 @@ pydantic==2.13.5
 argon2-cffi==25.1.0
 django-axes==8.3.1
 python-dotenv==1.2.3
+
+# Deployment only (docs/deployment_plan.md): a real WSGI server and static-file serving.
+gunicorn==26.2.0
+whitenoise==6.12.0

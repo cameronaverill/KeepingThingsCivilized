@@ -54,4 +54,6 @@ def test_runtime_requirements_are_exactly_the_expected_packages_all_pinned():
         name = re.sub(r"[-_.]+", "-", match.group(1)).lower()
         assert name not in pinned, f"{name} listed twice"
         pinned[name] = match.group(2)
-    assert set(pinned) == {"django", "anthropic", "pydantic", "argon2-cffi", "django-axes", "python-dotenv"}
+    assert set(pinned) == {
+        "django", "anthropic", "pydantic", "argon2-cffi", "django-axes", "python-dotenv", "gunicorn", "whitenoise",
+    }
