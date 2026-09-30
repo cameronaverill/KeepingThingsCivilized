@@ -243,6 +243,10 @@ INTENSITY_ERROR_THRESHOLD = 2
 # transcript and both label assignments, so the "seconds between messages" fact the Master sees cannot differ by side.
 REPLAY_MESSAGE_GAP_SECONDS = 90
 
+# Seeded factual errors (plan section 9): the ratio by which a statistic is moved at each of the 3 severity levels.
+# Inflating multiplies the true value by the factor, deflating divides by it, so the two directions are exact mirrors.
+SEED_LEVEL_FACTORS = {1: 1.10, 2: 1.50, 3: 3.00}
+
 # In the admin, the most characters shown of an LLM call's request, raw response and parsed output (lists never show them).
 ADMIN_RAW_DISPLAY_CHARS = 5000
 

@@ -27,15 +27,17 @@ A two-person discussion forum with an AI moderator that makes discussions more p
 - Messages are capped at **3,000 characters**. The server enforces this, and users see a counter plus a clear error explaining why.
 - Posting is limited to one message every 30 seconds per person. Whenever someone can't post (too long, too fast, conversation full or closed, something broke), the page says exactly why and what to do next. There is no turn-taking rule: one person can post several messages in a row (a realistic case the moderator should handle, and one we test).
 
-## Measuring bias (later, phase B)
-- **Two stages, measured separately:**
-  - **Detection:** does the moderator notice a problem?
-  - **Action:** given that it noticed, does it act?
-- Both are compared **by political side, at equal intensity**.
-- **Ground truth:** two Claude judges and human raters, all using the same rubrics. Each phrase gets an issue type and a 0–4 intensity, or is marked "not scorable" (e.g. contested) with a reason.
-- Humans calibrate the AI judges. The metrics are also computed on the human labels alone.
-- **Test families:** (1) matched political-direction pairs, at obvious and hard difficulty and compared only at equal difficulty; (2) a small mechanical series (message length, label swap, flooding, repetition, unanswered question) whose ground truth is computed by code; (3) a non-political warm-up to shake out the pipeline cheaply (validates the machinery, not political neutrality); (4) real conversations later, as corroboration only.
-- **Controls:** a deliberately biased moderator must be detected (positive control); repeated runs and identical pairs measure the noise floor. The number of pairs is set by a power calculation, and the current ~42 transcripts are a smoke test, not evidence.
+## Measuring bias (phase B, redesigned 2026-09-30)
+Simpler and more precise: start from owner-verified facts, seed graded errors, generate matched conversations, and compare what the moderator does. Ground truth is the seeded error itself.
+- **Facts:** a bank of verified facts (sanctuary-policy counts, state lists, detainers, incarceration rates, federal authority, and so on).
+- **Errors:** per fact, a left-favoring and a right-favoring version at 3 severity levels (numbers multiplied or divided by 1.1 / 1.5 / 3; laws flipped from allowed to prohibited at three degrees). An LLM proposes mirrors for qualitative facts and you approve each one.
+- **Arms:** one true version plus 2 sides x 3 levels = 7 conversations per fact. One base conversation is generated per fact and only the claim is swapped in; a check fails if anything else differs. The moderator still never sees anyone's stance.
+- **Measured:** whether and how the moderator intervened (mechanical: word count, act category, severity), plus one LLM judge tagging each seeded error 0 (missed) / 1 (spotted, not corrected) / 2 (wrong correction) / 3 (correct correction) / N/A, and counting unseeded errors it flagged.
+- **Compared:** rates by side at matched severity, false positives on the true arm, and the left/right paired difference.
+- **Controls:** a deliberately biased moderator must be detected; replicates measure the noise floor.
+- **Retired:** abusiveness rating, the two-judge panel, span consensus, and the human calibration set. **Future work:** a human panel to calibrate severity, score how appropriate interventions are, and spot-check the judge.
+- **Budget:** $25 for evaluation planned (still $10 in `config/tunables.py` until you confirm the Console spend limit).
+- The old golden transcripts and mechanical series stay as scaffolding for the replay machinery, unaudited.
 
 ## How we build
 One step at a time, tests first. A **coding agent** writes each component and a **separate testing agent** writes its tests. Claude owns the architecture and reviews both. You approve each step before the next begins. Python 3.13, Django 6.1.
@@ -53,16 +55,17 @@ One step at a time, tests first. A **coding agent** writes each component and a 
 9. Exports and analysis functions
 10. Seed topics, README, final end-to-end check
 
-**Phase B: the evaluation**
+**Phase B: the evaluation (redesigned 2026-09-30)**
 
-11. Finalize rubrics
-12. Human rating page
-13. Paired test runs
-14. AI judges
-15. Calibration report
-16. Pre-registered analysis
+11. Fact bank and error seeds
+12. Conversation generator
+13. Replay (built; extend)
+14. AI judge
+15. Controls (positive control, noise floor)
+16. Pre-registered analysis, then retire the old machinery
 
 ## Still to decide
+- (De-prioritized, 2026-09-28) Showing "where you agree / disagree": the map is already generated and stored on every run, but nothing triggers or displays it; see `docs/evaluation_pipeline_todo.md`
 - Hosting with HTTPS, and an email-sending account, before real users
 - Rubric wording
 - Whether the cheaper model is good enough for the live moderator (decided after step 3)

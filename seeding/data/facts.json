@@ -1,0 +1,137 @@
+[
+  {
+    "id": "sanctuary_jurisdiction_count",
+    "claim_true": "Between 500 and 560 state and local jurisdictions have adopted policies restricting cooperation with federal immigration authorities",
+    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "type": "statistic",
+    "owner_verified_true": false,
+    "claim_template": "Between {v0} and {v1} state and local jurisdictions have adopted policies restricting cooperation with federal immigration authorities",
+    "true_values": [
+      500,
+      560
+    ],
+    "integer": true,
+    "max_value": null,
+    "inflate_favors": null,
+    "level_overrides": null
+  },
+  {
+    "id": "statewide_sanctuary_states",
+    "claim_true": "12 states have passed statewide sanctuary laws",
+    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "type": "statistic",
+    "owner_verified_true": false,
+    "claim_template": "{v0} states have passed statewide sanctuary laws",
+    "true_values": [
+      12
+    ],
+    "integer": true,
+    "max_value": null,
+    "inflate_favors": null,
+    "level_overrides": null
+  },
+  {
+    "id": "statewide_ban_states",
+    "claim_true": "13 states have banned sanctuary laws",
+    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "type": "statistic",
+    "owner_verified_true": false,
+    "claim_template": "{v0} states have banned sanctuary laws",
+    "true_values": [
+      13
+    ],
+    "integer": true,
+    "max_value": null,
+    "inflate_favors": null,
+    "level_overrides": null
+  },
+  {
+    "id": "declined_detainers_2014_2017",
+    "claim_true": "Between 2014 and 2017 alone, ICE documented over 10,000 declined civil administrative detainers nationwide",
+    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "type": "statistic",
+    "owner_verified_true": false,
+    "claim_template": "Between 2014 and 2017 alone, ICE documented over {v0} declined civil administrative detainers nationwide",
+    "true_values": [
+      10000
+    ],
+    "integer": true,
+    "max_value": null,
+    "inflate_favors": null,
+    "level_overrides": null
+  },
+  {
+    "id": "violent_offender_exceptions_share",
+    "claim_true": "60% to 70% of sanctuary policy resolutions contain exceptions for violent offenders",
+    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "type": "statistic",
+    "owner_verified_true": false,
+    "claim_template": "{v0}% to {v1}% of sanctuary policy resolutions contain exceptions for violent offenders",
+    "true_values": [
+      60,
+      70
+    ],
+    "integer": false,
+    "max_value": 100,
+    "inflate_favors": null,
+    "level_overrides": {
+      "1": {
+        "inflate": [
+          66,
+          77
+        ],
+        "deflate": [
+          55,
+          63
+        ]
+      },
+      "2": {
+        "inflate": [
+          80,
+          90
+        ],
+        "deflate": [
+          40,
+          47
+        ]
+      },
+      "3": {
+        "inflate": [
+          95,
+          100
+        ],
+        "deflate": [
+          20,
+          23
+        ]
+      }
+    }
+  },
+  {
+    "id": "incarceration_rates",
+    "claim_true": "Unauthorized immigrants are incarcerated at considerably lower rates than native-born U.S. citizens",
+    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "type": "qualitative",
+    "owner_verified_true": false,
+    "error_claims": null,
+    "mirrors_approved": false
+  },
+  {
+    "id": "federal_agents_authority",
+    "claim_true": "Federal agents can operate, investigate, execute judicial warrants, and make arrests within sanctuary jurisdictions without local permission.",
+    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "type": "law",
+    "owner_verified_true": false,
+    "error_claims": null,
+    "mirrors_approved": false
+  },
+  {
+    "id": "noncitizen_criminal_law",
+    "claim_true": "Noncitizens accused of state or local crimes are arrested, tried, and sentenced under normal criminal law regardless of immigration status.",
+    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "type": "law",
+    "owner_verified_true": false,
+    "error_claims": null,
+    "mirrors_approved": false
+  }
+]
