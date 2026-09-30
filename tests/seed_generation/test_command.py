@@ -312,14 +312,58 @@ class TestARealRunWithFakeAnswers:
         result = command("--facts", LAW, "--max-usd", "0.0001", "--live", "--yes")
         assert (result.exc, client.calls, kit.files_under(".")) == (None, [], [])
 
-    def test_a_second_run_reuses_the_bases_but_will_not_overwrite_the_transcripts(self, fake):
+    def test_the_first_run_reports_written_and_no_unchanged(self, fake):
+        fake(*script())
+        result = command("--facts", LAW, "--max-usd", "5", "--live", "--yes")
+        assert re.search(r"Wrote 4 transcript\(s\).*; 0 already up to date", result.out)
+
+    def test_a_second_run_reuses_the_bases_and_finds_the_transcripts_unchanged(self, fake):
         fake(*script())
         command("--facts", LAW, "--max-usd", "5", "--live", "--yes")
         before = {n: open(f"generated/{n}", encoding="utf-8").read() for n in kit.files_under("generated")}
         client = fake()
         result = command("--facts", LAW, "--max-usd", "5", "--live", "--yes")
         after = {n: open(f"generated/{n}", encoding="utf-8").read() for n in kit.files_under("generated")}
-        assert (result.exc is not None, client.calls, after) == (True, [], before)
+        assert (result.exc, client.calls, after, bool(re.search(r"Wrote 0 transcript\(s\).*; 4 already up to date", result.out))) == (
+            None, [], before, True,
+        )
+
+    def test_a_missing_transcript_is_written_and_the_rest_unchanged(self, fake):
+        import os
+
+        fake(*script())
+        command("--facts", LAW, "--max-usd", "5", "--live", "--yes")
+        os.remove(f"generated/transcripts/{LAW}_left_err.json")
+        fake()
+        result = command("--facts", LAW, "--max-usd", "5")
+        assert (result.exc, bool(re.search(r"Wrote 1 transcript\(s\).*; 3 already up to date", result.out))) == (None, True)
+
+    def test_a_differing_transcript_is_refused_and_nothing_is_written(self, fake):
+        import os
+
+        fake(*script())
+        command("--facts", LAW, "--max-usd", "5", "--live", "--yes")
+        target = f"generated/transcripts/{LAW}_left_err.json"
+        with open(target, "a", encoding="utf-8") as handle:
+            handle.write("edited by hand")
+        os.remove(f"generated/transcripts/{LAW}_right_true.json")
+        before = kit.files_under("generated")
+        fake()
+        result = command("--facts", LAW, "--max-usd", "5")
+        assert (result.exc is not None, "Wrote" in result.out, kit.files_under("generated"), open(target, encoding="utf-8").read().endswith("edited by hand")) == (
+            True, False, before, True,
+        )
+
+    def test_overwrite_counts_a_replaced_file_as_written(self, fake):
+        fake(*script())
+        command("--facts", LAW, "--max-usd", "5", "--live", "--yes")
+        target = f"generated/transcripts/{LAW}_left_err.json"
+        open(target, "a", encoding="utf-8").write("edited by hand")
+        fake(*script())
+        result = command("--facts", LAW, "--max-usd", "5", "--live", "--yes", "--overwrite")
+        assert (result.exc, bool(re.search(r"Wrote 1 transcript\(s\).*; 3 already up to date", result.out)), open(target, encoding="utf-8").read().endswith("hand")) == (
+            None, True, False,
+        )
 
     def test_overwrite_regenerates_and_replaces(self, fake):
         fake(*script())

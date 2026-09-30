@@ -67,12 +67,12 @@ class Command(BaseCommand):
             if missing:
                 raise CommandError(f"unknown fact id(s): {', '.join(missing)}")
             facts = [known[i] for i in dict.fromkeys(wanted)]
-        ready = [f for f in facts if f.ready()]
+        ready = [f for f in facts if generate.usable(f)]
         if not ready:
             raise CommandError("no ready fact to generate for")
         for fact in facts:
-            if not fact.ready():
-                self.stdout.write(f"Skipping {fact.id}: not ready.")
+            if not generate.usable(fact):
+                self.stdout.write(f"Skipping {fact.id}: not ready or no subject.")
         return ready
 
     def handle(self, *args, **options):
@@ -146,11 +146,13 @@ class Command(BaseCommand):
             report = generate.run_generation(facts, max_usd=max_usd, overwrite=overwrite, on_result=self._progress)
         out(report.summary())
         if report.transcripts:
+            to_write, unchanged, conflicts = arms.classify_transcripts(report.transcripts, options["output_dir"])
             try:
                 paths = arms.write_transcripts(report.transcripts, options["output_dir"], overwrite=overwrite)
             except FileExistsError as exc:
                 raise CommandError(f"{exc}") from exc
-            out(f"Wrote {len(paths)} transcript(s) to {paths[0].parent}.")
+            written = len(to_write) + len(conflicts)
+            out(f"Wrote {written} transcript(s) to {paths[0].parent}; {len(unchanged)} already up to date (unchanged).")
 
     def _progress(self, fact, side, result):
         self.stdout.write(f"  {fact.id} {side} base: {usd(result.cost_usd)}")

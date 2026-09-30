@@ -10,6 +10,7 @@ true [500, 560] whose `inflate_favors` is "left":
 """
 import copy
 import json
+import re
 from decimal import Decimal
 from io import StringIO
 from pathlib import Path
@@ -17,6 +18,7 @@ from pathlib import Path
 DUMMY_KEY = "seed-generation-tests-dummy-key"  # secret-scan: allow
 ROOT = Path(__file__).resolve().parents[2]
 MARKER = "[[CLAIM]]"
+LEAD_IN = "This is the claim I am relying on."
 
 # The expected claims for RANGE_FACT, by (side, arm).
 RANGE_CLAIMS = {
@@ -43,6 +45,7 @@ def range_fact(**over):
         claim_template="Between {v0} and {v1} things exist", true_values=[500, 560], integer=True,
         owner_verified_true=True, inflate_favors="left",
         framing="Cited as evidence that the policy is widespread.",
+        subject="how many things of a certain kind exist",
     )
     data.update(over)
     return Fact(**data)
@@ -56,6 +59,7 @@ def law_fact(**over):
         owner_verified_true=True, mirrors_approved=True,
         error_claims={"left": "Officers must always hold anyone asked", "right": "Officers may never hold anyone"},
         framing="Cited as the legal background of the policy.",
+        subject="what the law says about holding people on request",
     )
     data.update(over)
     return Fact(**data)
@@ -72,11 +76,27 @@ ORDINALS = {1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth", 6: "si
 
 def filler(side, index, words=20):
     """Message text with no digit (a base may contain none)."""
-    return f"The {ORDINALS[index]} turn of the {side} conversation. " + " ".join(["thing"] * words) + "."
+    word = {"left": "thing", "right": "matter"}.get(side, "thing")
+    return f"The {ORDINALS[index]} turn of the {side} conversation. " + " ".join([word] * words) + "."
 
 
-def base(side="left", fact_id="range_fact", count=4, last="I have thought about this. [[CLAIM]]. That matters to me."):
+LAST = {
+    "left": "That is why I hold my position so firmly. [[CLAIM]].",
+    "right": "Quite the opposite seems right to me. [[CLAIM]].",
+}
+GEN_VERSION, MIRROR_VERSION = "gen_v7", "mirror_v7"
+
+
+def stamped(source, version=None):
+    """A copy of a base carrying the prompt_version the generator records (gen_v3 for a left base, mirror_v3 for a right one)."""
+    out = copy.deepcopy(source)
+    out["prompt_version"] = version or (GEN_VERSION if source["side"] == "left" else MIRROR_VERSION)
+    return out
+
+
+def base(side="left", fact_id="range_fact", count=4, last=None):
     """A valid stub base: `count` alternating messages from Participant A, the last (by Participant B) holding the marker."""
+    last = last or LAST[side]
     messages = []
     for i in range(1, count + 1):
         author = "Participant A" if i % 2 == 1 else "Participant B"
@@ -95,7 +115,8 @@ def with_lengths(side, lengths, fact_id="range_fact"):
     messages = []
     for i, length in enumerate(lengths, start=1):
         author = "Participant A" if i % 2 == 1 else "Participant B"
-        text = "x" * (length - len(tail)) + tail if i == len(lengths) else "x" * length
+        char = "x" if side == "left" else "q"
+        text = char * (length - len(tail)) + tail if i == len(lengths) else char * length
         assert len(text) == length
         messages.append({"seq": i, "author": author, "text": text})
     return {"side": side, "fact_id": fact_id, "messages": messages}
@@ -137,14 +158,14 @@ def validate(item):
 
 # --- Scripted model answers ---------------------------------------------------------------------------------------------
 
-def answer(count=4, side="left", last="I think it through. [[CLAIM]]. That is my view."):
+def answer(count=4, side="left", last=None):
     """A valid model answer (a dict for BaseOut) with `count` alternating messages, the last holding the marker."""
     b = base(side, count=count, last=last)
-    return {"messages": [{"author": m["author"], "text": m["text"]} for m in b["messages"]]}
+    return {"messages": [{"text": m["text"]} for m in b["messages"]]}
 
 
 def answer_from(source):
-    return {"messages": [{"author": m["author"], "text": m["text"]} for m in source["messages"]]}
+    return {"messages": [{"text": m["text"]} for m in source["messages"]]}
 
 
 def priced(payload, *, input_tokens=1000, output_tokens=100):
@@ -175,9 +196,100 @@ def system_text(call):
 
 
 def ledger():
+    """The ledger rows of the generation calls only (the stance audits are in audit_ledger())."""
+    from moderation.models import LLMCall
+
+    return list(LLMCall.objects.filter(agent="generator").order_by("pk"))
+
+
+def audit_ledger():
+    from moderation.models import LLMCall
+
+    return list(LLMCall.objects.filter(agent="generator_audit").order_by("pk"))
+
+
+def all_ledger():
     from moderation.models import LLMCall
 
     return list(LLMCall.objects.order_by("pk"))
+
+
+def labels(side="left", flip=(), mixed=(), count=4):
+    """The audit labels that pass for `side` (A argues con on the left base, pro on the right one), with the 0-based positions in
+    `flip` turned to the other side and those in `mixed` labelled mixed."""
+    a, b = ("con", "pro") if side == "left" else ("pro", "con")
+    out = [a if i % 2 == 0 else b for i in range(count)]
+    for i in flip:
+        out[i] = "pro" if out[i] == "con" else "con"
+    for i in mixed:
+        out[i] = "mixed"
+    return out
+
+
+class RoutedFake:
+    """A FakeLLM whose stance-audit calls are answered separately from the generation calls (see conftest.fake)."""
+
+    def __init__(self, script, audits=None):
+        from moderation.fake_llm import FakeLLM, _FakeMessages, make_message
+
+        client = self
+        base_parse = _FakeMessages.parse
+
+        class Router(_FakeMessages):
+            def parse(self, **kwargs):
+                if kwargs["output_format"].__name__ == "AuditOut":
+                    return client._audit(kwargs)
+                client._note_generation(kwargs)
+                return base_parse(self, **kwargs)
+
+        self._inner = FakeLLM(script)
+        self._inner.messages = Router(self._inner)
+        self.messages = self._inner.messages
+        self.audits = list(audits or [])
+        self.audit_calls = []
+        self._side = "left"
+        self._make_message = make_message
+
+    @property
+    def calls(self):
+        return self._inner.calls
+
+    @property
+    def script(self):
+        return self._inner.script
+
+    @property
+    def call_methods(self):
+        return self._inner.call_methods
+
+    def _note_generation(self, kwargs):
+        text = request_text(kwargs)
+        match = re.search(r"Participant A argues (in favor|against)", text)
+        if match:
+            self._side = "left" if match.group(1) == "against" else "right"
+
+    def _audit(self, kwargs):
+        self.audit_calls.append(kwargs)
+        item = self.audits.pop(0) if self.audits else None
+        if isinstance(item, BaseException):
+            raise item
+        if callable(item):
+            message = item(kwargs)
+        else:
+            if item is None:
+                count = len(re.findall(r"^Message \d+:", kwargs["messages"][0]["content"], re.M))
+                item = labels(self._side, count=count)
+            payload = item if isinstance(item, dict) else {"labels": item}
+            message = self._make_message(payload)
+        schema = kwargs["output_format"]
+        if isinstance(message.parsed_output, dict):
+            from pydantic import ValidationError
+
+            try:
+                message.parsed_output = schema.model_validate(message.parsed_output)
+            except ValidationError:
+                message.parsed_output = None
+        return message
 
 
 # --- Running the command -------------------------------------------------------------------------------------------------

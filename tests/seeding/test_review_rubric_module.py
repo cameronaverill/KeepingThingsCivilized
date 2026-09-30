@@ -222,7 +222,7 @@ class TestPurity:
         ]
 
     def test_prompt_files_are_the_step_12_ones(self):
-        assert sorted(p.name for p in (PKG / "prompts").glob("*")) == ["generator_v1.md", "mirror_v1.md"]
+        assert sorted(p.name for p in (PKG / "prompts").glob("*")) == ["audit_v1.md", "generator_v1.md", "mirror_v1.md"]
 
     def test_no_forbidden_imports_anywhere_but_the_generator(self):
         # Only seeding/generate.py may reach django/moderation (the gateway); everything else in seeding/ stays pure.

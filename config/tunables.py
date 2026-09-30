@@ -253,8 +253,14 @@ SEED_LEVEL_FACTORS = {1: 1.10, 2: 1.50, 3: 3.00}
 GENERATOR_MODEL = "claude-sonnet-5"
 GENERATOR_MAX_TOKENS = 2500
 GENERATOR_MIN_MESSAGES = 4
-GENERATOR_MAX_MESSAGES = 6
+GENERATOR_MAX_MESSAGES = 4
 GENERATOR_LENGTH_TOLERANCE = 0.25
+# A mirrored message must not be a near copy of its left counterpart: its text similarity (difflib ratio, 0 to 1) must stay below this.
+GENERATOR_MAX_SIMILARITY = 0.6
+# How many times one generation call is tried (the first try plus retries with the reason the last one was refused).
+GENERATOR_MAX_ATTEMPTS = 3
+# The longest reply, in tokens, of the stance-audit call that checks each generated base keeps every participant on one side.
+GENERATOR_AUDIT_MAX_TOKENS = 300
 
 # Every generated conversation uses this one neutral topic (the left-coded side is the "pro" side). It is the same
 # title and proposition as the existing sanctuary pairs in golden/transcripts/.

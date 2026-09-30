@@ -60,7 +60,7 @@ class TestAHappyRun:
     def test_it_makes_two_calls_left_then_mirror(self, fake, tmp_path):
         fake(*good_pair_script())
         report = run([kit.range_fact()], tmp_path)
-        assert (report.calls, [r.prompt_version for r in kit.ledger()], [r.attempt for r in kit.ledger()]) == (2, ["gen_v1", "mirror_v1"], [1, 1])
+        assert (report.calls, [r.prompt_version for r in kit.ledger()], [r.attempt for r in kit.ledger()]) == (2, ["gen_v7", "mirror_v7"], [1, 1])
 
     def test_every_call_is_a_replay_purpose_generator_call(self, fake, tmp_path):
         fake(*good_pair_script())
@@ -84,7 +84,7 @@ class TestAHappyRun:
         saved = json.loads((tmp_path / "bases" / "range_fact_left.json").read_text(encoding="utf-8"))
         expected = kit.answer(side="left")["messages"]
         assert (saved["side"], saved["fact_id"], [(m["author"], m["text"]) for m in saved["messages"]], report.transcripts[0]["messages"][0]["text"]) == (
-            "left", "range_fact", [(m["author"], m["text"]) for m in expected], expected[0]["text"],
+            "left", "range_fact", [(a, m["text"]) for m, a in zip(expected, ["Participant A", "Participant B", "Participant A", "Participant B"])], expected[0]["text"],
         )
 
     def test_the_default_bases_directory_is_generated_bases(self, fake, tmp_path):
@@ -109,7 +109,7 @@ class TestAHappyRun:
     def test_the_cost_is_what_the_ledger_says(self, fake, tmp_path):
         fake(*good_pair_script())
         report = run([kit.range_fact()], tmp_path)
-        assert (report.cost_total > 0, report.cost_total) == (True, sum(r.cost_usd for r in kit.ledger()))
+        assert (report.cost_total > 0, report.cost_total) == (True, sum(r.cost_usd for r in kit.all_ledger()))
 
     def test_two_facts_are_generated_in_order(self, fake, tmp_path):
         fake(*good_pair_script(), *good_pair_script())
@@ -157,7 +157,7 @@ class TestReuseOfSavedBases:
         (tmp_path / "bases" / "range_fact_right.json").unlink()
         client = fake(kit.answer(side="right"))
         report = run([kit.range_fact()], tmp_path)
-        assert (len(client.calls), report.bases_reused, [r.prompt_version for r in kit.ledger()][-1]) == (1, 1, "mirror_v1")
+        assert (len(client.calls), report.bases_reused, [r.prompt_version for r in kit.ledger()][-1]) == (1, 1, "mirror_v7")
 
     def test_a_saved_right_base_is_reused_and_only_the_left_is_generated(self, fake, tmp_path):
         fake(*good_pair_script())
@@ -212,28 +212,28 @@ class TestRetryOnce:
         fake(kit.answer(side="left"), BAD, kit.answer(side="right"))
         report = run([kit.range_fact()], tmp_path)
         assert ([r.prompt_version for r in kit.ledger()], [r.attempt for r in kit.ledger()], len(report.transcripts)) == (
-            ["gen_v1", "mirror_v1", "mirror_v1"], [1, 1, 2], 8,
+            ["gen_v7", "mirror_v7", "mirror_v7"], [1, 1, 2], 8,
         )
 
     def test_a_second_failure_is_reported_and_not_retried_again(self, fake, tmp_path):
-        client = fake(BAD, BAD, kit.answer(side="left"), kit.answer(side="right"))
+        client = fake(BAD, BAD, BAD, kit.answer(side="left"), kit.answer(side="right"))
         report = run([kit.range_fact()], tmp_path)
-        assert (len(client.calls), [f[0] for f in report.failures], report.transcripts, report.facts_done) == (2, ["range_fact"], [], 0)
+        assert (len(client.calls), [f[0] for f in report.failures], report.transcripts, report.facts_done) == (3, ["range_fact"], [], 0)
 
     def test_a_failed_fact_leaves_no_base_file(self, fake, tmp_path):
-        fake(BAD, BAD)
+        fake(BAD, BAD, BAD)
         run([kit.range_fact()], tmp_path)
         assert kit.files_under(tmp_path / "bases") == []
 
     def test_a_failed_fact_does_not_stop_the_next_one(self, fake, tmp_path):
-        fake(BAD, BAD, *good_pair_script())
+        fake(BAD, BAD, BAD, *good_pair_script())
         report = run([kit.range_fact(), kit.law_fact()], tmp_path)
         assert ([f[0] for f in report.failures], [t["id"] for t in report.transcripts][:1], report.facts_done) == (
             ["range_fact"], ["law_fact_left_true"], 1,
         )
 
     def test_a_good_left_base_is_kept_when_the_right_one_fails(self, fake, tmp_path):
-        fake(kit.answer(side="left"), BAD, BAD)
+        fake(kit.answer(side="left"), BAD, BAD, BAD)
         report = run([kit.range_fact()], tmp_path)
         assert (kit.files_under(tmp_path / "bases"), len(report.failures)) == (["range_fact_left.json"], 1)
 
@@ -244,7 +244,7 @@ class TestPairCheck:
         report = run([kit.range_fact()], tmp_path)
         # The attempt number of the regeneration is not pinned by the contract (a fresh call, or attempt 2), so it is not asserted.
         assert (len(client.calls), [r.prompt_version for r in kit.ledger()], len(report.transcripts)) == (
-            3, ["gen_v1", "mirror_v1", "mirror_v1"], 8,
+            3, ["gen_v7", "mirror_v7", "mirror_v7"], 8,
         )
 
     def test_the_saved_right_base_is_the_regenerated_one(self, fake, tmp_path):
@@ -298,7 +298,8 @@ class TestBudget:
         assert mirror_worst >= self.worst_left()
         client = fake(left, kit.answer(side="right"))
         report = run([kit.range_fact()], tmp_path, max_usd=mirror_worst)
-        assert (len(client.calls), bool(report.stopped_reason), report.transcripts) == (1, True, [])
+        # The run checks before calling: the gateway is not even asked (a refusal would leave a second ledger row).
+        assert (len(client.calls), len(kit.ledger()), bool(report.stopped_reason), report.transcripts) == (1, 1, True, [])
 
     def test_the_stop_is_not_a_failure_of_the_fact(self, fake, tmp_path):
         fake(*good_pair_script())
@@ -382,4 +383,4 @@ class TestSourceRules:
 
     def test_the_only_gateway_call_names_the_replay_purpose(self):
         source = (kit.ROOT / "seeding" / "generate.py").read_text(encoding="utf-8")
-        assert (source.count("llm.call("), 'purpose="replay"' in source or "PURPOSE" in source) == (1, True)
+        assert (source.count("llm.call("), source.count("purpose=PURPOSE"), 'PURPOSE = "replay"' in source) == (2, 2, True)

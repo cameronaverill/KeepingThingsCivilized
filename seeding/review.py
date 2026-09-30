@@ -36,6 +36,8 @@ def review_markdown(facts: list[Fact]) -> str:
             f"- Owner verified: {'yes' if fact.owner_verified_true else 'no'}",
             f"- Ready: {'yes' if ready else 'no'}",
         ]
+        if fact.subject is not None:
+            lines.append(f"- Subject: {fact.subject}")
         if fact.framing is not None:
             lines.append(f"- Framing: {fact.framing}")
         lines.append("")

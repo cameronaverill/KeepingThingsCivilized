@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from config import tunables
 
+AUTHORS = ["Participant A", "Participant B", "Participant A", "Participant B", "Participant A", "Participant B"]
 FACT_TOKENS = dict(input_tokens=1000, output_tokens=100)
 
 
@@ -29,15 +30,18 @@ def false_claims_of(a_fact):
 class TestBaseOut:
     def test_a_valid_reply_parses(self):
         parsed = gen().BaseOut.model_validate(kit.answer())
-        assert [m.author for m in parsed.messages] == ["Participant A", "Participant B", "Participant A", "Participant B"]
+        assert [m.text for m in parsed.messages] == [m["text"] for m in kit.answer()["messages"]]
 
-    def test_an_unknown_author_is_refused(self):
+    def test_the_schema_has_no_author_field(self):
+        assert list(gen().MessageOut.model_fields) == ["text"]
+
+    def test_an_author_field_is_refused(self):
         with pytest.raises(ValidationError):
-            gen().BaseOut.model_validate({"messages": [{"author": "Bob", "text": "Hello."}]})
+            gen().BaseOut.model_validate({"messages": [{"author": "Participant A", "text": "Hello."}]})
 
     def test_an_extra_field_on_a_message_is_refused(self):
         with pytest.raises(ValidationError):
-            gen().BaseOut.model_validate({"messages": [{"author": "Participant A", "text": "Hello.", "seq": 1}]})
+            gen().BaseOut.model_validate({"messages": [{"text": "Hello.", "seq": 1}]})
 
     def test_an_extra_top_level_field_is_refused(self):
         with pytest.raises(ValidationError):
@@ -45,7 +49,7 @@ class TestBaseOut:
 
     def test_a_missing_text_is_refused(self):
         with pytest.raises(ValidationError):
-            gen().BaseOut.model_validate({"messages": [{"author": "Participant A"}]})
+            gen().BaseOut.model_validate({"messages": [{}]})
 
     def test_messages_have_no_default(self):
         with pytest.raises(ValidationError):
@@ -53,7 +57,7 @@ class TestBaseOut:
 
     def test_a_number_is_not_accepted_as_text(self):
         with pytest.raises(ValidationError):
-            gen().BaseOut.model_validate({"messages": [{"author": "Participant A", "text": 5}]})
+            gen().BaseOut.model_validate({"messages": [{"text": 5}]})
 
 
 class TestTheBaseReturned:
@@ -62,8 +66,8 @@ class TestTheBaseReturned:
         fake(script)
         base, result = gen().generate_base(fact(), "left", session=None)
         assert base == {
-            "side": "left", "fact_id": "range_fact",
-            "messages": [{"seq": i, "author": m["author"], "text": m["text"]} for i, m in enumerate(script["messages"], start=1)],
+            "side": "left", "fact_id": "range_fact", "prompt_version": "gen_v7",
+            "messages": [{"seq": i, "author": a, "text": m["text"]} for i, (m, a) in enumerate(zip(script["messages"], AUTHORS), start=1)],
         }
 
     def test_the_second_item_is_the_gateway_result(self, fake):
@@ -78,7 +82,8 @@ class TestTheBaseReturned:
         base, _ = gen().generate_base(fact(), "right", session=None)
         assert (base["side"], base["fact_id"]) == ("right", "range_fact")
 
-    def test_a_six_message_reply_is_accepted(self, fake):
+    def test_a_six_message_reply_is_accepted_when_the_range_allows_it(self, fake, tune):
+        tune(GENERATOR_MIN_MESSAGES=4, GENERATOR_MAX_MESSAGES=6)
         fake(kit.answer(count=6))
         base, _ = gen().generate_base(fact(), "left", session=None)
         assert [m["seq"] for m in base["messages"]] == [1, 2, 3, 4, 5, 6]
@@ -95,24 +100,24 @@ class TestTheGatewayCall:
         gen().generate_base(fact(), "left", session=None)
         (row,) = kit.ledger()
         assert (row.purpose, row.agent, row.model, row.prompt_version, row.max_tokens, row.temperature, row.attempt, row.status) == (
-            "replay", "generator", tunables.GENERATOR_MODEL, "gen_v1", tunables.GENERATOR_MAX_TOKENS, None, 1, "ok",
+            "replay", "generator", tunables.GENERATOR_MODEL, "gen_v7", tunables.GENERATOR_MAX_TOKENS, None, 1, "ok",
         )
 
-    def test_a_mirror_call_is_versioned_mirror_v1(self, fake):
+    def test_a_mirror_call_is_versioned_mirror_v7(self, fake):
         fake(kit.answer(side="right"))
         gen().generate_base(fact(), "right", left_base=kit.base("left"), session=None)
         (row,) = kit.ledger()
-        assert (row.purpose, row.agent, row.prompt_version) == ("replay", "generator", "mirror_v1")
+        assert (row.purpose, row.agent, row.prompt_version) == ("replay", "generator", "mirror_v7")
 
     def test_a_right_base_without_a_left_base_uses_the_generator_prompt(self, fake):
         fake(kit.answer(side="right"))
         gen().generate_base(fact(), "right", session=None)
-        assert kit.ledger()[0].prompt_version == "gen_v1"
+        assert kit.ledger()[0].prompt_version == "gen_v7"
 
     def test_a_left_side_never_uses_the_mirror_prompt_even_with_a_left_base(self, fake):
         fake(kit.answer())
         gen().generate_base(fact(), "left", left_base=kit.base("left"), session=None)
-        assert kit.ledger()[0].prompt_version == "gen_v1"
+        assert kit.ledger()[0].prompt_version == "gen_v7"
 
     def test_the_model_and_the_token_limit_are_read_at_call_time(self, fake, tune):
         tune(GENERATOR_MODEL="claude-haiku-4-5", GENERATOR_MAX_TOKENS=1234)
@@ -188,9 +193,8 @@ class TestThePromptSent:
     def test_it_says_there_are_no_digits(self, fake):
         assert "digit" in kit.system_text(self.left_call(fake)).lower()
 
-    def test_it_states_the_framing_and_the_kind_of_fact(self, fake):
-        text = kit.request_text(self.left_call(fake))
-        assert ("Cited as evidence that the policy is widespread" in text, "Between 500 and 560 things exist" in text) == (True, True)
+    def test_it_states_the_subject_of_the_fact(self, fake):
+        assert "how many things of a certain kind exist" in kit.request_text(self.left_call(fake))
 
     def test_a_fact_without_a_framing_still_builds_a_prompt(self, fake):
         client = fake(kit.answer())
@@ -322,8 +326,8 @@ class TestTheMirrorPrompt:
         client = fake(kit.answer(side="right"), kit.answer(side="right"))
         gen().generate_base(fact(), "right", left_base=kit.base("left"), session=None)
         gen().generate_base(fact(), "right", session=None)
-        mirror = [line for line in kit.system_text(client.calls[0]).splitlines() if "Participant" in line and "argues" in line]
-        plain = [line for line in kit.system_text(client.calls[1]).splitlines() if "Participant" in line and "argues" in line]
+        bullets = lambda call: [l for l in kit.system_text(call).splitlines() if l.startswith(("- Participant A ", "- Participant B "))]  # noqa: E731
+        mirror, plain = bullets(client.calls[0]), bullets(client.calls[1])
         assert (len(mirror), mirror) == (2, plain)
 
 
@@ -354,10 +358,13 @@ class TestUnusableReplies:
     def test_too_many_messages(self, fake):
         self.bad(fake, kit.answer(count=8))
 
-    def test_a_reply_that_starts_with_participant_b(self, fake):
-        payload = kit.answer()
-        payload["messages"] = payload["messages"][1:] + payload["messages"][:1]
-        self.bad(fake, payload)
+    def test_a_reply_that_labels_its_authors_does_not_fit_the_schema(self, fake):
+        from moderation.errors import LLMOutputError
+
+        payload = {"messages": [dict(m, author="Participant B") for m in kit.answer()["messages"]]}
+        fake(payload)
+        with pytest.raises(LLMOutputError):
+            gen().generate_base(fact(), "left", session=None)
 
     def test_an_empty_message(self, fake):
         payload = kit.answer()
@@ -383,14 +390,16 @@ class TestEstimate:
         fake(kit.answer())
         estimate = gen().estimate_call_usd(fact(), "left")
         gen().generate_base(fact(), "left", session=None)
-        assert (isinstance(estimate, Decimal), estimate > 0, estimate) == (True, True, kit.ledger()[0].reserved_usd)
+        audit = kit.audit_ledger()[0].reserved_usd
+        assert (isinstance(estimate, Decimal), estimate > 0, estimate >= kit.ledger()[0].reserved_usd + audit) == (True, True, True)
+        assert estimate - audit <= kit.ledger()[0].reserved_usd * 2
 
     def test_it_equals_what_the_gateway_reserves_for_a_mirror_call(self, fake):
         left = kit.base("left")
         fake(kit.answer(side="right"))
         estimate = gen().estimate_call_usd(fact(), "right", left_base=left)
         gen().generate_base(fact(), "right", left_base=left, session=None)
-        assert estimate == kit.ledger()[0].reserved_usd
+        assert (estimate >= kit.ledger()[0].reserved_usd + kit.audit_ledger()[0].reserved_usd, estimate > kit.ledger()[0].reserved_usd) == (True, True)
 
     def test_a_mirror_estimate_is_dearer_than_a_left_one(self):
         assert gen().estimate_call_usd(fact(), "right", left_base=kit.base("left")) > gen().estimate_call_usd(fact(), "left")

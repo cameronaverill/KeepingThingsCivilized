@@ -46,12 +46,15 @@ def _generation_environment(settings, monkeypatch, db, tmp_path):
 
 @pytest.fixture
 def fake():
-    """fake(*script) installs a FakeLLM with that script as the client and returns it."""
+    """fake(*script, audits=None) installs a routed FakeLLM and returns it. `script` answers the generation calls in order;
+    stance-audit calls (output schema AuditOut) are answered from `audits` in order and, when that list is empty or absent, with
+    labels that pass the audit for the side of the base just generated. `client.calls` holds the generation calls only and
+    `client.audit_calls` the audit ones. An audit item is a list of labels, a dict, an exception or a callable."""
+    from gen_kit import RoutedFake
     from moderation import llm
-    from moderation.fake_llm import FakeLLM
 
-    def install(*script):
-        client = FakeLLM(list(script))
+    def install(*script, audits=None):
+        client = RoutedFake(list(script), audits=audits)
         llm.set_client(client)
         return client
 

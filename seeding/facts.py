@@ -25,6 +25,7 @@ class Fact(BaseModel):
     source_note: str
     type: Literal["statistic", "law", "qualitative"]
     owner_verified_true: bool = False
+    subject: str | None = None  # neutral one-line description of what the claim is about (no value, no direction)
     framing: str | None = None  # how the claim is used in the argument; fixes the direction of inflate_favors
     # statistic only
     claim_template: str | None = None
@@ -43,6 +44,8 @@ class Fact(BaseModel):
             raise ValueError("id must be a lowercase slug (a-z, 0-9, _)")
         if not self.claim_true.strip():
             raise ValueError("claim_true must not be empty")
+        if self.subject is not None and not self.subject.strip():
+            raise ValueError("subject, if set, must not be empty")
         if self.framing is not None and not self.framing.strip():
             raise ValueError("framing, if set, must not be empty")
         if self.type == "statistic":

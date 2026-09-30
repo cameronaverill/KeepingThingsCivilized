@@ -12,20 +12,39 @@ argue civilly and equally well; neither insults, mocks or talks down to the othe
 more polite or more persuasive than the other.
 
 HOW TO MIRROR
-- Keep exactly the same number of messages, the same order of authors (Participant A first, Participant B last), the same
-  sequence of moves in the argument (opening, reply, concession, question and so on) and about the same length for every message
-  (each message within about a fifth of the original's length).
-- Give each participant the arguments the other one used, expressed in fresh wording that suits the new position. Do not just
-  swap the names, and do not copy sentences unchanged. Keep the tone, register and level of hedging the same.
+- The two participants TRADE positions. Participant A now argues the side that Participant B argued in the original, and
+  Participant B the side that Participant A argued.
+- Each participant argues ONE side in EVERY message, from the first message to the last. Never let a participant adopt the
+  other side's arguments or conclusion, and never let a participant's later message argue the side of the other participant.
+  A concession is only an acknowledgement (for example that a point is fair, or that the other person cares about something
+  real); it never gives up the participant's own position.
+- Each message keeps the same purpose as in the original: A opens, B rebuts, A pushes back, B closes and ends with the marker.
+  Write everything in entirely new words that suit the new positions; do not reuse sentences or long phrases from the original,
+  and do not just swap names.
+- Write exactly four messages, alternating strictly: Participant A, Participant B, Participant A, Participant B.
+  Give only the text of each message, in order, without speaker labels or names; the speakers are assigned by position.
+- Length: the original messages have these lengths. Each new message must be within 15 percent of the length of the
+  corresponding original message (aim for the same length):
+{{LENGTHS}}
 - The literal marker {{MARKER}} appears exactly once in the original, in Participant B's last message. Keep it exactly once,
-  in Participant B's last message, standing alone as its own full sentence in the same place in the argument. Do not put it
+  in Participant B's last message, standing alone as its own full sentence and ending the message. Do not put it
   inside quotation marks, after a colon, or in the middle of another sentence.
 
 THE FACT BEHIND THE MARKER
-The marker will later be replaced by a sentence that states this kind of fact: {{CLAIM}}
-How that fact is used in the argument: {{FRAMING}}
-If the role suits the other side better, B may treat it as something B accepts and then explains, but the marker sentence itself
-is a plain statement of the fact.
+The marker will later be replaced by one factual sentence about: {{SUBJECT}}. You are not told what it says, so never try to
+state it, guess it or write it out yourself: write only the marker.
+
+NEUTRAL WORDING AROUND THE MARKER
+- Participant B's last message must not contain any of these words at all: widespread, growing, handful,
+  majority, minority, surge, mainstream, fringe, spreading.
+- Do NOT write a lead-in for the marker; one is added automatically. The last message ends with a sentence of the speaker's own
+  argument (no colon, no reference to a number, figure or fact), immediately followed by the marker as the final sentence.
+- Nowhere in the transcript may a message characterise the size, trend or extent of the fact behind the marker: no words such
+  as widespread, growing, handful, majority, minority, surge, mainstream, fringe, spreading, sweeping, small, large, or "that kind of ..."
+  in reference to it. The direction of the argument comes from the speaker's position alone, not from the value.
+- The last message ENDS with the marker sentence: nothing at all follows it (at most a single full stop right after the marker).
+  Do not interpret, explain or comment on the fact anywhere, and add no
+  closing sentence after it.
 
 STRICT RULES ABOUT FACTS
 - Neither participant may state, repeat, hint at or paraphrase the fact behind the marker anywhere except through the marker: no

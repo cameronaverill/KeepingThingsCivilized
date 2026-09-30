@@ -5,7 +5,9 @@ Pure and deterministic: no Django, no network, no randomness. A *base* is a conv
 holds the marker `[[CLAIM]]` where a full sentence starts. Each arm of a fact replaces the marker with one claim (the true one,
 or one false version), so within one side the arms differ in that one sentence and nothing else.
 """
+import difflib
 import json
+import re
 from pathlib import Path
 
 from config import tunables
@@ -13,6 +15,9 @@ from seeding.facts import Fact
 from seeding.seeds import SIDES, Seed, build_seeds
 
 MARKER = "[[CLAIM]]"
+LEAD_IN = "This is the claim I am relying on."
+BANNED_WORDS = ("widespread", "growing", "handful", "majority", "minority", "surge",
+                "mainstream", "fringe", "spreading")
 AUTHORS = ("Participant A", "Participant B")
 DEFAULT_OUTPUT_DIR = Path("generated") / "transcripts"
 
@@ -60,6 +65,12 @@ def validate_base(base: dict) -> None:
             if count != 1:
                 raise BaseError(f"the last message must contain the marker exactly once, not {count} times")
             _check_marker_position(text)
+            tail = text.rstrip()
+            if not (tail.endswith(MARKER) or tail.endswith(MARKER + ".")):
+                raise BaseError("the last message must end with the marker (optionally followed by one full stop)")
+            for word in BANNED_WORDS:
+                if re.search(rf"\b{word}\b", text, re.IGNORECASE):
+                    raise BaseError(f"the last message contains the banned word {word!r}")
     if messages[last]["author"] != AUTHORS[1]:
         raise BaseError("the last message must be by Participant B")
 
@@ -87,6 +98,8 @@ def check_pair(left_base: dict, right_base: dict) -> None:
         la, lb = len(a["text"]), len(b["text"])
         if abs(la - lb) > tolerance * max(la, lb):
             raise BaseError(f"message {a['seq']} differs in length by more than {tolerance:.0%} ({la} vs {lb} characters)")
+        if difflib.SequenceMatcher(None, a["text"], b["text"]).ratio() >= tunables.GENERATOR_MAX_SIMILARITY:
+            raise BaseError(f"message {a['seq']} is too similar in the two bases (a near copy)")
 
 
 def arm_specs(fact: Fact) -> list[dict]:
@@ -132,7 +145,7 @@ def _replace(base, spec):
         planted = []
         if index == last:
             phrase = _claim_text(spec["claim"])
-            text = text.replace(MARKER, phrase)
+            text = text.replace(MARKER, f"{LEAD_IN} {phrase}")
             if spec["seed"] is not None:
                 seed = spec["seed"]
                 planted = [{
@@ -184,7 +197,7 @@ def build_transcripts(fact: Fact, left_base: dict, right_base: dict) -> list[dic
 def _check_diff_invariant(transcripts, claims, bases):
     for transcript, claim in zip(transcripts, claims):
         base = bases[transcript["variant"]]
-        expected = base["messages"][-1]["text"].replace(MARKER, _claim_text(claim))
+        expected = base["messages"][-1]["text"].replace(MARKER, f"{LEAD_IN} {_claim_text(claim)}")
         if transcript["messages"][-1]["text"] != expected:
             raise BaseError(f"{transcript['id']}: the last message is not the base with the marker replaced")
         for mine, original in zip(transcript["messages"][:-1], base["messages"][:-1]):
@@ -192,14 +205,36 @@ def _check_diff_invariant(transcripts, claims, bases):
                 raise BaseError(f"{transcript['id']}: a message other than the last differs from the base")
 
 
-def write_transcripts(transcripts, directory=None, *, overwrite=False) -> list[Path]:
+def _content(transcript):
+    return json.dumps(transcript, indent=2, ensure_ascii=False) + "\n"
+
+
+def classify_transcripts(transcripts, directory=None):
+    """(to_write, unchanged, conflicts): targets that are new, byte-identical to what is on disk, or different from it."""
     directory = Path(directory) if directory is not None else DEFAULT_OUTPUT_DIR
-    paths = [directory / f"{t['id']}.json" for t in transcripts]
-    if not overwrite:
-        existing = [p.name for p in paths if p.exists()]
-        if existing:
-            raise FileExistsError(f"refusing to overwrite {len(existing)} existing file(s), e.g. {existing[0]}; pass overwrite=True")
+    to_write, unchanged, conflicts = [], [], []
+    for transcript in transcripts:
+        path = directory / f"{transcript['id']}.json"
+        if not path.exists():
+            to_write.append(path)
+        elif path.read_bytes() == _content(transcript).encode("utf-8"):
+            unchanged.append(path)
+        else:
+            conflicts.append(path)
+    return to_write, unchanged, conflicts
+
+
+def write_transcripts(transcripts, directory=None, *, overwrite=False) -> list[Path]:
+    """Write `<id>.json` per transcript. A byte-identical existing file is left alone; if an existing file differs and
+    `overwrite` is false nothing at all is written and FileExistsError is raised. Returns every target path."""
+    directory = Path(directory) if directory is not None else DEFAULT_OUTPUT_DIR
+    to_write, _, conflicts = classify_transcripts(transcripts, directory)
+    if conflicts and not overwrite:
+        raise FileExistsError(
+            f"refusing to overwrite {len(conflicts)} existing file(s) with different content, e.g. {conflicts[0].name}; pass overwrite=True")
     directory.mkdir(parents=True, exist_ok=True)
-    for transcript, path in zip(transcripts, paths):
-        path.write_text(json.dumps(transcript, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    return paths
+    for transcript in transcripts:
+        path = directory / f"{transcript['id']}.json"
+        if path in to_write or path in conflicts:
+            path.write_text(_content(transcript), encoding="utf-8")
+    return [directory / f"{t['id']}.json" for t in transcripts]

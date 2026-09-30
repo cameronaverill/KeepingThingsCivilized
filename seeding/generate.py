@@ -17,14 +17,17 @@ from pydantic import BaseModel, ConfigDict
 from config import tunables
 from moderation import budget, llm
 from moderation.errors import BudgetUnavailable, LLMAPIError, LLMDisabled, LLMOutputError, LLMRefused
-from seeding.arms import MARKER, BaseError, build_transcripts, check_pair, validate_base
+from seeding.arms import AUTHORS, MARKER, BaseError, build_transcripts, check_pair, validate_base
 from seeding.facts import Fact
 
 PROMPT_DIR = Path(__file__).parent / "prompts"
 DEFAULT_BASES_DIR = Path("generated") / "bases"
+DEFAULT_REJECTED_DIR = Path("generated") / "rejected"
 PURPOSE = "replay"
 AGENT = "generator"
-PROMPT_VERSIONS = {"generate": "gen_v1", "mirror": "mirror_v1"}
+PROMPT_VERSIONS = {"generate": "gen_v7", "mirror": "mirror_v7"}
+AUDIT_AGENT = "generator_audit"
+AUDIT_PROMPT_VERSION = "audit_v1"
 _PROMPT_FILES = {"generate": "generator_v1.md", "mirror": "mirror_v1.md"}
 _ZERO = Decimal("0")
 
@@ -32,7 +35,6 @@ _ZERO = Decimal("0")
 class MessageOut(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    author: Literal["Participant A", "Participant B"]
     text: str
 
 
@@ -40,6 +42,18 @@ class BaseOut(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     messages: list[MessageOut]
+
+
+class AuditOut(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    labels: list[Literal["pro", "con", "mixed"]]
+
+
+class AuditResult(BaseModel):
+    labels: list[str]
+    passed: bool
+    reason: str | None = None
 
 
 # --- Prompt -----------------------------------------------------------------------------------------------------------
@@ -57,10 +71,16 @@ def _render_left_base(left_base):
     return "\n\n".join(f"{m['author']}: {m['text']}" for m in left_base["messages"])
 
 
+def _render_lengths(left_base):
+    return "\n".join(f"- Message {m['seq']} ({m['author']}): {len(m['text'])} characters" for m in left_base["messages"])
+
+
 def _request(fact, side, left_base=None, conversation_hint=None):
     """The (system, messages, kind) of one generation call. Nothing here names a variant, an arm or a false claim."""
     if side not in ("left", "right"):
         raise ValueError(f"unknown side {side!r}")
+    if not fact.subject:
+        raise ValueError(f"fact {fact.id} has no subject")
     kind = _kind(side, left_base)
     text = (PROMPT_DIR / _PROMPT_FILES[kind]).read_text(encoding="utf-8")
     hint = (f"ADDITIONAL NOTE: {conversation_hint.strip()}\n" if conversation_hint and conversation_hint.strip() else "")
@@ -69,12 +89,12 @@ def _request(fact, side, left_base=None, conversation_hint=None):
         "PROPOSITION": tunables.GENERATOR_TOPIC_PROPOSITION,
         "A_STANCE": _stance_words(side, "Participant A"),
         "B_STANCE": _stance_words(side, "Participant B"),
-        "CLAIM": fact.claim_true.rstrip("."),
-        "FRAMING": fact.framing or "It is a background fact that either side might cite; use it as a supporting point.",
+        "SUBJECT": fact.subject,
         "MIN": str(tunables.GENERATOR_MIN_MESSAGES),
         "MAX": str(tunables.GENERATOR_MAX_MESSAGES),
         "MARKER": MARKER,
         "HINT": hint,
+        "LENGTHS": _render_lengths(left_base) if kind == "mirror" else "",
     }
     for key, value in values.items():
         text = text.replace("{{" + key + "}}", value)
@@ -87,11 +107,56 @@ def _request(fact, side, left_base=None, conversation_hint=None):
 
 # --- One call ---------------------------------------------------------------------------------------------------------
 
-def _to_base(fact, side, parsed):
-    messages = [{"seq": i, "author": m.author, "text": m.text} for i, m in enumerate(parsed.messages, start=1)]
+def _to_base(fact, side, parsed, prompt_version=None):
+    messages = [{"seq": i, "author": AUTHORS[(i - 1) % 2], "text": m.text} for i, m in enumerate(parsed.messages, start=1)]
     base = {"side": side, "fact_id": fact.id, "messages": messages}
-    validate_base(base)
+    if prompt_version:
+        base["prompt_version"] = prompt_version
+    try:
+        validate_base(base)
+    except BaseError as err:
+        err.base = base  # so the caller can keep it for inspection
+        raise
     return base
+
+
+def _audit_max_tokens():
+    return int(getattr(tunables, "GENERATOR_AUDIT_MAX_TOKENS", 300))
+
+
+def _intended(side):
+    return {"Participant A": "con" if side == "left" else "pro", "Participant B": "pro" if side == "left" else "con"}
+
+
+def _audit_request(base):
+    system = (PROMPT_DIR / "audit_v1.md").read_text(encoding="utf-8")
+    system = system.replace("{{TITLE}}", tunables.GENERATOR_TOPIC_TITLE).replace("{{PROPOSITION}}", tunables.GENERATOR_TOPIC_PROPOSITION)
+    body = "\n\n".join(
+        f"Message {m['seq']}: " + m["text"].replace(MARKER, "[factual sentence]") for m in base["messages"])
+    return system, [{"role": "user", "content": body}]
+
+
+def audit_stances(base, side, *, session=None, attempt=1):
+    """Have the model label each message pro/con/mixed; the base passes only if every message has its author's intended
+    stance for this side. Returns (AuditResult, LLMResult)."""
+    system, messages = _audit_request(base)
+    result = llm.call(
+        purpose=PURPOSE, agent=AUDIT_AGENT, model=tunables.GENERATOR_MODEL, system=system, messages=messages,
+        output_schema=AuditOut, max_tokens=_audit_max_tokens(), prompt_version=AUDIT_PROMPT_VERSION,
+        attempt=attempt, temperature=None, session=session,
+    )
+    labels = list(result.parsed.labels)
+    intended = _intended(side)
+    reason = None
+    if len(labels) != len(base["messages"]):
+        reason = f"the stance audit returned {len(labels)} labels for {len(base['messages'])} messages"
+    else:
+        for message, label in zip(base["messages"], labels):
+            if label != intended[message["author"]]:
+                reason = (f"message {message['seq']} by {message['author']} argues '{label}' but must argue "
+                          f"'{intended[message['author']]}' in every message; labels: {', '.join(labels)}")
+                break
+    return AuditResult(labels=labels, passed=reason is None, reason=reason), result
 
 
 def generate_base(fact, side, *, left_base=None, session=None, conversation_hint=None, attempt=1):
@@ -103,7 +168,17 @@ def generate_base(fact, side, *, left_base=None, session=None, conversation_hint
         output_schema=BaseOut, max_tokens=tunables.GENERATOR_MAX_TOKENS, prompt_version=PROMPT_VERSIONS[kind],
         attempt=attempt, temperature=None, session=session,
     )
-    return _to_base(fact, side, result.parsed), result
+    base = _to_base(fact, side, result.parsed, PROMPT_VERSIONS[kind])
+    try:
+        audit, _ = audit_stances(base, side, session=session, attempt=attempt)
+    except LLMOutputError as err:
+        err.base = base
+        raise
+    if not audit.passed:
+        err = BaseError(f"stance audit failed: {audit.reason}")
+        err.base = base
+        raise err
+    return base, result
 
 
 def _stub_left_base(fact):
@@ -120,7 +195,18 @@ def estimate_call_usd(fact, side, left_base=None) -> Decimal:
         left_base = _stub_left_base(fact)
     system, messages, _ = _request(fact, side, left_base)
     tokens = budget.estimate_input_tokens(system=system, messages=messages, schema=BaseOut)
-    return budget.reservation_usd(tunables.GENERATOR_MODEL, estimated_input_tokens=tokens, max_tokens=tunables.GENERATOR_MAX_TOKENS)
+    cost = budget.reservation_usd(tunables.GENERATOR_MODEL, estimated_input_tokens=tokens, max_tokens=tunables.GENERATOR_MAX_TOKENS)
+    return cost + _audit_estimate_usd(fact, side)
+
+
+def _audit_estimate_usd(fact, side):
+    n = tunables.GENERATOR_MAX_MESSAGES
+    chars = int(tunables.GENERATOR_MAX_TOKENS * float(settings.TOKEN_ESTIMATE_CHARS_PER_TOKEN)) // n
+    stub = {"side": side, "fact_id": fact.id,
+            "messages": [{"seq": i, "author": AUTHORS[(i - 1) % 2], "text": "x" * chars} for i in range(1, n + 1)]}
+    system, messages = _audit_request(stub)
+    tokens = budget.estimate_input_tokens(system=system, messages=messages, schema=AuditOut)
+    return budget.reservation_usd(tunables.GENERATOR_MODEL, estimated_input_tokens=tokens, max_tokens=_audit_max_tokens())
 
 
 # --- Plan and run -----------------------------------------------------------------------------------------------------
@@ -133,13 +219,22 @@ class Item:
     worst_case_usd: Decimal
 
 
+def _attempts():
+    return max(1, int(tunables.GENERATOR_MAX_ATTEMPTS))
+
+
+def usable(fact) -> bool:
+    """A fact can be generated for when it is ready and has a subject (the only thing the prompts may say about the claim)."""
+    return fact.ready() and bool(fact.subject and fact.subject.strip())
+
+
 def plan_generation(facts) -> list[Item]:
     items = []
     for fact in facts:
-        if not fact.ready():
+        if not usable(fact):
             continue
-        items.append(Item(fact.id, "left", "generate", estimate_call_usd(fact, "left")))
-        items.append(Item(fact.id, "right", "mirror", estimate_call_usd(fact, "right")))
+        items.append(Item(fact.id, "left", "generate", estimate_call_usd(fact, "left") * _attempts()))
+        items.append(Item(fact.id, "right", "mirror", estimate_call_usd(fact, "right") * _attempts()))
     return items
 
 
@@ -188,6 +283,7 @@ class _Runner:
         self.max_usd = max_usd
         self.session = session
         self.bases_dir = Path(bases_dir) if bases_dir is not None else DEFAULT_BASES_DIR
+        self.rejected_dir = (self.bases_dir.parent / "rejected") if bases_dir is not None else DEFAULT_REJECTED_DIR
         self.overwrite = overwrite
         self.on_result = on_result
         self.baseline = budget.spend(purposes=(PURPOSE,))
@@ -204,6 +300,8 @@ class _Runner:
             return None
         base = json.loads(path.read_text(encoding="utf-8"))
         validate_base(base)
+        if base.get("prompt_version") != PROMPT_VERSIONS["generate" if side == "left" else "mirror"]:
+            return None  # written by an older prompt: regenerate
         if base["fact_id"] != fact.id or base["side"] != side:
             raise BaseError(f"{path.name} is not the {side} base of {fact.id}")
         self.report.bases_reused += 1
@@ -212,6 +310,18 @@ class _Runner:
     def save(self, fact, base):
         self.bases_dir.mkdir(parents=True, exist_ok=True)
         self.path(fact, base["side"]).write_text(json.dumps(base, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    def reject(self, fact, side, base):
+        """Keep a base that failed validation or the pair check for inspection; it is never reused."""
+        if base is None:
+            return
+        directory = self.rejected_dir
+        directory.mkdir(parents=True, exist_ok=True)
+        n = 1
+        while (directory / f"{fact.id}_{side}_{n}.json").exists():
+            n += 1
+        (directory / f"{fact.id}_{side}_{n}.json").write_text(
+            json.dumps(base, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     def call_once(self, fact, side, left_base, attempt, hint):
         if not settings.LLM_ENABLED or not settings.ANTHROPIC_API_KEY:
@@ -239,12 +349,18 @@ class _Runner:
         return base
 
     def with_retry(self, fact, side, left_base=None, hint=None):
-        """Call, and on an unusable reply call once more (attempt=2). Raises BaseError/LLMOutputError if both fail."""
-        try:
-            return self.call_once(fact, side, left_base, 1, hint)
-        except (BaseError, LLMOutputError) as first:
-            retry_hint = hint or (str(first) if isinstance(first, BaseError) else None)
-            return self.call_once(fact, side, left_base, 2, retry_hint)
+        """Call up to GENERATOR_MAX_ATTEMPTS times; after an unusable reply the next call carries the specific refusal reason
+        as its hint. Raises the last BaseError/LLMOutputError if every attempt fails."""
+        attempts = max(1, int(tunables.GENERATOR_MAX_ATTEMPTS))
+        for attempt in range(1, attempts + 1):
+            try:
+                return self.call_once(fact, side, left_base, attempt, hint)
+            except (BaseError, LLMOutputError) as err:
+                self.reject(fact, side, getattr(err, "base", None))
+                if attempt == attempts:
+                    raise
+                reason = str(err) if isinstance(err, BaseError) else (err.reason or "the previous reply was unusable")
+                hint = f"The previous attempt was refused: {reason}."
 
     def do_fact(self, fact):
         left = self.load(fact, "left")
@@ -252,14 +368,23 @@ class _Runner:
             left = self.with_retry(fact, "left")
             self.save(fact, left)
         right = self.load(fact, "right")
+        if right is not None:
+            try:
+                check_pair(left, right)
+            except BaseError:
+                right = None  # a saved right base that no longer matches the left one is regenerated, not reused
         if right is None:
             right = self.with_retry(fact, "right", left)
-            self.save(fact, right)
-        try:
-            check_pair(left, right)
-        except BaseError as err:
-            right = self.with_retry(fact, "right", left, hint=f"The mirrored version did not match the original: {err}.")
-            check_pair(left, right)
+            try:
+                check_pair(left, right)
+            except BaseError as err:
+                self.reject(fact, "right", right)
+                right = self.with_retry(fact, "right", left, hint=f"The mirrored version did not match the original: {err}.")
+                try:
+                    check_pair(left, right)
+                except BaseError:
+                    self.reject(fact, "right", right)
+                    raise
             self.save(fact, right)
         return build_transcripts(fact, left, right)
 
@@ -276,7 +401,7 @@ def run_generation(facts, *, max_usd, session=None, bases_dir=None, overwrite=Fa
     report = runner.report
     ready = []
     for fact in facts:
-        if fact.ready():
+        if usable(fact):
             ready.append(fact)
         else:
             report.skipped_not_ready.append(fact.id)

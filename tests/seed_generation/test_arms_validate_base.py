@@ -18,8 +18,17 @@ def base_error():
 
 
 class TestAValidBase:
+    def test_exactly_four_messages_pass(self):
+        assert check(kit.base(count=4)) is None
+
+    def test_the_shipped_range_is_exactly_four(self):
+        from config import tunables
+
+        assert (tunables.GENERATOR_MIN_MESSAGES, tunables.GENERATOR_MAX_MESSAGES) == (4, 4)
+
     @pytest.mark.parametrize("count", [4, 6])
-    def test_the_limits_of_the_count_range_pass(self, count):
+    def test_the_limits_of_a_widened_range_pass(self, count, tune):
+        tune(GENERATOR_MIN_MESSAGES=4, GENERATOR_MAX_MESSAGES=6)
         assert check(kit.base(count=count)) is None
 
     @pytest.mark.parametrize("side", ["left", "right"])
@@ -47,7 +56,7 @@ class TestMessageCount:
         with pytest.raises(base_error()):
             check(kit.base(count=count))
 
-    @pytest.mark.parametrize("count", [7, 8])
+    @pytest.mark.parametrize("count", [5, 6, 7, 8])
     def test_above_the_maximum_is_refused(self, count):
         with pytest.raises(base_error()):
             check(kit.base(count=count))
@@ -143,13 +152,13 @@ class TestMarkerStartsASentence:
 
     @pytest.mark.parametrize("text", [
         "[[CLAIM]].",
-        "[[CLAIM]]. Then more words.",
         "Words here. [[CLAIM]].",
         "Words here.[[CLAIM]].",
         "Words here.    [[CLAIM]].",
         "Is that so? [[CLAIM]].",
         "Look at this! [[CLAIM]].",
-        "Two sentences. Then more! [[CLAIM]]. And a last one.",
+        "Two sentences. Then more! [[CLAIM]].",
+        "Two sentences. Then more! [[CLAIM]]",
     ])
     def test_a_marker_at_a_sentence_start_passes(self, text):
         assert check(kit.with_message(kit.base(), 3, text=text)) is None
@@ -222,3 +231,72 @@ class TestDigitAtTheEdges:
     def test_a_digit_as_the_first_character_of_a_message_is_refused(self):
         with pytest.raises(base_error()):
             check(kit.with_message(kit.base(), 0, text="7 was the number that came to mind."))
+
+
+class TestMarkerEndsTheMessage:
+    """Ruling after run 3: nothing follows the marker except, optionally, one full stop (trailing whitespace is ignored)."""
+
+    @pytest.mark.parametrize("text", ["Words. [[CLAIM]]", "Words. [[CLAIM]].", "Words. [[CLAIM]].  ", "Words. [[CLAIM]]\n", "[[CLAIM]]"])
+    def test_a_message_ending_with_the_marker_passes(self, text):
+        assert check(kit.with_message(kit.base(), 3, text=text)) is None
+
+    @pytest.mark.parametrize("text", [
+        "Words. [[CLAIM]]. More words.",
+        "Words. [[CLAIM]] and more",
+        "Words. [[CLAIM]]..",
+        "Words. [[CLAIM]]!",
+        "Words. [[CLAIM]]?",
+        "Words. [[CLAIM]]. .",
+        "Words. [[CLAIM]].\nNext line.",
+        "Words. [[CLAIM]],",
+    ])
+    def test_anything_after_the_marker_is_refused(self, text):
+        with pytest.raises(base_error()):
+            check(kit.with_message(kit.base(), 3, text=text))
+
+
+BANNED = ["widespread", "growing", "handful", "majority", "minority", "surge", "mainstream", "fringe", "spreading"]
+
+
+class TestBannedWordsInTheLastMessage:
+    def test_the_constant_lists_the_nine_words(self):
+        from seeding import arms
+
+        assert sorted(arms.BANNED_WORDS) == sorted(BANNED)
+
+    @pytest.mark.parametrize("word", BANNED)
+    def test_each_word_is_refused(self, word):
+        with pytest.raises(base_error()):
+            check(kit.with_message(kit.base(), 3, text=f"I hold that it is {word} here. [[CLAIM]]."))
+
+    @pytest.mark.parametrize("word", BANNED)
+    def test_each_word_is_refused_in_capitals(self, word):
+        with pytest.raises(base_error()):
+            check(kit.with_message(kit.base(), 3, text=f"I hold that it is {word.upper()} here. [[CLAIM]]."))
+
+    @pytest.mark.parametrize("word", BANNED)
+    def test_each_word_is_refused_at_the_start_with_a_capital_and_punctuation(self, word):
+        with pytest.raises(base_error()):
+            check(kit.with_message(kit.base(), 3, text=f"{word.capitalize()}, I hold this view. [[CLAIM]]."))
+
+    @pytest.mark.parametrize("word", BANNED)
+    def test_a_word_that_merely_contains_it_passes(self, word):
+        assert check(kit.with_message(kit.base(), 3, text=f"I hold that {word}ish and un{word} things differ. [[CLAIM]].")) is None
+
+    @pytest.mark.parametrize("word", BANNED)
+    def test_the_words_are_allowed_in_earlier_messages(self, word):
+        assert check(kit.with_message(kit.base(), 1, text=f"Some say that {word} people agree, and I disagree with them.")) is None
+
+    def test_a_banned_word_hyphenated_still_counts_as_a_word(self):
+        with pytest.raises(base_error()):
+            check(kit.with_message(kit.base(), 3, text="This is a widespread-ish view. [[CLAIM]]."))
+
+    @pytest.mark.parametrize("word", ["most", "many", "only", "few"])
+    def test_removed_words_are_no_longer_banned(self, word):
+        assert check(kit.with_message(kit.base(), 3, text=f"I think {word} people would weigh this carefully. [[CLAIM]].")) is None
+
+    @pytest.mark.parametrize("word", ["most", "many", "only", "few", "Only", "FEW"])
+    def test_removed_words_are_not_in_the_constant(self, word):
+        from seeding import arms
+
+        assert word.lower() not in arms.BANNED_WORDS
