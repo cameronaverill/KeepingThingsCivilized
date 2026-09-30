@@ -217,11 +217,28 @@ def imported_roots(path):
 
 class TestPurity:
     def test_package_files_exist(self):
-        assert [p.name for p in py_files() if p.parent == PKG] == ["__init__.py", "facts.py", "review.py", "seeds.py"]
+        assert [p.name for p in py_files() if p.parent == PKG] == [
+            "__init__.py", "arms.py", "facts.py", "generate.py", "review.py", "seeds.py",
+        ]
 
-    def test_no_forbidden_imports_anywhere(self):
-        found = {p.name: sorted(set(imported_roots(p)) & FORBIDDEN) for p in py_files()}
+    def test_prompt_files_are_the_step_12_ones(self):
+        assert sorted(p.name for p in (PKG / "prompts").glob("*")) == ["generator_v1.md", "mirror_v1.md"]
+
+    def test_no_forbidden_imports_anywhere_but_the_generator(self):
+        # Only seeding/generate.py may reach django/moderation (the gateway); everything else in seeding/ stays pure.
+        found = {p.name: sorted(set(imported_roots(p)) & FORBIDDEN) for p in py_files() if p.name != "generate.py"}
         assert {k: v for k, v in found.items() if v} == {}
+
+    def test_arms_is_pure(self):
+        assert sorted(set(imported_roots(PKG / "arms.py")) & FORBIDDEN) == []
+
+    def test_generate_may_use_only_django_and_moderation_of_the_forbidden_roots(self):
+        # No provider library and no network module: the gateway (moderation.llm) is the only way to a model.
+        allowed = {"django", "moderation"}
+        assert sorted((set(imported_roots(PKG / "generate.py")) & FORBIDDEN) - allowed) == []
+
+    def test_generate_imports_anthropic_nowhere(self):
+        assert "anthropic" not in imported_roots(PKG / "generate.py")
 
     def test_importing_does_not_load_django_or_anthropic(self):
         import subprocess

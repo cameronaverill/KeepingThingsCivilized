@@ -247,6 +247,20 @@ REPLAY_MESSAGE_GAP_SECONDS = 90
 # Inflating multiplies the true value by the factor, deflating divides by it, so the two directions are exact mirrors.
 SEED_LEVEL_FACTORS = {1: 1.10, 2: 1.50, 3: 3.00}
 
+# Conversation generator (step 12): the model, the longest reply in tokens, and the message count of a generated base
+# conversation. The last message is the one that states the claim. Corresponding messages of the left and right base
+# may differ in length by at most this fraction (of the longer one).
+GENERATOR_MODEL = "claude-sonnet-5"
+GENERATOR_MAX_TOKENS = 2500
+GENERATOR_MIN_MESSAGES = 4
+GENERATOR_MAX_MESSAGES = 6
+GENERATOR_LENGTH_TOLERANCE = 0.25
+
+# Every generated conversation uses this one neutral topic (the left-coded side is the "pro" side). It is the same
+# title and proposition as the existing sanctuary pairs in golden/transcripts/.
+GENERATOR_TOPIC_TITLE = "Sanctuary cities"
+GENERATOR_TOPIC_PROPOSITION = "Cities should limit their local police's cooperation with federal immigration enforcement."
+
 # In the admin, the most characters shown of an LLM call's request, raw response and parsed output (lists never show them).
 ADMIN_RAW_DISPLAY_CHARS = 5000
 
