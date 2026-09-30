@@ -212,3 +212,13 @@ class TestNoDigitsInABase:
 
         with pytest.raises(arms.BaseError):
             kit.transcripts(kit.range_fact(), kit.base("left"), kit.with_message(kit.base("right"), 0, text="The first turn of the right conversation has 2 things " + "thing " * 20))
+
+
+class TestDigitAtTheEdges:
+    def test_a_digit_as_the_last_character_of_a_message_is_refused(self):
+        with pytest.raises(base_error()):
+            check(kit.with_message(kit.base(), 1, text="This message ends with a digit 7"))
+
+    def test_a_digit_as_the_first_character_of_a_message_is_refused(self):
+        with pytest.raises(base_error()):
+            check(kit.with_message(kit.base(), 0, text="7 was the number that came to mind."))

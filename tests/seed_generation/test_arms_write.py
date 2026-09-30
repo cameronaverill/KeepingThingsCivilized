@@ -135,3 +135,27 @@ class TestShippedFacts:
     def test_every_error_arm_phrase_differs_from_the_true_claim(self):
         bad = [t["id"] for t in self.build_all() if t["seed"]["arm"] != "true" and t["messages"][-1]["planted"][0]["phrase"] == t["messages"][-1]["planted"][0]["correction"].rstrip(".")]
         assert bad == []
+
+
+class TestDefaultDirectoryAndAtomicity:
+    """conftest runs every test in its own empty working directory, so the default `generated/transcripts` lands there."""
+
+    def test_the_default_directory_is_generated_transcripts_and_is_created(self, tmp_path):
+        items = kit.transcripts()[:2]
+        paths = write(items, None)
+        assert (kit.files_under(tmp_path / "generated" / "transcripts"), [p.parent.name for p in paths]) == (
+            sorted(f"{t['id']}.json" for t in items), ["transcripts", "transcripts"],
+        )
+
+    def test_the_directory_argument_may_be_left_out(self, tmp_path):
+        from seeding import arms
+
+        arms.write_transcripts(kit.transcripts()[:1])
+        assert kit.files_under(tmp_path / "generated" / "transcripts") == [f"{kit.transcripts()[0]['id']}.json"]
+
+    def test_one_existing_file_stops_the_whole_write(self, tmp_path):
+        items = kit.transcripts()
+        (tmp_path / f"{items[2]['id']}.json").write_text("old", encoding="utf-8")
+        with pytest.raises((FileExistsError, ValueError)):
+            write(items, tmp_path)
+        assert kit.files_under(tmp_path) == [f"{items[2]['id']}.json"]

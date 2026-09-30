@@ -39,6 +39,14 @@ class TestSameFactAndShape:
         with pytest.raises(base_error()):
             check(kit.base("left", count=4), kit.base("right", count=6))
 
+    def test_a_different_message_count_is_refused_even_when_the_shared_messages_match_in_length(self):
+        with pytest.raises(base_error()):
+            check(kit.with_lengths("left", [200] * 4), kit.with_lengths("right", [200] * 6))
+
+    def test_a_different_message_count_is_refused_the_other_way_round(self):
+        with pytest.raises(base_error()):
+            check(kit.with_lengths("left", [200] * 6), kit.with_lengths("right", [200] * 4))
+
 
 class TestEachBaseIsValid:
     def test_an_invalid_left_base_is_refused(self):

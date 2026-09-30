@@ -175,6 +175,11 @@ class TestMessages:
         result = kit.by_id(kit.transcripts(fact))
         assert result["range_fact_left_true"]["messages"][-1]["text"] == "I have thought about this. Between 500 and 560 things exist. That matters to me."
 
+    def test_only_full_stops_are_stripped_not_spaces(self):
+        fact = kit.range_fact(claim_true="Between 500 and 560 things exist. ")
+        result = kit.by_id(kit.transcripts(fact))
+        assert result["range_fact_left_true"]["messages"][-1]["text"] == "I have thought about this. Between 500 and 560 things exist. . That matters to me."
+
     def test_a_law_error_claim_is_inserted_as_written(self):
         _, _, _, result = law_run()
         assert result["law_fact_left_err"]["messages"][-1]["text"] == "I have thought about this. Officers must always hold anyone asked. That matters to me."
@@ -284,6 +289,12 @@ class TestChecksBeforeBuilding:
     def test_a_not_ready_fact_is_refused(self):
         with pytest.raises(ValueError):
             kit.transcripts(kit.unready_fact(), *kit.pair("unready_fact"))
+
+    def test_bases_of_another_fact_than_the_one_given_are_refused(self):
+        from seeding import arms
+
+        with pytest.raises(arms.BaseError):
+            kit.transcripts(kit.range_fact(), *kit.pair("some_other_fact"))
 
 
 class TestPurity:
