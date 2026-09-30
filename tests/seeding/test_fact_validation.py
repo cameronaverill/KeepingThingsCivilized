@@ -23,8 +23,11 @@ class TestValidFacts:
         assert kit.stat(max_value=100).max_value == 100
 
     def test_error_claims_with_only_one_side_ok(self):
-        f = kit.nonstat(error_claims={"left": kit.claims()["left"]})
-        assert list(f.error_claims) == ["left"]
+        f = kit.nonstat(error_claims={"left": "only left"})
+        assert f.error_claims == {"left": "only left"}
+
+    def test_error_claims_one_string_per_side_ok(self):
+        assert kit.nonstat(error_claims=kit.claims()).error_claims == {"left": "claim left", "right": "claim right"}
 
     def test_level_overrides_for_subset_of_levels_ok(self):
         f = kit.stat(level_overrides={2: {"inflate": [150.0]}})
@@ -138,6 +141,36 @@ class TestStatisticRules:
             kit.stat(level_overrides={1: {"sideways": [150.0]}})
 
 
+class TestFraming:
+    def test_defaults_to_none(self):
+        assert kit.stat().framing is None
+
+    @pytest.mark.parametrize("make", [kit.stat, kit.nonstat])
+    def test_accepted_on_any_fact_type(self, make):
+        assert make(framing="Cited to argue Y").framing == "Cited to argue Y"
+
+    def test_accepted_on_qualitative(self):
+        assert kit.nonstat("qualitative", framing="f").framing == "f"
+
+    @pytest.mark.parametrize("bad", ["", "   ", "\n"])
+    @pytest.mark.parametrize("make", [kit.stat, kit.nonstat])
+    def test_empty_framing_rejected(self, make, bad):
+        with pytest.raises(ValidationError):
+            make(framing=bad)
+
+    def test_non_string_framing_rejected(self):
+        with pytest.raises(ValidationError):
+            kit.stat(framing=5)
+
+    def test_framing_does_not_affect_ready(self):
+        assert (kit.ready_stat(framing="f").ready(), kit.stat(framing="f").ready()) == (True, False)
+
+    def test_framing_does_not_change_seeds(self):
+        from seeding.seeds import build_seeds
+
+        assert build_seeds(kit.ready_range(framing="f")) == build_seeds(kit.ready_range())
+
+
 class TestNonStatisticRules:
     @pytest.mark.parametrize("kind", ["law", "qualitative"])
     @pytest.mark.parametrize(
@@ -155,23 +188,19 @@ class TestNonStatisticRules:
         with pytest.raises(ValidationError):
             kit.nonstat(kind, **{field: value})
 
-    @pytest.mark.parametrize("side", ["left", "right"])
-    @pytest.mark.parametrize("missing", [1, 2, 3])
-    def test_error_claims_missing_a_level_rejected(self, side, missing):
-        ec = kit.claims()
-        del ec[side][missing]
+    def test_old_level_keyed_error_claims_rejected(self):
+        old = {side: {1: "a", 2: "b", 3: "c"} for side in ("left", "right")}
         with pytest.raises(ValidationError):
-            kit.nonstat(error_claims=ec)
+            kit.nonstat(error_claims=old)
 
-    def test_error_claims_extra_level_rejected(self):
-        ec = kit.claims()
-        ec["left"][4] = "extra"
+    @pytest.mark.parametrize("bad", [5, None, ["x"], {"1": "x"}])
+    def test_non_string_error_claim_rejected(self, bad):
         with pytest.raises(ValidationError):
-            kit.nonstat(error_claims=ec)
+            kit.nonstat(error_claims={"left": bad, "right": "ok"})
 
     def test_error_claims_unknown_side_rejected(self):
         with pytest.raises(ValidationError):
-            kit.nonstat(error_claims={"center": kit.claims()["left"]})
+            kit.nonstat(error_claims={"center": "x"})
 
 
 class TestReady:
@@ -208,14 +237,13 @@ class TestReady:
 
     @pytest.mark.parametrize("side", ["left", "right"])
     def test_only_one_side_of_error_claims_not_ready(self, side):
-        ec = {side: kit.claims()[side]}
-        assert kit.ready_nonstat(error_claims=ec).ready() is False
+        assert kit.ready_nonstat(error_claims={side: "text"}).ready() is False
 
     @pytest.mark.parametrize("side", ["left", "right"])
-    @pytest.mark.parametrize("level", [1, 2, 3])
-    def test_empty_error_claim_text_not_ready(self, side, level):
+    @pytest.mark.parametrize("blank", ["", "   "])
+    def test_blank_error_claim_not_ready(self, side, blank):
         ec = kit.claims()
-        ec[side][level] = ""
+        ec[side] = blank
         assert kit.ready_nonstat(error_claims=ec).ready() is False
 
     def test_verified_alone_does_not_make_non_statistic_ready(self):

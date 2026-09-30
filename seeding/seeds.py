@@ -23,7 +23,7 @@ class SeedError(ValueError):
 class Seed(BaseModel):
     fact_id: str
     side: Literal["left", "right"]
-    level: int
+    level: int | None
     direction: Literal["inflate", "deflate"] | None
     false_claim: str
     false_values: list[float] | None
@@ -73,21 +73,35 @@ def format_value(x: float, integer: bool) -> str:
     return text[:-2] if text.endswith(".0") else text
 
 
-def build_seeds(fact: Fact) -> list[Seed]:
-    if not fact.ready():
-        raise SeedError(f"fact {fact.id} is not ready")
+def _check_complete(fact: Fact) -> None:
+    if fact.type == "statistic":
+        if fact.inflate_favors is None:
+            raise SeedError(f"fact {fact.id}: inflate_favors not set")
+        return
+    claims = fact.error_claims or {}
+    for side in SIDES:
+        if not claims.get(side, "").strip():
+            raise SeedError(f"fact {fact.id}: error claim missing for {side}")
+
+
+def build_seeds(fact: Fact, require_ready: bool = True) -> list[Seed]:
+    if require_ready:
+        if not fact.ready():
+            raise SeedError(f"fact {fact.id} is not ready")
+    else:
+        _check_complete(fact)
     seeds = []
     for side in SIDES:
+        if fact.type != "statistic":
+            seeds.append(Seed(fact_id=fact.id, side=side, level=None, direction=None,
+                              false_claim=fact.error_claims[side], false_values=None))
+            continue
         for level in LEVELS:
-            if fact.type == "statistic":
-                direction = direction_for_side(fact, side)
-                values = seeded_values(fact, direction, level)
-                fills = {f"v{i}": format_value(v, fact.integer) for i, v in enumerate(values)}
-                claim = fact.claim_template.format(**fills)
-            else:
-                direction, values, claim = None, None, fact.error_claims[side][level]
+            direction = direction_for_side(fact, side)
+            values = seeded_values(fact, direction, level)
+            fills = {f"v{i}": format_value(v, fact.integer) for i, v in enumerate(values)}
             seeds.append(Seed(fact_id=fact.id, side=side, level=level, direction=direction,
-                              false_claim=claim, false_values=values))
+                              false_claim=fact.claim_template.format(**fills), false_values=values))
     return seeds
 
 

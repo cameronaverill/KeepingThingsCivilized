@@ -13,6 +13,62 @@ ROOT = Path(__file__).resolve().parents[2]
 RUBRIC = ROOT / "rubrics" / "factual_tag_v1.md"
 
 
+DRAFT = "Draft seeds (not ready)"
+
+
+class TestReviewDraftSeeds:
+    def test_unverified_statistic_with_inflate_favors_shows_draft_table(self):
+        out = review_markdown([kit.stat(inflate_favors="left", claim_template="About {v0} zed")])
+        assert (DRAFT in out, "| Side |" in out, "About 110 zed" in out, "About 90.9 zed" in out) == (True,) * 4
+
+    def test_draft_table_comes_after_missing_list(self):
+        out = review_markdown([kit.stat(inflate_favors="left")])
+        assert out.index("Missing:") < out.index(DRAFT) < out.index("| Side |")
+
+    def test_unapproved_non_statistic_with_full_claims_shows_draft_table(self):
+        out = review_markdown([kit.nonstat(owner_verified_true=True, error_claims=kit.claims())])
+        assert (DRAFT in out, "claim left" in out, "claim right" in out, "mirrors not approved" in out.lower()) == (True,) * 4
+
+    def test_non_statistic_draft_table_has_two_rows_with_dash_level(self):
+        out = review_markdown([kit.nonstat(error_claims=kit.claims())])
+        assert out.count("\n| left |") + out.count("\n| right |") == 2
+        assert ("| left | - | - | claim left |" in out, "| right | - | - | claim right |" in out) == (True, True)
+
+    def test_statistic_table_has_six_rows_with_numeric_levels(self):
+        out = review_markdown([kit.ready_range()])
+        assert out.count("\n| left |") + out.count("\n| right |") == 6
+        assert ("| left | 1 | inflate |" in out, "| right | 3 | deflate |" in out) == (True, True)
+
+    def test_no_draft_table_when_statistic_cannot_build(self):
+        out = review_markdown([kit.stat()])
+        assert (DRAFT in out, "| Side |" in out) == (False, False)
+
+    def test_no_draft_table_when_non_statistic_has_no_claims(self):
+        out = review_markdown([kit.nonstat(owner_verified_true=True)])
+        assert (DRAFT in out, "| Side |" in out) == (False, False)
+
+    def test_no_draft_table_when_one_side_only(self):
+        out = review_markdown([kit.nonstat(error_claims={"left": "only left"})])
+        assert DRAFT not in out
+
+    def test_ready_fact_has_normal_table_without_draft_label(self):
+        out = review_markdown([kit.ready_range()])
+        assert (DRAFT in out, "| Side |" in out) == (False, True)
+
+    def test_draft_label_only_for_the_not_ready_fact(self):
+        out = review_markdown([kit.ready_range(), kit.stat(inflate_favors="left")])
+        assert out.count(DRAFT) == 1
+
+    def test_not_ready_statistic_whose_seeds_fail_does_not_raise_or_show_table(self):
+        out = review_markdown([kit.stat(inflate_favors="left", true_values=[60], max_value=100)])
+        assert (DRAFT in out, "stat_fact" in out) == (False, True)
+
+    def test_shipped_non_statistics_show_draft_seeds(self):
+        facts = load_facts()
+        out = review_markdown([f for f in facts if f.type != "statistic"])
+        assert (out.count("| Side |"), "Seeds cannot be built" in out) == (2, False)
+
+
 class TestReview:
     def test_returns_string(self):
         assert isinstance(review_markdown([kit.ready_range()]), str)
@@ -33,7 +89,7 @@ class TestReview:
 
     def test_ready_non_statistic_shows_claims(self):
         out = review_markdown([kit.ready_nonstat("qualitative")])
-        assert ("claim left 1" in out, "claim right 3" in out, "qualitative_fact" in out) == (True,) * 3
+        assert ("claim left" in out, "claim right" in out, "qualitative_fact" in out) == (True,) * 3
 
     def test_one_section_per_fact_all_ids_present(self):
         out = review_markdown([kit.ready_range(), kit.ready_nonstat("law"), kit.stat(id="third")])
@@ -77,10 +133,23 @@ class TestReview:
     def test_shipped_facts_review_lists_all_ids(self):
         facts = load_facts()
         out = review_markdown(facts)
-        assert [f.id in out for f in facts] == [True] * 8
+        assert [f.id in out for f in facts] == [True] * len(facts)
 
-    def test_shipped_facts_all_report_missing_verification(self):
-        assert review_markdown(load_facts()).lower().count("owner has not verified") >= 8
+    def test_framing_line_printed_when_set(self):
+        out = review_markdown([kit.stat(framing="Used to argue X")])
+        assert "Framing: Used to argue X" in out
+
+    def test_no_framing_line_when_unset(self):
+        assert "Framing:" not in review_markdown([kit.stat(), kit.ready_range(), kit.nonstat()])
+
+    def test_framing_printed_for_ready_and_non_statistic_facts(self):
+        out = review_markdown([kit.ready_range(framing="F-ready"), kit.nonstat("law", framing="F-law")])
+        assert ("Framing: F-ready" in out, "Framing: F-law" in out) == (True, True)
+
+    def test_shipped_split_entries_show_their_framing(self):
+        facts = load_facts()
+        out = review_markdown(facts)
+        assert [f"Framing: {f.framing}" in out for f in facts[:8]] == [True] * 8
 
     def test_empty_list_does_not_raise(self):
         assert isinstance(review_markdown([]), str)

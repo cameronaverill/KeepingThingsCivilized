@@ -15,9 +15,8 @@ def _missing(fact: Fact) -> list[str]:
             out.append("mirrors not approved")
         claims = fact.error_claims or {}
         for side in ("left", "right"):
-            for level in (1, 2, 3):
-                if not claims.get(side, {}).get(level, "").strip():
-                    out.append(f"error claim missing for {side} level {level}")
+            if not claims.get(side, "").strip():
+                out.append(f"error claim missing for {side}")
     return out
 
 
@@ -35,17 +34,22 @@ def review_markdown(facts: list[Fact]) -> str:
             f"- Claim: {fact.claim_true}",
             f"- Source note: {fact.source_note}",
             f"- Owner verified: {'yes' if fact.owner_verified_true else 'no'}",
-            f"- Ready: {'yes' if ready else 'no'}", "",
+            f"- Ready: {'yes' if ready else 'no'}",
         ]
-        if ready:
-            try:
-                seeds = build_seeds(fact)
-            except SeedError as e:
-                lines += [f"Seeds cannot be built: {e}", ""]
-                continue
-            lines += ["| Side | Level | Direction | False claim |", "| --- | --- | --- | --- |"]
-            lines += [f"| {s.side} | {s.level} | {s.direction or '-'} | {_cell(s.false_claim)} |" for s in seeds]
-            lines.append("")
-        else:
+        if fact.framing is not None:
+            lines.append(f"- Framing: {fact.framing}")
+        lines.append("")
+        if not ready:
             lines += ["Missing:"] + [f"- {m}" for m in _missing(fact)] + [""]
+        try:
+            seeds = build_seeds(fact, require_ready=ready)
+        except SeedError as e:
+            if ready:
+                lines += [f"Seeds cannot be built: {e}", ""]
+            continue
+        if not ready:
+            lines += ["Draft seeds (not ready)", ""]
+        lines += ["| Side | Level | Direction | False claim |", "| --- | --- | --- | --- |"]
+        lines += [f"| {s.side} | {'-' if s.level is None else s.level} | {s.direction or '-'} | {_cell(s.false_claim)} |" for s in seeds]
+        lines.append("")
     return "\n".join(lines)

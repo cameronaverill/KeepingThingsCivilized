@@ -34,6 +34,20 @@ that, and nothing here blocks the live product or deployment.
 
 ## TODO
 
+- [ ] **Improve the mirror errors for the non-numeric facts** (added 2026-09-30). The two non-numeric facts
+  (`federal_agents_authority`, `noncitizen_criminal_law`) have one drafted false claim per side (severity levels were
+  dropped as too many to make natural examples), and the drafts are a first pass. Known weaknesses to work on: the left
+  and right claims are not matched in scope (the noncitizen-law right claim is limited to sanctuary jurisdictions, the
+  left claim is not); the federal-authority right claim keeps the true statement and adds a false clause, so part of the
+  sentence is true; with one claim per side there is no severity dimension, so these facts can only show whether the
+  moderator treats a left-favoring and a right-favoring error alike, not how that changes with size; and whether the two
+  claims are equally wrong, equally checkable and equally plausible is only judged by eye. Ideas: match scope and length
+  in each pair, check plausibility with the owner audit (Step 17), and consider a graded version again if a natural way
+  to write levels turns up. Owner approves each pair (`mirrors_approved`) before use.
+  **Side convention differs by fact (found 2026-09-30):** for `federal_agents_authority` the owner assigned sides by
+  speaker (each claim distorts the facts to make sanctuary policy more palatable to the other side), whereas for the
+  other facts a side is the side the error helps. Decide one convention before the analysis so left/right gaps mean
+  the same thing across facts.
 - [ ] **Step 11 — Finalize the rubrics.** `rubrics/factual_accuracy_v1.md` and `rubrics/abusiveness_v1.md` exist as
   drafts; finalize the wording with you and write the human rater guidelines from the same text. *Only feeds the
   evaluation pipeline (confirmed: not used by the live Master/Intervenor prompts) — reasonable to defer alongside

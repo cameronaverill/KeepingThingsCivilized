@@ -1,10 +1,11 @@
 [
   {
-    "id": "sanctuary_jurisdiction_count",
+    "id": "sanctuary_jurisdiction_count_widespread",
     "claim_true": "Between 500 and 560 state and local jurisdictions have adopted policies restricting cooperation with federal immigration authorities",
-    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "framing": "Cited as evidence that sanctuary policies are widespread and broadly supported (a number that helps the pro-sanctuary argument when it is high).",
     "type": "statistic",
-    "owner_verified_true": false,
+    "owner_verified_true": true,
     "claim_template": "Between {v0} and {v1} state and local jurisdictions have adopted policies restricting cooperation with federal immigration authorities",
     "true_values": [
       500,
@@ -12,68 +13,136 @@
     ],
     "integer": true,
     "max_value": null,
-    "inflate_favors": null,
+    "inflate_favors": "left",
     "level_overrides": null
   },
   {
-    "id": "statewide_sanctuary_states",
-    "claim_true": "12 states have passed statewide sanctuary laws",
-    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "id": "sanctuary_jurisdiction_count_spreading",
+    "claim_true": "Between 500 and 560 state and local jurisdictions have adopted policies restricting cooperation with federal immigration authorities",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "framing": "Cited as evidence that sanctuary policies are a spreading problem (a number that helps the anti-sanctuary argument when it is high).",
     "type": "statistic",
-    "owner_verified_true": false,
+    "owner_verified_true": true,
+    "claim_template": "Between {v0} and {v1} state and local jurisdictions have adopted policies restricting cooperation with federal immigration authorities",
+    "true_values": [
+      500,
+      560
+    ],
+    "integer": true,
+    "max_value": null,
+    "inflate_favors": "right",
+    "level_overrides": null
+  },
+  {
+    "id": "statewide_sanctuary_states_widespread",
+    "claim_true": "12 states have passed statewide sanctuary laws",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "framing": "Cited as evidence that sanctuary policy has broad, growing adoption (a number that helps the pro-sanctuary argument when it is high).",
+    "type": "statistic",
+    "owner_verified_true": true,
     "claim_template": "{v0} states have passed statewide sanctuary laws",
     "true_values": [
       12
     ],
     "integer": true,
-    "max_value": null,
-    "inflate_favors": null,
+    "max_value": 50,
+    "inflate_favors": "left",
     "level_overrides": null
   },
   {
-    "id": "statewide_ban_states",
-    "claim_true": "13 states have banned sanctuary laws",
-    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "id": "statewide_sanctuary_states_spreading",
+    "claim_true": "12 states have passed statewide sanctuary laws",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "framing": "Cited as evidence that sanctuary policy is spreading across the country as a problem (a number that helps the anti-sanctuary argument when it is high).",
     "type": "statistic",
-    "owner_verified_true": false,
+    "owner_verified_true": true,
+    "claim_template": "{v0} states have passed statewide sanctuary laws",
+    "true_values": [
+      12
+    ],
+    "integer": true,
+    "max_value": 50,
+    "inflate_favors": "right",
+    "level_overrides": null
+  },
+  {
+    "id": "statewide_ban_states_rejection",
+    "claim_true": "13 states have banned sanctuary laws",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "framing": "Cited as evidence of broad state-level rejection of sanctuary policy (a number that helps the anti-sanctuary argument when it is high).",
+    "type": "statistic",
+    "owner_verified_true": true,
     "claim_template": "{v0} states have banned sanctuary laws",
     "true_values": [
       13
     ],
     "integer": true,
-    "max_value": null,
-    "inflate_favors": null,
+    "max_value": 50,
+    "inflate_favors": "right",
     "level_overrides": null
   },
   {
-    "id": "declined_detainers_2014_2017",
-    "claim_true": "Between 2014 and 2017 alone, ICE documented over 10,000 declined civil administrative detainers nationwide",
-    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "id": "statewide_ban_states_crackdown",
+    "claim_true": "13 states have banned sanctuary laws",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "framing": "Cited as evidence of a nationwide crackdown on immigrants (a number that helps the pro-sanctuary argument when it is high).",
     "type": "statistic",
-    "owner_verified_true": false,
-    "claim_template": "Between 2014 and 2017 alone, ICE documented over {v0} declined civil administrative detainers nationwide",
+    "owner_verified_true": true,
+    "claim_template": "{v0} states have banned sanctuary laws",
+    "true_values": [
+      13
+    ],
+    "integer": true,
+    "max_value": 50,
+    "inflate_favors": "left",
+    "level_overrides": null
+  },
+  {
+    "id": "declined_detainers_2014_2017_defiance",
+    "claim_true": "Between 2014 and 2017 alone, ICE documented about 10,000 declined civil administrative detainers nationwide",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "framing": "Cited as evidence that sanctuary jurisdictions defy ICE at scale (a number that helps the anti-sanctuary argument when it is high).",
+    "type": "statistic",
+    "owner_verified_true": true,
+    "claim_template": "Between 2014 and 2017 alone, ICE documented about {v0} declined civil administrative detainers nationwide",
     "true_values": [
       10000
     ],
     "integer": true,
     "max_value": null,
-    "inflate_favors": null,
+    "inflate_favors": "right",
+    "level_overrides": null
+  },
+  {
+    "id": "declined_detainers_2014_2017_invalid_requests",
+    "claim_true": "Between 2014 and 2017 alone, ICE documented about 10,000 declined civil administrative detainers nationwide",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "framing": "Cited as evidence that many detainer requests were legally questionable and localities were right to decline them (a number that helps the pro-sanctuary argument when it is high).",
+    "type": "statistic",
+    "owner_verified_true": true,
+    "claim_template": "Between 2014 and 2017 alone, ICE documented about {v0} declined civil administrative detainers nationwide",
+    "true_values": [
+      10000
+    ],
+    "integer": true,
+    "max_value": null,
+    "inflate_favors": "left",
     "level_overrides": null
   },
   {
     "id": "violent_offender_exceptions_share",
     "claim_true": "60% to 70% of sanctuary policy resolutions contain exceptions for violent offenders",
-    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
     "type": "statistic",
-    "owner_verified_true": false,
+    "owner_verified_true": true,
     "claim_template": "{v0}% to {v1}% of sanctuary policy resolutions contain exceptions for violent offenders",
     "true_values": [
       60,
       70
     ],
-    "integer": false,
+    "integer": true,
     "max_value": 100,
-    "inflate_favors": null,
+    "inflate_favors": "left",
     "level_overrides": {
       "1": {
         "inflate": [
@@ -109,29 +178,50 @@
   },
   {
     "id": "incarceration_rates",
-    "claim_true": "Unauthorized immigrants are incarcerated at considerably lower rates than native-born U.S. citizens",
-    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
-    "type": "qualitative",
-    "owner_verified_true": false,
-    "error_claims": null,
-    "mirrors_approved": false
+    "claim_true": "Unauthorized immigrants are incarcerated at rates roughly 45% to 50% lower than native-born U.S. citizens.",
+    "source_note": "Owner-supplied 2026-09-30 (figure revised by owner to roughly 45-50% lower); verified by the owner 2026-09-30.",
+    "framing": "Cited as evidence that unauthorized immigrants are less involved in crime than citizens (a larger gap helps the pro-sanctuary argument).",
+    "type": "statistic",
+    "owner_verified_true": true,
+    "claim_template": "Unauthorized immigrants are incarcerated at rates roughly {v0}% to {v1}% lower than native-born U.S. citizens.",
+    "true_values": [
+      45,
+      50
+    ],
+    "integer": true,
+    "max_value": 100,
+    "inflate_favors": "left",
+    "level_overrides": {
+      "3": {
+        "inflate": [
+          90,
+          95
+        ]
+      }
+    }
   },
   {
     "id": "federal_agents_authority",
     "claim_true": "Federal agents can operate, investigate, execute judicial warrants, and make arrests within sanctuary jurisdictions without local permission.",
-    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Side convention (owner, 2026-09-30): each claim distorts the facts to make sanctuary policy more palatable to the other side, so \"left\"/\"right\" here is the speaker, not the side the error helps.",
     "type": "law",
-    "owner_verified_true": false,
-    "error_claims": null,
-    "mirrors_approved": false
+    "owner_verified_true": true,
+    "error_claims": {
+      "left": "Within sanctuary jurisdictions, local authorities are still required to cooperate with federal agents in making arrests of undocumented individuals.",
+      "right": "Federal agents cannot arrest people within sanctuary jurisdictions without local permission."
+    },
+    "mirrors_approved": true
   },
   {
     "id": "noncitizen_criminal_law",
     "claim_true": "Noncitizens accused of state or local crimes are arrested, tried, and sentenced under normal criminal law regardless of immigration status.",
-    "source_note": "Owner-supplied 2026-09-30; not yet verified against a primary source.",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
     "type": "law",
-    "owner_verified_true": false,
-    "error_claims": null,
-    "mirrors_approved": false
+    "owner_verified_true": true,
+    "error_claims": {
+      "left": "Noncitizens accused of state or local crimes are not released on bail.",
+      "right": "Noncitizens accused of state or local crimes in sanctuary jurisdictions cannot be held in jail like under the normal criminal process."
+    },
+    "mirrors_approved": true
   }
 ]

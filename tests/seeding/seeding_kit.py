@@ -55,7 +55,7 @@ def ready_range(**over):
 
 
 def claims(prefix="claim"):
-    return {side: {lvl: f"{prefix} {side} {lvl}" for lvl in LEVELS} for side in ("left", "right")}
+    return {side: f"{prefix} {side}" for side in ("left", "right")}
 
 
 def nonstat_kwargs(kind="law", **over):

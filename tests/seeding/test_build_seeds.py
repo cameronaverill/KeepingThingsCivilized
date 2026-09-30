@@ -6,6 +6,9 @@ from seeding.seeds import Seed, SeedError, build_arms, build_seeds
 ORDER = [("left", 1), ("left", 2), ("left", 3), ("right", 1), ("right", 2), ("right", 3)]
 
 
+NS_ORDER = [("left", None), ("right", None)]
+
+
 def key(seed):
     return (seed.side, seed.level)
 
@@ -120,31 +123,90 @@ class TestNotReady:
             build_arms(kit.stat())
 
 
+class TestRequireReadyFalse:
+    def test_unverified_statistic_builds_draft(self):
+        f = kit.stat(inflate_favors="left")
+        assert [key(s) for s in build_seeds(f, require_ready=False)] == ORDER
+
+    def test_draft_equals_ready_build_for_same_content(self):
+        assert build_seeds(kit.stat(inflate_favors="left"), require_ready=False) == build_seeds(kit.ready_stat())
+
+    def test_statistic_without_inflate_favors_raises(self):
+        with pytest.raises(SeedError):
+            build_seeds(kit.stat(owner_verified_true=True), require_ready=False)
+
+    @pytest.mark.parametrize("kind", ["law", "qualitative"])
+    def test_unapproved_unverified_non_statistic_builds_draft(self, kind):
+        f = kit.nonstat(kind, error_claims=kit.claims())
+        seeds = build_seeds(f, require_ready=False)
+        assert ([key(s) for s in seeds], [s.direction for s in seeds]) == (NS_ORDER, [None] * 2)
+
+    def test_non_statistic_draft_claims_come_from_error_claims(self):
+        f = kit.nonstat(error_claims=kit.claims())
+        assert [x.false_claim for x in build_seeds(f, require_ready=False)] == ["claim left", "claim right"]
+
+    def test_non_statistic_without_error_claims_raises(self):
+        with pytest.raises(SeedError):
+            build_seeds(kit.nonstat(), require_ready=False)
+
+    @pytest.mark.parametrize("side", ["left", "right"])
+    def test_non_statistic_missing_a_side_raises(self, side):
+        with pytest.raises(SeedError):
+            build_seeds(kit.nonstat(error_claims={side: "text"}), require_ready=False)
+
+    @pytest.mark.parametrize("side", ["left", "right"])
+    def test_non_statistic_empty_claim_raises(self, side):
+        ec = kit.claims()
+        ec[side] = ""
+        with pytest.raises(SeedError):
+            build_seeds(kit.nonstat(error_claims=ec), require_ready=False)
+
+    def test_require_ready_true_explicit_still_raises_when_not_ready(self):
+        with pytest.raises(SeedError):
+            build_seeds(kit.stat(inflate_favors="left"), require_ready=True)
+
+    def test_default_still_requires_ready(self):
+        with pytest.raises(SeedError):
+            build_seeds(kit.nonstat(error_claims=kit.claims()))
+
+    def test_ready_fact_same_either_way(self):
+        f = kit.ready_range()
+        assert build_seeds(f, require_ready=False) == build_seeds(f)
+
+    def test_statistic_seed_error_still_propagates(self):
+        with pytest.raises(SeedError):
+            build_seeds(kit.stat(inflate_favors="left", true_values=[60], max_value=100), require_ready=False)
+
+
 class TestNonStatisticSeeds:
     @pytest.mark.parametrize("kind", ["law", "qualitative"])
-    def test_six_seeds_in_order(self, kind):
-        assert [key(s) for s in build_seeds(kit.ready_nonstat(kind))] == ORDER
+    def test_two_seeds_left_then_right_with_no_level(self, kind):
+        assert [key(s) for s in build_seeds(kit.ready_nonstat(kind))] == NS_ORDER
 
     def test_claims_come_from_error_claims(self):
-        seeds = build_seeds(kit.ready_nonstat())
-        assert [s.false_claim for s in seeds] == [
-            "claim left 1", "claim left 2", "claim left 3", "claim right 1", "claim right 2", "claim right 3"]
+        assert [s.false_claim for s in build_seeds(kit.ready_nonstat())] == ["claim left", "claim right"]
 
     def test_direction_and_values_are_none(self):
         seeds = build_seeds(kit.ready_nonstat())
-        assert [(s.direction, s.false_values) for s in seeds] == [(None, None)] * 6
+        assert [(s.direction, s.false_values) for s in seeds] == [(None, None)] * 2
+
+    def test_seed_level_is_none_and_statistic_level_is_int(self):
+        assert ([s.level for s in build_seeds(kit.ready_nonstat())], [s.level for s in build_seeds(kit.ready_stat())]) == (
+            [None, None], [1, 2, 3, 1, 2, 3])
 
     def test_fact_id_carried(self):
         assert {s.fact_id for s in build_seeds(kit.ready_nonstat("qualitative"))} == {"qualitative_fact"}
 
-    def test_each_side_level_maps_to_its_own_text(self):
-        ec = {"left": {1: "L1", 2: "L2", 3: "L3"}, "right": {1: "R1", 2: "R2", 3: "R3"}}
-        assert [s.false_claim for s in build_seeds(kit.ready_nonstat(error_claims=ec))] == [
-            "L1", "L2", "L3", "R1", "R2", "R3"]
+    def test_each_side_maps_to_its_own_text(self):
+        f = kit.ready_nonstat(error_claims={"right": "R", "left": "L"})
+        assert [s.false_claim for s in build_seeds(f)] == ["L", "R"]
 
     def test_deterministic(self):
         f = kit.ready_nonstat()
         assert build_seeds(f) == build_seeds(f)
+
+    def test_seed_model_accepts_level_none(self):
+        assert Seed(fact_id="x", side="left", level=None, direction=None, false_claim="c", false_values=None).level is None
 
 
 class TestBuildArms:
@@ -160,4 +222,4 @@ class TestBuildArms:
 
     def test_non_statistic_arms(self):
         arms = build_arms(kit.ready_nonstat())
-        assert (arms["true"], len(arms["seeds"])) == ("The true claim", 6)
+        assert (arms["true"], len(arms["seeds"])) == ("The true claim", 2)

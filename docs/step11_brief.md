@@ -92,3 +92,11 @@ tests should have caught.
 - The `max_value`, equals-true and increasing-range checks in `seeded_values` apply to `level_overrides` values too.
 - Integer rounding applies to override values as well. An empty-string error claim is accepted by validation and makes the fact not ready.
 - The rubric uses plain lines (`0 = ...`), not backticked tags.
+
+## Change 2026-09-30 (owner): one error per side for non-numeric facts
+Severity levels apply to statistics only. For `law` and `qualitative` facts, `error_claims` is now
+`dict[Literal["left","right"], str]` (one non-empty false claim per side, no levels). `Fact.ready()` for a non-statistic:
+verified, `mirrors_approved`, and both sides present and non-empty. `Seed.level` becomes `int | None`, `None` for
+non-statistic seeds. `build_seeds` returns 2 seeds (left, right) for a non-statistic, 6 for a statistic. `build_arms` unchanged
+in shape. `review_markdown` shows "-" in the Level column for a non-statistic seed. `require_ready=False` needs both sides present.
+Statistic seeds are unchanged (6, three levels).

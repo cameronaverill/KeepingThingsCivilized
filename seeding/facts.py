@@ -25,6 +25,7 @@ class Fact(BaseModel):
     source_note: str
     type: Literal["statistic", "law", "qualitative"]
     owner_verified_true: bool = False
+    framing: str | None = None  # how the claim is used in the argument; fixes the direction of inflate_favors
     # statistic only
     claim_template: str | None = None
     true_values: list[float] | None = None
@@ -33,7 +34,7 @@ class Fact(BaseModel):
     inflate_favors: Side | None = None
     level_overrides: dict[int, dict[Literal["inflate", "deflate"], list[float]]] | None = None
     # law and qualitative only
-    error_claims: dict[Side, dict[int, str]] | None = None
+    error_claims: dict[Side, str] | None = None
     mirrors_approved: bool = False
 
     @model_validator(mode="after")
@@ -42,6 +43,8 @@ class Fact(BaseModel):
             raise ValueError("id must be a lowercase slug (a-z, 0-9, _)")
         if not self.claim_true.strip():
             raise ValueError("claim_true must not be empty")
+        if self.framing is not None and not self.framing.strip():
+            raise ValueError("framing, if set, must not be empty")
         if self.type == "statistic":
             self._check_statistic()
         else:
@@ -74,9 +77,6 @@ class Fact(BaseModel):
                 or self.max_value is not None or self.inflate_favors is not None
                 or self.level_overrides is not None):
             raise ValueError("only a statistic may set statistic fields")
-        for side_claims in (self.error_claims or {}).values():
-            if set(side_claims) != _LEVELS:
-                raise ValueError("error_claims must cover exactly levels 1, 2 and 3 for each side")
 
     def ready(self) -> bool:
         if not self.owner_verified_true:
@@ -85,10 +85,7 @@ class Fact(BaseModel):
             return self.inflate_favors is not None
         if not self.mirrors_approved or not self.error_claims:
             return False
-        return all(
-            side in self.error_claims and all(self.error_claims[side].get(lv, "").strip() for lv in _LEVELS)
-            for side in ("left", "right")
-        )
+        return all(self.error_claims.get(side, "").strip() for side in ("left", "right"))
 
 
 def load_facts(path=None) -> list[Fact]:
