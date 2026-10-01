@@ -51,7 +51,8 @@ SPIKE_MODEL = "claude-haiku-4-5"
 MASTER_MAX_TOKENS = 1500
 
 # Longest reply (in tokens) the Intervenor may produce. Re-tuned after the prompt spike (step 3).
-INTERVENOR_MAX_TOKENS = 1000
+# Raised from 1000 to 2000 (2026-10-01): a live run due for the agree/disagree note failed with unparseable (probably truncated) output.
+INTERVENOR_MAX_TOKENS = 2000
 
 # Model that turns an offer_research act into a sourced, web-search-backed note (step 20b).
 # Same tier as Master/Intervenor (owner decision).

@@ -190,6 +190,11 @@ def _run_agents(conversation, participant, text, snapshot_seq, now, call_ids):
     result = agents.call_intervenor(
         stand_in, transcript, topic=topic, valid_issues=views, discussion_map=master.discussion_map
     )
+    # The agree/disagree note is never part of a preview (owner decision, 2026-10-01), even if the model writes one; dropping it
+    # here also keeps it out of the stored output that a later live run may reuse.
+    result = result.model_copy(
+        update={"acts": [a for a in result.acts if a.type != "identify_agreement_disagreement"]}
+    )
     labels = set(Participant.objects.filter(conversation_id=conversation.pk).values_list("label", flat=True))
     act_verdicts = pipeline.validate_acts(
         result,
