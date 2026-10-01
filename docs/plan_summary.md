@@ -35,7 +35,7 @@ Simpler and more precise: start from owner-verified facts, seed graded errors, g
 - **Measured:** whether and how the moderator intervened (mechanical: word count, act category, severity), plus one LLM judge tagging each seeded error 0 (missed) / 1 (spotted, not corrected) / 2 (wrong correction) / 3 (correct correction) / N/A, and counting unseeded errors it flagged.
 - **Compared:** rates by side at matched severity, false positives on the true arm, and the left/right paired difference.
 - **Controls:** a deliberately biased moderator must be detected; replicates measure the noise floor.
-- **Retired:** abusiveness rating, the two-judge panel, span consensus, and the human calibration set. **Future work:** a human panel to calibrate severity, score how appropriate interventions are, and spot-check the judge.
+- **Retired and removed from the code (cleanup 1, 2026-10-01):** abusiveness rating, the two-judge panel, span consensus, and the human calibration set. **Future work:** a human panel to calibrate severity, score how appropriate interventions are, and spot-check the judge.
 - **Budget:** $25 for evaluation planned (still $10 in `config/tunables.py` until you confirm the Console spend limit).
 - The old golden transcripts and mechanical series stay as scaffolding for the replay machinery, unaudited.
 

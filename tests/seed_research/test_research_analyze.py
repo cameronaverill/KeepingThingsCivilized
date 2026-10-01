@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-import research_kit as kit
+import seed_research_kit as kit
 
 row = kit.row
 

@@ -190,7 +190,7 @@ def _stub_left_base(fact):
 
 
 def estimate_call_usd(fact, side, left_base=None) -> Decimal:
-    """Worst-case cost of one generation call, exactly what `llm.call` reserves (see evaluation.llm_rater.estimate_call_usd)."""
+    """Worst-case cost of one generation call, exactly what `llm.call` reserves."""
     if side == "right" and left_base is None:
         left_base = _stub_left_base(fact)
     system, messages, _ = _request(fact, side, left_base)

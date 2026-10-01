@@ -93,7 +93,7 @@ def test_a_moderator_post_never_creates_a_run_by_itself():
 
 # --- the ledger has no foreign keys ------------------------------------------------------------------------------------------------
 def test_llmcall_has_no_relations_of_its_own():
-    """The ledger points at nothing (its ids are plain). Other tables may point at it (evaluation.Rating.llm_call), which
+    """The ledger points at nothing (its ids are plain). Other tables may point at it, which
     shows up as a reverse, auto-created relation and is not a column of the ledger."""
     from moderation.models import LLMCall
 

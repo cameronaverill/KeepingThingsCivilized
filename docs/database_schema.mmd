@@ -211,118 +211,11 @@ erDiagram
         text mode
         datetime assigned_at
     }
-    Annotation {
-        id id
-        text target_type
-        PositiveBigIntegerField target_id
-        text dimension
-        text value
-        text source
-        ForeignKey rating
-        float confidence
-        datetime created_at
-    }
-    CalibrationItem {
-        id id
-        text target_type
-        PositiveBigIntegerField target_id
-        ForeignKey set
-        text stratum
-        int order
-    }
-    CalibrationSet {
-        id id
-        text name
-        int seed
-        json strata
-        datetime created_at
-    }
-    ConsensusFinding {
-        id id
-        text target_type
-        PositiveBigIntegerField target_id
-        ForeignKey panel
-        text dimension
-        int start
-        int end
-        int n_raters
-        float intensity_mean
-        int intensity_range
-        bool needs_adjudication
-        int adjudicated_intensity
-        ForeignKey adjudicated_by
-    }
-    ConsensusFindingMember {
-        id id
-        ForeignKey consensus_finding
-        ForeignKey finding
-    }
-    Finding {
-        id id
-        ForeignKey rating
-        text local_id
-        text dimension
-        int start
-        int end
-        text quote
-        int intensity
-        text not_scorable_reason
-        float confidence
-        json detail
-    }
-    IssueFindingLink {
-        id id
-        ForeignKey issue
-        ForeignKey consensus_finding
-        float overlap
-    }
-    Panel {
-        id id
-        text name
-        text version
-        json dimensions
-        float span_match_min_iou
-        int intensity_disagreement_threshold
-        datetime created_at
-    }
-    PanelMember {
-        id id
-        ForeignKey panel
-        ForeignKey rater
-    }
-    Rater {
-        id id
-        text name
-        text kind
-        text provider
-        text model
-        float temperature
-        ForeignKey user
-        bool active
-    }
-    Rating {
-        id id
-        text target_type
-        PositiveBigIntegerField target_id
-        ForeignKey rater
-        json dimensions
-        int replicate
-        int llm_call_id
-        text guideline_version
-        text status
-        datetime started_at
-        datetime finished_at
-    }
-    CalibrationSet ||--o{ CalibrationItem : "set"
-    ConsensusFinding ||--o{ ConsensusFindingMember : "consensus_finding"
-    ConsensusFinding ||--o{ IssueFindingLink : "consensus_finding"
     Conversation ||--o{ Message : "conversation"
     Conversation ||--o{ ModerationRun : "conversation"
     Conversation ||--o{ Participant : "conversation"
     Experiment ||--o{ Conversation : "experiment"
-    Finding ||--o{ ConsensusFindingMember : "finding"
     Issue ||--o{ IssueDisposition : "issue"
-    Issue ||--o{ IssueFindingLink : "issue"
     Message ||--o{ Issue : "message"
     Message ||--o{ Message : "in_reply_to"
     Message ||--o{ ModerationRun : "posted_message"
@@ -330,18 +223,10 @@ erDiagram
     ModerationRun ||--o{ InterventionAct : "run"
     ModerationRun ||--o{ Issue : "run"
     ModerationRun ||--o{ ModerationRun : "replay_of"
-    Panel ||--o{ ConsensusFinding : "panel"
-    Panel ||--o{ PanelMember : "panel"
     Participant ||--o{ Conversation : "ended_by"
     Participant ||--o{ Message : "participant"
-    Rater ||--o{ PanelMember : "rater"
-    Rater ||--o{ Rating : "rater"
-    Rating ||--o{ Annotation : "rating"
-    Rating ||--o{ Finding : "rating"
     Topic ||--o{ Conversation : "topic"
     User ||--o{ Block : "blocked"
     User ||--o{ Block : "blocker"
-    User ||--o{ ConsensusFinding : "adjudicated_by"
     User ||--o{ Participant : "user"
-    User ||--o{ Rater : "user"
     User ||--o{ Topic : "created_by"

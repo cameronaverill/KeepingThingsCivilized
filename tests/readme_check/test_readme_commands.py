@@ -9,7 +9,7 @@ import readme_kit
 
 # The project's own commands (moderation/, forum/, evaluation/); the README must mention each one.
 PROJECT_COMMANDS = [
-    "run_moderator", "replay", "export_conversation", "export_all", "seed_topics", "seed_panel", "run_raters",
+    "run_moderator", "replay", "export_conversation", "export_all", "seed_topics",
     "budget", "reset_breaker", "spike", "generate_conversations", "judge_responses", "summarize_pilot",
     "run_research_eval", "judge_research", "summarize_research",
 ]
