@@ -169,7 +169,7 @@ Constraints:
 | id | INTEGER | no | primary key |
 | run_id | bigint | no | foreign key to moderation.ModerationRun (on delete PROTECT); indexed |
 | order | integer unsigned | no |  |
-| act_type | varchar(40) | no | one of: provide_information, correct_factual_error, improve_argumentation, clarify_argument, restate_positions, identify_agreement_disagreement, request_information, request_clarification, enforce_conduct, enforce_process; max 40 characters |
+| act_type | varchar(40) | no | one of: provide_information, correct_factual_error, improve_argumentation, clarify_argument, restate_positions, identify_agreement_disagreement, request_information, request_clarification, enforce_conduct, enforce_process, offer_research; max 40 characters |
 | tone | varchar(10) | no | one of: gentle, neutral, firm; max 10 characters |
 | text | TEXT | no |  |
 | addressee | varchar(3) | no | max 3 characters |
@@ -205,6 +205,7 @@ Constraints:
 | intensity | smallint unsigned | yes |  |
 | validity | varchar(10) | no | one of: valid, rejected; default 'valid'; max 10 characters |
 | rejection_reason | TEXT | no | default '' |
+| needs_verification | bool | no | default False |
 
 Constraints:
 - `issue_unique_local_id_per_run` (unique): run, local_id
@@ -265,9 +266,11 @@ Extra indexes:
 | conversation_id | bigint | no | foreign key to forum.Conversation (on delete PROTECT); indexed |
 | trigger_message_id | bigint | no | foreign key to forum.Message (on delete PROTECT); indexed |
 | snapshot_seq | integer unsigned | no |  |
-| kind | varchar(10) | no | one of: live, replay; default 'live'; max 10 characters |
+| kind | varchar(10) | no | one of: live, replay, research; default 'live'; max 10 characters |
 | replay_of_id | bigint | yes | foreign key to moderation.ModerationRun (on delete PROTECT); indexed |
 | replicate | INTEGER | no | default 1 |
+| source_act_id | bigint | yes | foreign key to moderation.InterventionAct (on delete PROTECT); indexed |
+| requested_by_id | bigint | yes | foreign key to forum.Participant (on delete PROTECT); indexed |
 | status | varchar(20) | no | one of: pending, running, done, failed, skipped_budget, skipped_disabled; default 'pending'; max 20 characters |
 | attempts | INTEGER | no | default 0 |
 | is_stale | bool | no | default False |
@@ -288,6 +291,7 @@ Constraints:
 - `moderationrun_replay_never_posts` (check): (OR: (NOT (AND: ('kind', 'replay'))), ('posted_message__isnull', True))
 - `moderationrun_attempts_nonnegative` (check): (AND: ('attempts__gte', 0))
 - `moderationrun_replicate_positive` (check): (AND: ('replicate__gte', 1))
+- `moderationrun_one_research_per_act` (unique): source_act only when (AND: ('kind', 'research'))
 
 Database triggers (rules the database itself enforces):
 - `moderation_run_posted_must_be_moderator_insert` on INSERT: moderation run posted_message must be a moderator message
@@ -300,8 +304,8 @@ Database triggers (rules the database itself enforces):
 | column | SQLite type | null | notes |
 |---|---|---|---|
 | id | INTEGER | no | primary key |
-| conversation | INTEGER | no | indexed |
-| participant | INTEGER | no |  |
+| conversation_id | bigint | no | foreign key to forum.Conversation (on delete PROTECT); indexed |
+| participant_id | bigint | no | foreign key to forum.Participant (on delete PROTECT); indexed |
 | draft_text | TEXT | no |  |
 | char_count | integer unsigned | no |  |
 | draft_sha256 | varchar(64) | no | max 64 characters |
@@ -314,8 +318,8 @@ Database triggers (rules the database itself enforces):
 | intervenor_output | TEXT | yes |  |
 | llm_call_ids | TEXT | no | default list() |
 | action | varchar(20) | no | one of: , posted_as_written, edited, abandoned; default ''; max 20 characters |
-| resulting_message_id | INTEGER | yes |  |
-| reused_by_run_id | INTEGER | yes |  |
+| resulting_message_id | bigint | yes | foreign key to forum.Message (on delete PROTECT); indexed |
+| reused_by_run_id | bigint | yes | foreign key to moderation.ModerationRun (on delete PROTECT); indexed |
 | created_at | datetime | no | default _now(); indexed |
 | resolved_at | datetime | yes |  |
 
@@ -334,235 +338,10 @@ Extra indexes:
 | column | SQLite type | null | notes |
 |---|---|---|---|
 | id | INTEGER | no | primary key |
-| conversation | INTEGER | no | unique |
+| conversation_id | bigint | no | foreign key to forum.Conversation (on delete PROTECT); unique |
 | mode | varchar(3) | no | one of: on, off; max 3 characters |
 | assigned_at | datetime | no | default _now() |
 
 Constraints:
 - `previewmode_mode_valid` (check): (AND: ('mode__in', ('on', 'off')))
-
-## Annotation  (`evaluation_annotation`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| target_type | varchar(20) | no | one of: message, intervention_act; max 20 characters |
-| target_id | bigint unsigned | no |  |
-| dimension | varchar(50) | no | max 50 characters |
-| value | varchar(200) | no | max 200 characters |
-| source | varchar(110) | no | max 110 characters |
-| rating_id | bigint | yes | foreign key to evaluation.Rating (on delete PROTECT); indexed |
-| confidence | REAL | yes |  |
-| created_at | datetime | no |  |
-
-Constraints:
-- `evaluation_annotation_target_type_valid` (check): (AND: ('target_type__in', ['message', 'intervention_act']))
-- `evaluation_annotation_source_valid` (check): (OR: ('source', 'self'), (AND: ('source__startswith', 'rater:'), (NOT (AND: ('source', 'rater:')))))
-
-Extra indexes:
-- `evaluation_annot_target_idx`: target_type, target_id
-
-Database triggers (rules the database itself enforces):
-- `evaluation_annotation_target_insert` on INSERT: the target does not exist
-- `evaluation_annotation_target_update` on UPDATE: the target does not exist
-
-## CalibrationItem  (`evaluation_calibrationitem`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| target_type | varchar(20) | no | one of: message, intervention_act; max 20 characters |
-| target_id | bigint unsigned | no |  |
-| set_id | bigint | no | foreign key to evaluation.CalibrationSet (on delete PROTECT); indexed |
-| stratum | varchar(100) | no | default ''; max 100 characters |
-| order | integer unsigned | no | default 0 |
-
-Constraints:
-- `evaluation_calibrationitem_target_type_valid` (check): (AND: ('target_type__in', ['message', 'intervention_act']))
-- `evaluation_calibrationitem_unique` (unique): set, target_type, target_id
-
-Database triggers (rules the database itself enforces):
-- `evaluation_calibrationitem_target_insert` on INSERT: the target does not exist
-- `evaluation_calibrationitem_target_update` on UPDATE: the target does not exist
-
-## CalibrationSet  (`evaluation_calibrationset`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| name | varchar(100) | no | unique; max 100 characters |
-| seed | bigint | no |  |
-| strata | TEXT | no | default dict() |
-| created_at | datetime | no |  |
-
-## ConsensusFinding  (`evaluation_consensusfinding`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| target_type | varchar(20) | no | one of: message, intervention_act; max 20 characters |
-| target_id | bigint unsigned | no |  |
-| panel_id | bigint | no | foreign key to evaluation.Panel (on delete PROTECT); indexed |
-| dimension | varchar(50) | no | max 50 characters |
-| start | integer unsigned | no |  |
-| end | integer unsigned | no |  |
-| n_raters | smallint unsigned | no |  |
-| intensity_mean | REAL | yes |  |
-| intensity_range | smallint unsigned | yes |  |
-| needs_adjudication | bool | no | default False |
-| adjudicated_intensity | smallint unsigned | yes |  |
-| adjudicated_by_id | bigint | yes | foreign key to accounts.User (on delete PROTECT); indexed |
-
-Constraints:
-- `evaluation_consensusfinding_target_type_valid` (check): (AND: ('target_type__in', ['message', 'intervention_act']))
-- `evaluation_consensusfinding_span` (check): (AND: ('end__gt', F(start)), ('start__gte', 0))
-- `evaluation_consensusfinding_n_raters_positive` (check): (AND: ('n_raters__gte', 1))
-- `evaluation_consensusfinding_mean_range` (check): (OR: ('intensity_mean__isnull', True), (AND: ('intensity_mean__gte', 0), ('intensity_mean__lte', 4)))
-- `evaluation_consensusfinding_range_range` (check): (OR: ('intensity_range__isnull', True), (AND: ('intensity_range__gte', 0), ('intensity_range__lte', 4)))
-- `evaluation_consensusfinding_adjudicated_range` (check): (OR: ('adjudicated_intensity__isnull', True), (AND: ('adjudicated_intensity__gte', 0), ('adjudicated_intensity__lte', 4)))
-
-Extra indexes:
-- `evaluation_cf_target_idx`: target_type, target_id
-
-Database triggers (rules the database itself enforces):
-- `evaluation_consensusfinding_span_insert` on INSERT: the consensus span is outside the target text
-- `evaluation_consensusfinding_span_update` on UPDATE: the consensus span is outside the target text
-- `evaluation_consensusfinding_target_insert` on INSERT: the target does not exist
-- `evaluation_consensusfinding_target_update` on UPDATE: the target does not exist
-
-## ConsensusFindingMember  (`evaluation_consensusfindingmember`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| consensus_finding_id | bigint | no | foreign key to evaluation.ConsensusFinding (on delete PROTECT); indexed |
-| finding_id | bigint | no | foreign key to evaluation.Finding (on delete PROTECT); indexed |
-
-Constraints:
-- `evaluation_consensusmember_unique` (unique): consensus_finding, finding
-
-Database triggers (rules the database itself enforces):
-- `evaluation_consensusmember_insert` on INSERT: a merged finding must share the consensus finding dimension and target
-- `evaluation_consensusmember_update` on UPDATE: a merged finding must share the consensus finding dimension and target
-
-## Finding  (`evaluation_finding`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| rating_id | bigint | no | foreign key to evaluation.Rating (on delete PROTECT); indexed |
-| local_id | varchar(50) | no | max 50 characters |
-| dimension | varchar(50) | no | max 50 characters |
-| start | integer unsigned | no |  |
-| end | integer unsigned | no |  |
-| quote | TEXT | no |  |
-| intensity | smallint unsigned | yes |  |
-| not_scorable_reason | varchar(20) | no | one of: , unverifiable, contested, needs_context; default ''; max 20 characters |
-| confidence | REAL | yes |  |
-| detail | TEXT | no | default dict() |
-
-Constraints:
-- `evaluation_finding_local_id_unique` (unique): rating, local_id
-- `evaluation_finding_span` (check): (AND: ('end__gt', F(start)), ('start__gte', 0))
-- `evaluation_finding_intensity_range` (check): (OR: ('intensity__isnull', True), (AND: ('intensity__gte', 0), ('intensity__lte', 4)))
-- `evaluation_finding_not_scorable_rule` (check): (OR: (AND: ('intensity__isnull', True), ('not_scorable_reason__in', ['unverifiable', 'contested', 'needs_context'])), (AND: ('intensity__isnull', False), ('not_scorable_reason', '')))
-
-Database triggers (rules the database itself enforces):
-- `evaluation_finding_dimension_insert` on INSERT: the finding dimension is not covered by its rating
-- `evaluation_finding_dimension_update` on UPDATE: the finding dimension is not covered by its rating
-- `evaluation_finding_quote_insert` on INSERT: the finding span or quote does not match the target text
-- `evaluation_finding_quote_update` on UPDATE: the finding span or quote does not match the target text
-
-## IssueFindingLink  (`evaluation_issuefindinglink`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| issue_id | bigint | no | foreign key to moderation.Issue (on delete PROTECT); indexed |
-| consensus_finding_id | bigint | no | foreign key to evaluation.ConsensusFinding (on delete PROTECT); indexed |
-| overlap | REAL | no |  |
-
-Constraints:
-- `evaluation_issuefindinglink_unique` (unique): issue, consensus_finding
-- `evaluation_issuefindinglink_overlap` (check): (AND: ('overlap__gte', 0), ('overlap__lte', 1))
-
-## Panel  (`evaluation_panel`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| name | varchar(100) | no | max 100 characters |
-| version | varchar(50) | no | default ''; max 50 characters |
-| dimensions | TEXT | no | default dict() |
-| span_match_min_iou | REAL | no | default _default_span_match_min_iou() |
-| intensity_disagreement_threshold | smallint unsigned | no | default _default_intensity_disagreement_threshold() |
-| created_at | datetime | no |  |
-
-Constraints:
-- `evaluation_panel_name_version_unique` (unique): name, version
-- `evaluation_panel_iou_range` (check): (AND: ('span_match_min_iou__gt', 0), ('span_match_min_iou__lte', 1))
-- `evaluation_panel_threshold_positive` (check): (AND: ('intensity_disagreement_threshold__gte', 1))
-
-## PanelMember  (`evaluation_panelmember`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| panel_id | bigint | no | foreign key to evaluation.Panel (on delete PROTECT); indexed |
-| rater_id | bigint | no | foreign key to evaluation.Rater (on delete PROTECT); indexed |
-
-Constraints:
-- `evaluation_panelmember_unique` (unique): panel, rater
-
-## Rater  (`evaluation_rater`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| name | varchar(100) | no | unique; max 100 characters |
-| kind | varchar(10) | no | one of: human, llm; max 10 characters |
-| provider | varchar(50) | no | default ''; max 50 characters |
-| model | varchar(100) | no | default ''; max 100 characters |
-| temperature | REAL | yes |  |
-| user_id | bigint | yes | foreign key to accounts.User (on delete PROTECT); indexed |
-| active | bool | no | default True |
-
-Constraints:
-- `evaluation_rater_kind_valid` (check): (AND: ('kind__in', ['human', 'llm']))
-- `evaluation_rater_kind_rules` (check): (OR: (AND: ('kind', 'human'), ('model', ''), ('provider', ''), ('temperature__isnull', True), ('user__isnull', False)), (AND: ('kind', 'llm'), ('user__isnull', True), (NOT (AND: ('model', '')))))
-
-Database triggers (rules the database itself enforces):
-- `evaluation_rater_kind_update` on UPDATE: a rater with LLM calls must stay an LLM rater
-
-## Rating  (`evaluation_rating`, app evaluation)
-
-| column | SQLite type | null | notes |
-|---|---|---|---|
-| id | INTEGER | no | primary key |
-| target_type | varchar(20) | no | one of: message, intervention_act; max 20 characters |
-| target_id | bigint unsigned | no |  |
-| rater_id | bigint | no | foreign key to evaluation.Rater (on delete PROTECT); indexed |
-| dimensions | TEXT | no | default list() |
-| replicate | integer unsigned | no | default 1 |
-| llm_call_id | bigint | yes |  |
-| guideline_version | varchar(100) | no | default ''; max 100 characters |
-| status | varchar(10) | no | one of: pending, done, failed; default 'pending'; max 10 characters |
-| started_at | datetime | yes |  |
-| finished_at | datetime | yes |  |
-
-Constraints:
-- `evaluation_rating_target_type_valid` (check): (AND: ('target_type__in', ['message', 'intervention_act']))
-- `evaluation_rating_replicate_positive` (check): (AND: ('replicate__gte', 1))
-- `evaluation_rating_status_valid` (check): (AND: ('status__in', ['pending', 'done', 'failed']))
-
-Extra indexes:
-- `evaluation_rating_target_idx`: target_type, target_id
-
-Database triggers (rules the database itself enforces):
-- `evaluation_rating_dimensions_frozen` on UPDATE: a dimension with findings cannot be removed from the rating
-- `evaluation_rating_llm_call_insert` on INSERT: only an LLM rater can have an LLM call
-- `evaluation_rating_llm_call_update` on UPDATE: only an LLM rater can have an LLM call
-- `evaluation_rating_target_frozen` on UPDATE: the target of a rating with findings cannot change
-- `evaluation_rating_target_insert` on INSERT: the target does not exist
-- `evaluation_rating_target_update` on UPDATE: the target does not exist
 
