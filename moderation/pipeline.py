@@ -174,6 +174,32 @@ def already_raised_for(*, conversation_id, kind, replicate, snapshot_seq, exclud
     return out
 
 
+# --- The agreement / disagreement note ------------------------------------------------------------------------------
+
+def summary_is_due(run, discussion_map):
+    """True when a live run should also produce the "where you agree / disagree" note: the run is live, the number of user
+    messages of the conversation up to the trigger message is a positive multiple of AGREEMENT_MAP_EVERY_N_USER_MESSAGES
+    (read at call time; 0 or None turns the note off), and the discussion map (a dict or a DiscussionMap) holds at least one
+    agreement or disagreement. Replays, research runs and draft checks are never due."""
+    if run.kind != "live":
+        return False
+    every = getattr(settings, "AGREEMENT_MAP_EVERY_N_USER_MESSAGES", None)
+    if not every or every < 0:
+        return False
+    if isinstance(discussion_map, dict):
+        has_content = bool(discussion_map.get("agreements") or discussion_map.get("disagreements"))
+    else:
+        has_content = bool(getattr(discussion_map, "agreements", None) or getattr(discussion_map, "disagreements", None))
+    if not has_content:
+        return False
+    from forum.models import Message
+
+    count = Message.objects.filter(
+        conversation_id=run.conversation_id, author_type="user", seq_no__lte=run.trigger_message.seq_no
+    ).count()
+    return count > 0 and count % int(every) == 0
+
+
 # --- Master output: validate and store issues ----------------------------------------------------------------------
 
 def _unique_local_id(base, taken):
@@ -590,8 +616,9 @@ def _run(run):
     _update(run, discussion_map=discussion_map)
     valid_issues = [issue for issue in stored.values() if issue.validity == "valid"]
 
-    # 4. Intervenor, only when there is something valid to act on.
-    if not valid_issues:
+    # 4. Intervenor, only when there is something valid to act on, or the agreement/disagreement note is due.
+    summary_due = summary_is_due(run, output.discussion_map)
+    if not valid_issues and not summary_due:
         _finish(
             run, decision="no_intervention", rationale=NO_VALID_ISSUES, discussion_map=discussion_map,
             valid_acts=[], notes=notes,
@@ -605,11 +632,13 @@ def _run(run):
         )
         for issue in valid_issues
     ]
-    if reuse is not None and reuse.intervenor is not None:
+    # A previewed Intervenor output never holds the summary act, so a due run asks the Intervenor afresh.
+    if reuse is not None and reuse.intervenor is not None and not summary_due:
         result = reuse.intervenor
     else:
         result = agents.call_intervenor(
-            run, transcript, topic=topic, valid_issues=views, discussion_map=output.discussion_map
+            run, transcript, topic=topic, valid_issues=views, discussion_map=output.discussion_map,
+            summary_due=summary_due,
         )
     valid_acts = _store_intervenor(run, transcript, result, stored, notes)
 
