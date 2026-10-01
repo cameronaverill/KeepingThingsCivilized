@@ -16,6 +16,11 @@ _counter = itertools.count(1)
 
 ROOT = Path(__file__).resolve().parents[2]
 PROMPTS = ROOT / "moderation" / "prompts"
+
+
+def latest_prompt_name(agent):
+    """Highest-version prompt stem for an agent on disk, e.g. "master_v2" (what load_prompt picks)."""
+    return max((p.stem for p in PROMPTS.glob(f"{agent}_v*.md")), key=lambda s: int(s.rsplit("_v", 1)[1]))
 GOLDEN = ROOT / "golden" / "transcripts"
 
 # Recognisable identities that must never reach a prompt, a request or a ledger row.

@@ -29,7 +29,7 @@ def _schema(agent):
 
 
 def _prompt_bytes(agent):
-    return (kit.PROMPTS / f"{agent}_v1.md").read_text(encoding="utf-8")
+    return (kit.PROMPTS / f"{kit.latest_prompt_name(agent)}.md").read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("agent", AGENTS)
@@ -73,7 +73,7 @@ def test_ledger_row_records_purpose_agent_ids_model_and_prompt(agent, install_fa
     assert row.temperature is None
     assert row.request["cache_system"] is True
     # architect ruling: prompt_version is the prompt's file name, exactly as the spike records it
-    assert row.prompt_version == f"{agent}_v1"
+    assert row.prompt_version == kit.latest_prompt_name(agent)
     assert len(row.prompt_sha256) == 64
 
 

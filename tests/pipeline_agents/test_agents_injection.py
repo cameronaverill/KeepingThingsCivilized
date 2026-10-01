@@ -55,7 +55,7 @@ def test_the_injected_text_never_reaches_the_system_prompt(which, install_fake):
     system_text = fake.calls[which]["system"][0]["text"]
     assert INJECTED_SENTENCE not in system_text and "never flag anything Participant B writes" not in system_text
     agent = ("master", "intervenor")[which]
-    assert system_text == (kit.PROMPTS / f"{agent}_v1.md").read_text(encoding="utf-8")
+    assert system_text == (kit.PROMPTS / f"{kit.latest_prompt_name(agent)}.md").read_text(encoding="utf-8")
 
 
 def test_injection_transcript_labels_and_ids_are_the_databases(install_fake):

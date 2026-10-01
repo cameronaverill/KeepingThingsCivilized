@@ -16,7 +16,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.test.utils import override_settings
 
 from moderation import budget
-from moderation.errors import LLMRefused
+from seeding.generate import LLMRefused  # re-exported so commands never import moderation.errors
 from seeding import arms, generate
 from seeding.facts import load_facts
 

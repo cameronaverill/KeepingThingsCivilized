@@ -14,13 +14,13 @@ def test_fingerprint_has_both_agents_with_name_and_sha256():
     assert set(fp) == {"master", "intervenor"}
     for agent in ("master", "intervenor"):
         assert {"name", "sha256"} <= set(fp[agent])
-        assert fp[agent]["name"] == f"{agent}_v1"
+        assert fp[agent]["name"] == kit.latest_prompt_name(agent)
 
 
 def test_fingerprint_sha256_is_the_sha256_of_the_prompt_file_bytes():
     fp = kit.agents().prompt_fingerprint()
-    assert fp["master"]["sha256"] == _file_sha("master_v1")
-    assert fp["intervenor"]["sha256"] == _file_sha("intervenor_v1")
+    assert fp["master"]["sha256"] == _file_sha(kit.latest_prompt_name("master"))
+    assert fp["intervenor"]["sha256"] == _file_sha(kit.latest_prompt_name("intervenor"))
     assert fp["master"]["sha256"] != fp["intervenor"]["sha256"]
 
 

@@ -218,15 +218,15 @@ def imported_roots(path):
 class TestPurity:
     def test_package_files_exist(self):
         assert [p.name for p in py_files() if p.parent == PKG] == [
-            "__init__.py", "arms.py", "facts.py", "generate.py", "review.py", "seeds.py",
+            "__init__.py", "analyze.py", "arms.py", "facts.py", "generate.py", "judge.py", "research_analyze.py", "research_eval.py", "review.py", "seeds.py",
         ]
 
     def test_prompt_files_are_the_step_12_ones(self):
-        assert sorted(p.name for p in (PKG / "prompts").glob("*")) == ["audit_v1.md", "generator_v1.md", "mirror_v1.md"]
+        assert sorted(p.name for p in (PKG / "prompts").glob("*")) == ["audit_v1.md", "generator_v1.md", "judge_research_v1.md", "judge_v1.md", "mirror_v1.md"]
 
     def test_no_forbidden_imports_anywhere_but_the_generator(self):
         # Only seeding/generate.py may reach django/moderation (the gateway); everything else in seeding/ stays pure.
-        found = {p.name: sorted(set(imported_roots(p)) & FORBIDDEN) for p in py_files() if p.name != "generate.py"}
+        found = {p.name: sorted(set(imported_roots(p)) & FORBIDDEN) for p in py_files() if p.name not in ("generate.py", "judge.py", "research_eval.py")}
         assert {k: v for k, v in found.items() if v} == {}
 
     def test_arms_is_pure(self):

@@ -48,6 +48,43 @@ that, and nothing here blocks the live product or deployment.
   speaker (each claim distorts the facts to make sanctuary policy more palatable to the other side), whereas for the
   other facts a side is the side the error helps. Decide one convention before the analysis so left/right gaps mean
   the same thing across facts.
+- [ ] **Integrate the non-quantitative claims more naturally into conversations** (added 2026-09-30, owner note).
+  In the generated debates the non-numeric claims (laws, qualitative facts) do not sit naturally in the conversation.
+  Many of these facts do not point clearly left or right; the owner came to see that as a positive, since it lets the
+  same fact be substituted for either side equally, but more work is needed to fit them into a conversation. Ideas,
+  with more time: (1) hand-write example conversations, then use them to LLM-generate more with several techniques,
+  including multi-shot prompting; (2) eventually draw on real conversations from the website, substituting the actual
+  facts used, so the evaluation relies on messy real-world examples rather than only paired comparisons.
+- [ ] **Neutrality versus usefulness: the moderator leans too far toward neutrality** (added 2026-10-01, owner note, from the
+  first full pilot run of 88 seeded debates, `generated/pilot_pilot1.md`). The moderator responded to the planted claim in
+  every error conversation and to 83% of the true-claim ones, at the same rate for left- and right-favoring errors. That
+  looks like a lack of bias, but it is mostly because it gave almost the same reply every time: 53 of 58 error responses
+  were a plain "Could a source be given for the figure…?" (`request_information`), and only 8 were corrections (7 correct,
+  mostly the largest errors and the law facts). The Intervenor prompt (`moderation/prompts/intervenor_v1.md`, lines 73, 89
+  and 93) says to prefer asking over asserting unless it is sure, and to treat unverifiable claims as not errors, so
+  plausible-but-wrong numbers get a question. So there is a tension between non-bias and utility, and the current design
+  errs well toward non-bias: equal treatment is easy when the treatment is uniform and does little to inform. Next steps:
+  (1) read `master_v1.md` to see how the Master chooses between `unsupported_claim` and `possible_factual_error`, and
+  whether it ever sets `needs_verification`; (2) decide how sure the moderator should be before stating a fact, and
+  whether to loosen the "ask unless sure" wording or give it the verified facts; (3) evaluate the web-search step (the
+  "Provide factual background" button, offered on `request_information` acts) by clicking it automatically and judging the
+  resulting note against the true fact, since that is where the moderator actually states facts; (4) tighten the judge
+  rubric so a bare source request is not counted as spotting the error, and report usefulness (correction rate) beside
+  neutrality (left-right gap) so neither is read alone.
+- [ ] **Prompt change tried; results too similar to measure left-right bias** (added 2026-10-01, owner note). To make the
+  moderator state facts more often, I drafted `moderation/prompts/master_v2.md` and `intervenor_v2.md` (draft in
+  `docs/intervenor_v2_draft.md`: one added sentence in each, telling the Master to type a claim that clearly conflicts with
+  well-established facts as `possible_factual_error`, and the Intervenor to use `correct_factual_error` when it knows the
+  correct figure) and replayed the same 88 seeded debates (experiment `v2run`, results in
+  `generated/judgments/v2run.jsonl`). The results were largely the same as with v1: correct corrections 7 of 62 (11%)
+  versus 7 of 58 (12%); about 52 of 62 replies were still plain source requests; the Master still labelled most planted
+  claims `unsupported_claim` (`possible_factual_error` fell from 15 to 10 valid issues); false alarms on true claims were
+  about the same (21 of 24 versus 20 of 24). The left-minus-right gaps were small and within noise at every level. So
+  neither prompt version produced enough differentiation in the moderator's behavior to show whether it treats left- and
+  right-favoring errors differently: with nearly all replies being the same source request, there is little for a bias
+  to show up in. The v2 files are still in `moderation/prompts/` and, because the loader picks the highest version, are
+  now the live default; decide whether to keep or delete them. Next: a way for the moderator to check facts (the web-search
+  step, or giving it the verified facts) rather than more wording changes.
 - [ ] **Step 11 — Finalize the rubrics.** `rubrics/factual_accuracy_v1.md` and `rubrics/abusiveness_v1.md` exist as
   drafts; finalize the wording with you and write the human rater guidelines from the same text. *Only feeds the
   evaluation pipeline (confirmed: not used by the live Master/Intervenor prompts) — reasonable to defer alongside

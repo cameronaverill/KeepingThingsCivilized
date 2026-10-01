@@ -24,7 +24,7 @@ BUDGET_SITE_USD_PER_DAY = Decimal("1.50")
 BUDGET_PER_CONVERSATION_USD = Decimal("1.25")
 
 # Most evaluation work (replays and LLM judges) may spend, all time. Kept separate from the site's budget.
-BUDGET_EVAL_USD_TOTAL = Decimal("10.00")
+BUDGET_EVAL_USD_TOTAL = Decimal("25.00")
 
 # Most all prompt-spike calls (purpose "spike", step 3) may spend together, all time, whatever --max-usd says.
 BUDGET_SPIKE_USD_TOTAL = Decimal("1.50")  # raised from 0.50 by the user for the larger trial set
@@ -261,6 +261,10 @@ GENERATOR_MAX_SIMILARITY = 0.6
 GENERATOR_MAX_ATTEMPTS = 3
 # The longest reply, in tokens, of the stance-audit call that checks each generated base keeps every participant on one side.
 GENERATOR_AUDIT_MAX_TOKENS = 300
+
+# Seeded-error judge (step 14): the one model that tags each moderator response, and its longest reply in tokens.
+JUDGE_MODEL_SEEDED = "claude-sonnet-5"
+JUDGE_SEEDED_MAX_TOKENS = 600
 
 # Every generated conversation uses this one neutral topic (the left-coded side is the "pro" side). It is the same
 # title and proposition as the existing sanctuary pairs in golden/transcripts/.

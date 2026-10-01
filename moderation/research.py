@@ -132,7 +132,7 @@ def _compose_message_text(note_text, sources):
 
 # --- The guarded call, with the same retry-once-on-LLMOutputError behavior as agents._call_with_retry ------------
 
-def _call_research(run, prompt, user_text):
+def _call_research(run, prompt, user_text, purpose="moderation"):
     """One guarded, web_search-enabled, structured-output call, retried once on `LLMOutputError` (invalid or
     truncated JSON, a schema mismatch, a refusal) exactly like `agents._call_with_retry` retries the Master/
     Intervenor -- `agents._call_with_retry` itself is not reused because it returns only `.parsed`, discarding the
@@ -142,7 +142,7 @@ def _call_research(run, prompt, user_text):
     for attempt in (1, 2):
         try:
             return llm.call_with_web_search(
-                purpose="moderation",
+                purpose=purpose,
                 agent="research",
                 model=settings.RESEARCH_MODEL,
                 system=prompt.text,
@@ -164,7 +164,7 @@ def _call_research(run, prompt, user_text):
 
 # --- The entry point ----------------------------------------------------------------------------------------------
 
-def run_research(run):
+def run_research(run, *, purpose="moderation"):
     """Run the research pipeline for `run` and return it. Never raises for an expected failure (the run row records
     it, using the same reason-code vocabulary as `pipeline.run_moderation`: `skipped_budget`, `skipped_disabled`,
     `failed` with a reason); a programming error marks the run failed (`internal_error`) and is re-raised.
@@ -190,7 +190,7 @@ def run_research(run):
     run.failure_reason, run.error = "", ""
 
     try:
-        _run(run)
+        _run(run, purpose)
     except Exception as exc:
         stop = pipeline._stop_for(exc)
         if stop is not None:
@@ -202,7 +202,7 @@ def run_research(run):
     return run
 
 
-def _run(run):
+def _run(run, purpose="moderation"):
     from forum.models import Message
 
     act = run.source_act
@@ -210,7 +210,7 @@ def _run(run):
     user_text = build_research_input(offer_text=act.text, claim_text=run.trigger_message.content, issues=issues)
     prompt = load_prompt(RESEARCH_PROMPT)
 
-    result = _call_research(run, prompt, user_text)
+    result = _call_research(run, prompt, user_text, purpose)
     note = result.parsed
     sources = extract_sources(result.tool_blocks, cap=int(settings.RESEARCH_MAX_SOURCES_SHOWN))
     content = _compose_message_text(note.text, sources)

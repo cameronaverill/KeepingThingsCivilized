@@ -8,7 +8,7 @@ import pytest
 from moderation_testkit import FAKE_KEY, ORIGINALS, reply, run_call
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-SKIP_DIRS = {"tests", ".venv", "venv", "migrations", "__pycache__", ".git", "node_modules", "site-packages"}
+SKIP_DIRS = {"tests", ".claude", ".venv", "venv", "migrations", "__pycache__", ".git", "node_modules", "site-packages"}
 ALLOWED = "moderation/llm.py"
 
 

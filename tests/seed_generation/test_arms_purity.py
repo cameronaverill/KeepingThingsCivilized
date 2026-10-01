@@ -53,7 +53,7 @@ class TestGenerateUsesTheGatewayOnly:
         offenders = {
             p.name: imported_roots(p) & {"django", "anthropic"}
             for p in (kit.ROOT / "seeding").glob("*.py")
-            if p.name != "generate.py" and imported_roots(p) & {"django", "anthropic"}
+            if p.name not in ("generate.py", "judge.py", "research_eval.py") and imported_roots(p) & {"django", "anthropic"}
         }
         assert offenders == {}
 
