@@ -531,6 +531,9 @@ async function runOp(op) {
       return { ran: true, delay: t.delay };
     }
     case 'flush': await flush(); return null;
+    // Added for the front-end fixes tests: act on elements the page scripts created later (they have no eid).
+    case 'fire_sel': { const el = documentObj.querySelectorAll(op.selector)[op.index || 0]; if (!el) throw new Error('no element for ' + op.selector); const ok = el.dispatchEvent(new Ev(op.type, { bubbles: true, cancelable: true })); await flush(); return ok; }
+    case 'query': return documentObj.querySelectorAll(op.selector).map((e) => ({ attrs: Object.assign({}, e.attrs), html: e.innerHTML, text: e.textContent.trim() }));
     default: throw new Error('unknown op ' + op.op);
   }
 }

@@ -17,6 +17,7 @@ Rules this module keeps:
 """
 import hashlib
 import logging
+import re
 import secrets
 import unicodedata
 from dataclasses import dataclass
@@ -146,6 +147,19 @@ def _draft_transcript(conversation, participant, text, snapshot_seq, now):
     return transcript
 
 
+_PLACEHOLDER_REFERENCE = re.compile(
+    r"(?<![\w-])(messages?)(\s+)(#?)" + re.escape(str(PLACEHOLDER_MESSAGE_ID)) + r"(?![\w-])", re.IGNORECASE
+)
+
+
+def _name_the_draft(text, draft_seq):
+    """`text` with each reference to the placeholder ("message -1", "Message #-1") reading "message N", N being the number
+    the draft gets when it is posted. Anything else containing -1 is left alone."""
+    if not isinstance(text, str):
+        return text
+    return _PLACEHOLDER_REFERENCE.sub(lambda m: f"{m.group(1)}{m.group(2)}{m.group(3)}{draft_seq}", text)
+
+
 def _run_agents(conversation, participant, text, snapshot_seq, now, call_ids):
     """Ask the Master and (when it found something valid) the Intervenor about the draft and validate in memory.
     Returns (outcome, note_texts, master_output, intervenor_output). Raises what the agents raise."""
@@ -194,6 +208,9 @@ def _run_agents(conversation, participant, text, snapshot_seq, now, call_ids):
     # here also keeps it out of the stored output that a later live run may reuse.
     result = result.model_copy(
         update={"acts": [a for a in result.acts if a.type != "identify_agreement_disagreement"]}
+    )
+    result = result.model_copy(
+        update={"acts": [a.model_copy(update={"text": _name_the_draft(a.text, draft_seq)}) for a in result.acts]}
     )
     labels = set(Participant.objects.filter(conversation_id=conversation.pk).values_list("label", flat=True))
     act_verdicts = pipeline.validate_acts(

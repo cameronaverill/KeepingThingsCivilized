@@ -45,6 +45,21 @@
     if (message.seq_no > lastSeq) { lastSeq = message.seq_no; }
   }
 
+  // Swaps the contents of each research slot whose state changed (the server's own rendering of the slot partial). A slot
+  // research.js is busy with (a request in flight) is left alone. Anything malformed is ignored.
+  function updateResearch(items) {
+    if (!Array.isArray(items)) { return; }
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      if (!item || item.act_id === undefined || item.act_id === null || typeof item.html !== "string") { continue; }
+      var slot = document.querySelector('.research-slot[data-act-id="' + String(item.act_id).replace(/[^0-9A-Za-z_-]/g, "") + '"]');
+      if (!slot || slot.getAttribute("data-busy")) { continue; }
+      if (slot.getAttribute("data-state") === String(item.state)) { continue; }
+      slot.innerHTML = item.html;
+      slot.setAttribute("data-state", String(item.state));
+    }
+  }
+
   function updateNotice(text) {
     if (!notice) { return; }
     var target = notice.querySelector("[data-notice-text]");
@@ -59,6 +74,7 @@
   function apply(data) {
     var messages = Array.isArray(data.messages) ? data.messages : [];
     for (var i = 0; i < messages.length; i++) { append(messages[i]); }
+    updateResearch(data.research);
     var count = document.querySelector("[data-message-count]");
     if (count && typeof data.message_count === "number") { count.textContent = String(data.message_count); }
     updateNotice(data.moderation_notice);

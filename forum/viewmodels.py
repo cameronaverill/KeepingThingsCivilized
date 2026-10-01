@@ -108,15 +108,49 @@ def moderation_heading(message, viewer):
     return headings.pop() if len(headings) == 1 else HEADING_BOTH
 
 
-def _research_state(act):
-    """"none" (no research run yet, offer the button), "pending" (a run exists, not finished) or "done" (finished
-    or failed, nothing extra to show: the resulting note, if any, is just the next moderator message)."""
-    run = ModerationRun.objects.filter(source_act_id=act.pk, kind="research").order_by("-id").first()
+RESEARCH_FAILED_STATUSES = ("failed", "skipped_budget", "skipped_disabled")
+
+
+def _state_of_run(run):
+    """The research state for a research run (or None): "none", "pending", "failed" or "done". A run that finished
+    without posting a note counts as failed; the person is never told why."""
     if run is None:
         return "none"
     if run.status in ("pending", "running"):
         return "pending"
+    if run.status in RESEARCH_FAILED_STATUSES or run.posted_message_id is None:
+        return "failed"
     return "done"
+
+
+def _research_state(act):
+    """"none" (no research run yet, offer the button), "pending" (a run exists, not finished), "failed" (it ended
+    without a note: offer a retry) or "done" (the note is just the next moderator message)."""
+    run = ModerationRun.objects.filter(source_act_id=act.pk, kind="research").order_by("-id").first()
+    return _state_of_run(run)
+
+
+def research_slots(conversation):
+    """The research state of every eligible act of ``conversation`` that has a research run, as dicts shaped like
+    ``para.research`` ({"act_id", "state", "url"}) with state "pending", "failed" or "done" (never "none"). One query."""
+    runs = (
+        ModerationRun.objects.filter(
+            kind="research",
+            source_act__run__conversation_id=conversation.pk,
+            source_act__act_type__in=RESEARCH_ELIGIBLE_ACT_TYPES,
+            source_act__validity="valid",
+        )
+        .order_by("id")
+    )
+    latest = {run.source_act_id: run for run in runs}  # the newest run of an act wins
+    return [
+        {
+            "act_id": act_id,
+            "state": _state_of_run(run),
+            "url": reverse("forum:request_research", args=[conversation.pk, act_id]),
+        }
+        for act_id, run in latest.items()
+    ]
 
 
 def _act_paragraphs(run, conversation, texts):

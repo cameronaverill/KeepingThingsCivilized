@@ -25,13 +25,19 @@
     if (!form) { return; }
     event.preventDefault();
 
-    var holder = form.parentNode;
+    // The slot (.research-slot) holds whichever control the state calls for; fall back to the form's parent.
+    var holder = form.closest(".research-slot") || form.parentNode;
     var original = holder ? holder.innerHTML : null;
+    var originalState = holder && holder.getAttribute ? holder.getAttribute("data-state") : null;
     var action = form.getAttribute("action");
     var csrf = token(form);
 
-    // Optimistic: shown immediately, before the request finishes.
-    if (holder) { holder.innerHTML = PENDING_HTML; }
+    // Optimistic: shown immediately, before the request finishes. "busy" tells poll.js to leave the slot alone.
+    if (holder) {
+      holder.innerHTML = PENDING_HTML;
+      holder.setAttribute("data-state", "pending");
+      holder.setAttribute("data-busy", "1");
+    }
 
     fetch(action, {
       method: "POST",
@@ -46,9 +52,16 @@
     }).then(function (response) {
       if (!response.ok) { throw new Error("status " + response.status); }
       return response.json();
+    }).then(function () {
+      // Accepted: the state stays "pending"; poll.js takes over once the slot is no longer busy.
+      if (holder) { holder.removeAttribute("data-busy"); }
     }).catch(function () {
-      // Something went wrong on our side: put the button back so the person can try again.
-      if (holder && original !== null) { holder.innerHTML = original; }
+      // Something went wrong on our side: put the control back so the person can try again.
+      if (holder) {
+        if (original !== null) { holder.innerHTML = original; }
+        if (originalState !== null) { holder.setAttribute("data-state", originalState); }
+        holder.removeAttribute("data-busy");
+      }
     });
   });
 })();

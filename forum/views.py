@@ -17,6 +17,7 @@ from django.contrib import messages as flash
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -514,6 +515,16 @@ def request_research(request, conversation_id, act_id):
             logger.exception("request_research: IntegrityError creating a research run but none found afterwards")
             return _check_json({"status": "unavailable", "act_id": act.pk}, status=500)
         logger.debug("request_research: act %s already has run %s (participant %s hit the race)", act.pk, run.pk, participant.pk)
+        # A run that ended without a note is re-queued by this click: one conditional UPDATE, so a double click or two
+        # people clicking re-queue it exactly once (the loser's UPDATE matches nothing and sees "pending").
+        failed = Q(status__in=viewmodels.RESEARCH_FAILED_STATUSES) | Q(status="done", posted_message__isnull=True)
+        requeued = ModerationRun.objects.filter(failed, pk=run.pk).update(
+            status="pending", attempts=0, failure_reason="", error="", requested_by=participant,
+            claimed_at=None, started_at=None, finished_at=None,
+        )
+        if requeued:
+            logger.info("request_research: re-queued run %s for act %s (participant %s)", run.pk, act.pk, participant.pk)
+        run.refresh_from_db()
     state = "pending" if run.status in ("pending", "running") else "done"
     return _check_json({"status": state, "act_id": act.pk, "run_id": run.pk})
 
@@ -585,6 +596,16 @@ def messages(request, conversation_id):
     ]
     reason = view.get("cannot_post_reason")
     payload["cannot_post_reason"] = dict(reason) if reason else None
+    # The current state of every research control that has a run, whatever `after` is: poll.js swaps a slot's contents
+    # when its state changed. The same partial as the page, with the CSRF token (hence `request`).
+    payload["research"] = [
+        {
+            "act_id": item["act_id"],
+            "state": item["state"],
+            "html": render_to_string("forum/_research_slot.html", {"research": item}, request=request),
+        }
+        for item in viewmodels.research_slots(found)
+    ]
     return JsonResponse(payload)
 
 

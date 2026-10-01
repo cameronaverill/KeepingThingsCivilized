@@ -37,6 +37,9 @@
     var advice = document.getElementById(box.getAttribute("data-advice") || "");
     var noun = box.getAttribute("data-noun") || "message";
 
+    // "1 character", "2 characters", with thousands separators.
+    function characters(count) { return format(count) + (count === 1 ? " character" : " characters"); }
+
     function update() {
       var n = countMessageChars(box.value);
       if (number) { number.textContent = format(n); }
@@ -46,8 +49,8 @@
       if (over) { box.setAttribute("aria-invalid", "true"); } else { box.removeAttribute("aria-invalid"); }
       if (advice) {
         if (over) {
-          advice.textContent = "Your " + noun + " is " + format(n) + " characters; the limit is " + format(limit) +
-            ". Please shorten it by " + format(n - limit) + " characters. You can still press the button; " +
+          advice.textContent = "Your " + noun + " is " + characters(n) + "; the limit is " + format(limit) +
+            ". Please shorten it by " + characters(n - limit) + ". You can still press the button; " +
             "the site will explain if it cannot send it.";
         } else {
           advice.textContent = "";
