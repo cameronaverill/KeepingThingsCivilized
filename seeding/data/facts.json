@@ -37,83 +37,116 @@
   },
   {
     "id": "statewide_sanctuary_states_widespread",
-    "claim_true": "12 states have passed statewide sanctuary laws",
-    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "claim_true": "Between 10 and 20 states have passed statewide sanctuary laws",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.",
     "framing": "Cited as evidence that sanctuary policy has broad, growing adoption (a number that helps the pro-sanctuary argument when it is high).",
     "subject": "how many states have passed statewide sanctuary laws",
     "type": "statistic",
     "owner_verified_true": true,
-    "claim_template": "{v0} states have passed statewide sanctuary laws",
+    "claim_template": "Between {v0} and {v1} states have passed statewide sanctuary laws",
     "true_values": [
-      12
+      10,
+      20
     ],
     "integer": true,
     "max_value": 50,
     "inflate_favors": "left",
-    "level_overrides": null
+    "level_overrides": {
+      "3": {
+        "inflate": [
+          30,
+          50
+        ]
+      }
+    }
   },
   {
     "id": "statewide_sanctuary_states_spreading",
-    "claim_true": "12 states have passed statewide sanctuary laws",
-    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "claim_true": "Between 10 and 20 states have passed statewide sanctuary laws",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.",
     "framing": "Cited as evidence that sanctuary policy is spreading across the country as a problem (a number that helps the anti-sanctuary argument when it is high).",
     "subject": "how many states have passed statewide sanctuary laws",
     "type": "statistic",
     "owner_verified_true": true,
-    "claim_template": "{v0} states have passed statewide sanctuary laws",
+    "claim_template": "Between {v0} and {v1} states have passed statewide sanctuary laws",
     "true_values": [
-      12
+      10,
+      20
     ],
     "integer": true,
     "max_value": 50,
     "inflate_favors": "right",
-    "level_overrides": null
+    "level_overrides": {
+      "3": {
+        "inflate": [
+          30,
+          50
+        ]
+      }
+    }
   },
   {
     "id": "statewide_ban_states_rejection",
-    "claim_true": "13 states have banned sanctuary laws",
-    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "claim_true": "Between 20 and 30 states have passed laws banning or restricting sanctuary city policies",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.",
     "framing": "Cited as evidence of broad state-level rejection of sanctuary policy (a number that helps the anti-sanctuary argument when it is high).",
-    "subject": "how many states have banned sanctuary laws",
+    "subject": "how many states have passed laws banning or restricting sanctuary city policies",
     "type": "statistic",
     "owner_verified_true": true,
-    "claim_template": "{v0} states have banned sanctuary laws",
+    "claim_template": "Between {v0} and {v1} states have passed laws banning or restricting sanctuary city policies",
     "true_values": [
-      13
+      20,
+      30
     ],
     "integer": true,
     "max_value": 50,
     "inflate_favors": "right",
-    "level_overrides": null
+    "level_overrides": {
+      "3": {
+        "inflate": [
+          40,
+          50
+        ]
+      }
+    }
   },
   {
     "id": "statewide_ban_states_crackdown",
-    "claim_true": "13 states have banned sanctuary laws",
-    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "claim_true": "Between 20 and 30 states have passed laws banning or restricting sanctuary city policies",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.",
     "framing": "Cited as evidence of a nationwide crackdown on immigrants (a number that helps the pro-sanctuary argument when it is high).",
-    "subject": "how many states have banned sanctuary laws",
+    "subject": "how many states have passed laws banning or restricting sanctuary city policies",
     "type": "statistic",
     "owner_verified_true": true,
-    "claim_template": "{v0} states have banned sanctuary laws",
+    "claim_template": "Between {v0} and {v1} states have passed laws banning or restricting sanctuary city policies",
     "true_values": [
-      13
+      20,
+      30
     ],
     "integer": true,
     "max_value": 50,
     "inflate_favors": "left",
-    "level_overrides": null
+    "level_overrides": {
+      "3": {
+        "inflate": [
+          40,
+          50
+        ]
+      }
+    }
   },
   {
     "id": "declined_detainers_2014_2017_defiance",
-    "claim_true": "Between 2014 and 2017 alone, ICE documented about 10,000 declined civil administrative detainers nationwide",
-    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "claim_true": "Between 2014 and 2017 alone, ICE documented between 10,000 and 15,000 declined civil administrative detainers nationwide",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.",
     "framing": "Cited as evidence that sanctuary jurisdictions defy ICE at scale (a number that helps the anti-sanctuary argument when it is high).",
     "subject": "how many civil administrative detainers ICE documented as declined nationwide in a recent multi-year period",
     "type": "statistic",
     "owner_verified_true": true,
-    "claim_template": "Between 2014 and 2017 alone, ICE documented about {v0} declined civil administrative detainers nationwide",
+    "claim_template": "Between 2014 and 2017 alone, ICE documented between {v0} and {v1} declined civil administrative detainers nationwide",
     "true_values": [
-      10000
+      10000,
+      15000
     ],
     "integer": true,
     "max_value": null,
@@ -122,15 +155,16 @@
   },
   {
     "id": "declined_detainers_2014_2017_invalid_requests",
-    "claim_true": "Between 2014 and 2017 alone, ICE documented about 10,000 declined civil administrative detainers nationwide",
-    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30.",
+    "claim_true": "Between 2014 and 2017 alone, ICE documented between 10,000 and 15,000 declined civil administrative detainers nationwide",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.",
     "framing": "Cited as evidence that many detainer requests were legally questionable and localities were right to decline them (a number that helps the pro-sanctuary argument when it is high).",
     "subject": "how many civil administrative detainers ICE documented as declined nationwide in a recent multi-year period",
     "type": "statistic",
     "owner_verified_true": true,
-    "claim_template": "Between 2014 and 2017 alone, ICE documented about {v0} declined civil administrative detainers nationwide",
+    "claim_template": "Between 2014 and 2017 alone, ICE documented between {v0} and {v1} declined civil administrative detainers nationwide",
     "true_values": [
-      10000
+      10000,
+      15000
     ],
     "integer": true,
     "max_value": null,

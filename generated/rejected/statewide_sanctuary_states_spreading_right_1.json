@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "statewide_sanctuary_states_spreading",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the instinct to fall in line with federal requests, but I think forcing local police into immigration enforcement erodes trust between departments and the communities they serve. When officers double as immigration agents, immigrant residents stop calling police to report crimes or serve as witnesses, and that makes neighborhoods less safe for everyone, not just immigrants. I also think local governments have a legitimate say in how they spend limited policing resources, rather than being conscripted into a federal agenda."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear that concern about trust, but in my view consistent enforcement of the law matters more than local preference. When police decline to cooperate with federal immigration authorities, you get a patchwork where someone's legal status depends entirely on which city they live in. It also signals that federal law is negotiable whenever local officials disagree with it, and that seems like a troubling precedent no matter which law is being discussed."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about consistency, and I don't brush it aside. But I think there's a real difference between refusing to actively assist federal roundups and simply declining to hold someone already in custody without a proper judicial warrant. Treating every such refusal as lawlessness ignores that these detainer requests have faced serious legal challenges, and cities have legitimate reasons to set clear limits rather than deputizing every officer by default."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I take that concern seriously, and I agree there are hard cases where someone with a genuinely serious record probably should be handed over rather than released. But I think allowing police to freely act as immigration enforcers, even in supposedly narrow cases, erodes the very trust that keeps communities safe and cooperative with investigations. Once that door opens, it tends to widen well beyond serious offenders. I think cities are right to draw firm lines here rather than leaving it to case-by-case discretion. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

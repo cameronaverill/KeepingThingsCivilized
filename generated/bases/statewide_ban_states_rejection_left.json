@@ -1,0 +1,27 @@
+{
+  "side": "left",
+  "fact_id": "statewide_ban_states_rejection",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the appeal of sanctuary policies, but I think when local police decline to cooperate with federal immigration enforcement, it undermines the rule of law. People who are in the country without authorization and commit crimes should still face consequences from the full system, not get a pass because a city decided to carve out an exception. Public safety works best when all levels of law enforcement coordinate rather than operate at cross purposes."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the rule of law concern, but in my view the bigger threat to public safety is when immigrant communities stop trusting local police altogether. If people fear that calling to report a crime or acting as a witness might get them or a family member deported, they simply stay silent, and that makes everyone less safe, not more. Local police have their own job, which is responding to local crime, and conflating that with federal enforcement blurs accountability without actually making communities safer."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about trust, and I won't pretend fear of deportation doesn't deter some people from coming forward. But I'd argue the solution is narrower than blanket noncooperation; police can build trust through outreach while still honoring detainer requests for those who've already been arrested for serious crimes. Letting local discretion override federal priorities on a city by city basis creates a patchwork where enforcement depends entirely on geography, which strikes me as an uneven and arbitrary way to run immigration policy nationally."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I agree that geography shouldn't determine someone's fate entirely, but I think that patchwork already reflects real differences in what communities need and want from their police force, and that's not automatically arbitrary, it's federalism working as intended. Forcing uniform cooperation ignores that local officials are accountable to their own residents, not to a federal agenda set elsewhere, and many have decided that trust and safety outweigh participation in enforcement that isn't their core mission. The debate over this has clearly reached state legislatures as well. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "gen_v7"
+}

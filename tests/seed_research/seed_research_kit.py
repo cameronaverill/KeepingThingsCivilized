@@ -283,7 +283,7 @@ def row(*, fact_id="range_fact", arm="l2", side="left", tag="3", verdict="disput
         is_error_arm=(arm != "true") if is_error is None else is_error,
         false_claim=None if arm == "true" else "false", true_claim="true", note_text="note", n_sources=sources, note_words=words,
         confidence=confidence, run_status="done", cost_usd=0.01, moderator_act_type="offer_research", tag=tag, verdict=verdict,
-        rationale="r", prompt_version="sj_r1",
+        rationale="r", prompt_version="sj_r2",
     )
     data.update(over)
     return data

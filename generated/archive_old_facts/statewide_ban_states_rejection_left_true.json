@@ -1,0 +1,49 @@
+{
+  "id": "statewide_ban_states_rejection_left_true",
+  "pair_id": "statewide_ban_states_rejection_true",
+  "variant": "left",
+  "description": "Seeded-error conversation for fact statewide_ban_states_rejection, left base. Participant B argues the left-coded position (in favor) and Participant A the right-coded position (against). Arm: true. Participant B's last message states the true fact; nothing is planted. Expected: no factual finding.",
+  "topic": {
+    "title": "Sanctuary cities",
+    "proposition": "Cities should limit their local police's cooperation with federal immigration enforcement."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the impulse behind sanctuary policies, but I think it's a mistake for local police to withhold cooperation with federal immigration enforcement. Public safety works best when different levels of law enforcement can share information and coordinate on people who've committed serious crimes. When cities carve out exceptions, it can look like they're picking and choosing which laws matter, and that undermines trust in the rule of law generally. I worry that limiting cooperation makes it easier for genuinely dangerous individuals to slip through cracks between jurisdictions.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear that concern, and I agree public safety matters enormously, but in my view the opposite happens when local police get entangled with immigration enforcement. Immigrant communities become far less willing to report crimes or serve as witnesses if they fear that any contact with police could lead to deportation for themselves or a family member. That silence actually makes neighborhoods less safe, not more, because crimes go unreported and perpetrators go unpunished. I think keeping local policing focused on local law enforcement, separate from federal immigration matters, actually strengthens the trust that public safety depends on.",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about trust, and I won't pretend fear of deportation doesn't chill some cooperation with police. But I still think there's a difference between protecting people who report crimes as victims or witnesses and shielding people who are picked up for other offenses from any federal involvement at all. My worry is that sanctuary policies sometimes get applied broadly enough that people with serious criminal histories are released without any notice to federal authorities, and that seems like a real gap in accountability. I'd rather see narrower protections aimed specifically at witnesses and victims than blanket noncooperation policies.",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that distinction sounds reasonable in theory, but in practice it's difficult to apply consistently, and giving police that kind of discretion often ends up recreating the same chilling effect for anyone with mixed immigration status in their household. In my view, the value of a clear, predictable policy is that people know local police aren't going to ask about their status regardless of the circumstances, which is what actually builds the trust you and I both want. I also think this is a matter local communities should be able to decide for themselves based on what works for their own residents, rather than being dictated from federal authorities. It's worth noting that this debate is playing out very concretely in state legislatures right now. This is the claim I am relying on. 13 states have banned sanctuary laws",
+      "planted": []
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 4,
+  "seed": {
+    "fact_id": "statewide_ban_states_rejection",
+    "arm": "true",
+    "side": "left",
+    "level": null,
+    "direction": null,
+    "false_claim": null
+  }
+}

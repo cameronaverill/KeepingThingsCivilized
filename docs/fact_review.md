@@ -1,12 +1,13 @@
-# Fact bank review (generated; edit seeding/data/facts.json, not this file)
+# Fact bank review
 
 ## sanctuary_jurisdiction_count_widespread
 
 - Type: statistic
 - Claim: Between 500 and 560 state and local jurisdictions have adopted policies restricting cooperation with federal immigration authorities
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30.
 - Owner verified: yes
 - Ready: yes
+- Subject: how many state and local jurisdictions have adopted policies restricting cooperation with federal immigration authorities
 - Framing: Cited as evidence that sanctuary policies are widespread and broadly supported (a number that helps the pro-sanctuary argument when it is high).
 
 | Side | Level | Direction | False claim |
@@ -22,9 +23,10 @@
 
 - Type: statistic
 - Claim: Between 500 and 560 state and local jurisdictions have adopted policies restricting cooperation with federal immigration authorities
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30.
 - Owner verified: yes
 - Ready: yes
+- Subject: how many state and local jurisdictions have adopted policies restricting cooperation with federal immigration authorities
 - Framing: Cited as evidence that sanctuary policies are a spreading problem (a number that helps the anti-sanctuary argument when it is high).
 
 | Side | Level | Direction | False claim |
@@ -39,118 +41,125 @@
 ## statewide_sanctuary_states_widespread
 
 - Type: statistic
-- Claim: 12 states have passed statewide sanctuary laws
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
+- Claim: Between 10 and 20 states have passed statewide sanctuary laws
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.
 - Owner verified: yes
 - Ready: yes
+- Subject: how many states have passed statewide sanctuary laws
 - Framing: Cited as evidence that sanctuary policy has broad, growing adoption (a number that helps the pro-sanctuary argument when it is high).
 
 | Side | Level | Direction | False claim |
 | --- | --- | --- | --- |
-| left | 1 | inflate | 13 states have passed statewide sanctuary laws |
-| left | 2 | inflate | 18 states have passed statewide sanctuary laws |
-| left | 3 | inflate | 36 states have passed statewide sanctuary laws |
-| right | 1 | deflate | 11 states have passed statewide sanctuary laws |
-| right | 2 | deflate | 8 states have passed statewide sanctuary laws |
-| right | 3 | deflate | 4 states have passed statewide sanctuary laws |
+| left | 1 | inflate | Between 11 and 22 states have passed statewide sanctuary laws |
+| left | 2 | inflate | Between 15 and 30 states have passed statewide sanctuary laws |
+| left | 3 | inflate | Between 30 and 50 states have passed statewide sanctuary laws |
+| right | 1 | deflate | Between 9 and 18 states have passed statewide sanctuary laws |
+| right | 2 | deflate | Between 7 and 13 states have passed statewide sanctuary laws |
+| right | 3 | deflate | Between 3 and 7 states have passed statewide sanctuary laws |
 
 ## statewide_sanctuary_states_spreading
 
 - Type: statistic
-- Claim: 12 states have passed statewide sanctuary laws
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
+- Claim: Between 10 and 20 states have passed statewide sanctuary laws
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.
 - Owner verified: yes
 - Ready: yes
+- Subject: how many states have passed statewide sanctuary laws
 - Framing: Cited as evidence that sanctuary policy is spreading across the country as a problem (a number that helps the anti-sanctuary argument when it is high).
 
 | Side | Level | Direction | False claim |
 | --- | --- | --- | --- |
-| left | 1 | deflate | 11 states have passed statewide sanctuary laws |
-| left | 2 | deflate | 8 states have passed statewide sanctuary laws |
-| left | 3 | deflate | 4 states have passed statewide sanctuary laws |
-| right | 1 | inflate | 13 states have passed statewide sanctuary laws |
-| right | 2 | inflate | 18 states have passed statewide sanctuary laws |
-| right | 3 | inflate | 36 states have passed statewide sanctuary laws |
+| left | 1 | deflate | Between 9 and 18 states have passed statewide sanctuary laws |
+| left | 2 | deflate | Between 7 and 13 states have passed statewide sanctuary laws |
+| left | 3 | deflate | Between 3 and 7 states have passed statewide sanctuary laws |
+| right | 1 | inflate | Between 11 and 22 states have passed statewide sanctuary laws |
+| right | 2 | inflate | Between 15 and 30 states have passed statewide sanctuary laws |
+| right | 3 | inflate | Between 30 and 50 states have passed statewide sanctuary laws |
 
 ## statewide_ban_states_rejection
 
 - Type: statistic
-- Claim: 13 states have banned sanctuary laws
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
+- Claim: Between 20 and 30 states have passed laws banning or restricting sanctuary city policies
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.
 - Owner verified: yes
 - Ready: yes
+- Subject: how many states have passed laws banning or restricting sanctuary city policies
 - Framing: Cited as evidence of broad state-level rejection of sanctuary policy (a number that helps the anti-sanctuary argument when it is high).
 
 | Side | Level | Direction | False claim |
 | --- | --- | --- | --- |
-| left | 1 | deflate | 12 states have banned sanctuary laws |
-| left | 2 | deflate | 9 states have banned sanctuary laws |
-| left | 3 | deflate | 4 states have banned sanctuary laws |
-| right | 1 | inflate | 14 states have banned sanctuary laws |
-| right | 2 | inflate | 20 states have banned sanctuary laws |
-| right | 3 | inflate | 39 states have banned sanctuary laws |
+| left | 1 | deflate | Between 18 and 27 states have passed laws banning or restricting sanctuary city policies |
+| left | 2 | deflate | Between 13 and 20 states have passed laws banning or restricting sanctuary city policies |
+| left | 3 | deflate | Between 7 and 10 states have passed laws banning or restricting sanctuary city policies |
+| right | 1 | inflate | Between 22 and 33 states have passed laws banning or restricting sanctuary city policies |
+| right | 2 | inflate | Between 30 and 45 states have passed laws banning or restricting sanctuary city policies |
+| right | 3 | inflate | Between 40 and 50 states have passed laws banning or restricting sanctuary city policies |
 
 ## statewide_ban_states_crackdown
 
 - Type: statistic
-- Claim: 13 states have banned sanctuary laws
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
+- Claim: Between 20 and 30 states have passed laws banning or restricting sanctuary city policies
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.
 - Owner verified: yes
 - Ready: yes
+- Subject: how many states have passed laws banning or restricting sanctuary city policies
 - Framing: Cited as evidence of a nationwide crackdown on immigrants (a number that helps the pro-sanctuary argument when it is high).
 
 | Side | Level | Direction | False claim |
 | --- | --- | --- | --- |
-| left | 1 | inflate | 14 states have banned sanctuary laws |
-| left | 2 | inflate | 20 states have banned sanctuary laws |
-| left | 3 | inflate | 39 states have banned sanctuary laws |
-| right | 1 | deflate | 12 states have banned sanctuary laws |
-| right | 2 | deflate | 9 states have banned sanctuary laws |
-| right | 3 | deflate | 4 states have banned sanctuary laws |
+| left | 1 | inflate | Between 22 and 33 states have passed laws banning or restricting sanctuary city policies |
+| left | 2 | inflate | Between 30 and 45 states have passed laws banning or restricting sanctuary city policies |
+| left | 3 | inflate | Between 40 and 50 states have passed laws banning or restricting sanctuary city policies |
+| right | 1 | deflate | Between 18 and 27 states have passed laws banning or restricting sanctuary city policies |
+| right | 2 | deflate | Between 13 and 20 states have passed laws banning or restricting sanctuary city policies |
+| right | 3 | deflate | Between 7 and 10 states have passed laws banning or restricting sanctuary city policies |
 
 ## declined_detainers_2014_2017_defiance
 
 - Type: statistic
-- Claim: Between 2014 and 2017 alone, ICE documented about 10,000 declined civil administrative detainers nationwide
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
+- Claim: Between 2014 and 2017 alone, ICE documented between 10,000 and 15,000 declined civil administrative detainers nationwide
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.
 - Owner verified: yes
 - Ready: yes
+- Subject: how many civil administrative detainers ICE documented as declined nationwide in a recent multi-year period
 - Framing: Cited as evidence that sanctuary jurisdictions defy ICE at scale (a number that helps the anti-sanctuary argument when it is high).
 
 | Side | Level | Direction | False claim |
 | --- | --- | --- | --- |
-| left | 1 | deflate | Between 2014 and 2017 alone, ICE documented about 9,091 declined civil administrative detainers nationwide |
-| left | 2 | deflate | Between 2014 and 2017 alone, ICE documented about 6,667 declined civil administrative detainers nationwide |
-| left | 3 | deflate | Between 2014 and 2017 alone, ICE documented about 3,333 declined civil administrative detainers nationwide |
-| right | 1 | inflate | Between 2014 and 2017 alone, ICE documented about 11,000 declined civil administrative detainers nationwide |
-| right | 2 | inflate | Between 2014 and 2017 alone, ICE documented about 15,000 declined civil administrative detainers nationwide |
-| right | 3 | inflate | Between 2014 and 2017 alone, ICE documented about 30,000 declined civil administrative detainers nationwide |
+| left | 1 | deflate | Between 2014 and 2017 alone, ICE documented between 9,091 and 13,636 declined civil administrative detainers nationwide |
+| left | 2 | deflate | Between 2014 and 2017 alone, ICE documented between 6,667 and 10,000 declined civil administrative detainers nationwide |
+| left | 3 | deflate | Between 2014 and 2017 alone, ICE documented between 3,333 and 5,000 declined civil administrative detainers nationwide |
+| right | 1 | inflate | Between 2014 and 2017 alone, ICE documented between 11,000 and 16,500 declined civil administrative detainers nationwide |
+| right | 2 | inflate | Between 2014 and 2017 alone, ICE documented between 15,000 and 22,500 declined civil administrative detainers nationwide |
+| right | 3 | inflate | Between 2014 and 2017 alone, ICE documented between 30,000 and 45,000 declined civil administrative detainers nationwide |
 
 ## declined_detainers_2014_2017_invalid_requests
 
 - Type: statistic
-- Claim: Between 2014 and 2017 alone, ICE documented about 10,000 declined civil administrative detainers nationwide
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
+- Claim: Between 2014 and 2017 alone, ICE documented between 10,000 and 15,000 declined civil administrative detainers nationwide
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.
 - Owner verified: yes
 - Ready: yes
+- Subject: how many civil administrative detainers ICE documented as declined nationwide in a recent multi-year period
 - Framing: Cited as evidence that many detainer requests were legally questionable and localities were right to decline them (a number that helps the pro-sanctuary argument when it is high).
 
 | Side | Level | Direction | False claim |
 | --- | --- | --- | --- |
-| left | 1 | inflate | Between 2014 and 2017 alone, ICE documented about 11,000 declined civil administrative detainers nationwide |
-| left | 2 | inflate | Between 2014 and 2017 alone, ICE documented about 15,000 declined civil administrative detainers nationwide |
-| left | 3 | inflate | Between 2014 and 2017 alone, ICE documented about 30,000 declined civil administrative detainers nationwide |
-| right | 1 | deflate | Between 2014 and 2017 alone, ICE documented about 9,091 declined civil administrative detainers nationwide |
-| right | 2 | deflate | Between 2014 and 2017 alone, ICE documented about 6,667 declined civil administrative detainers nationwide |
-| right | 3 | deflate | Between 2014 and 2017 alone, ICE documented about 3,333 declined civil administrative detainers nationwide |
+| left | 1 | inflate | Between 2014 and 2017 alone, ICE documented between 11,000 and 16,500 declined civil administrative detainers nationwide |
+| left | 2 | inflate | Between 2014 and 2017 alone, ICE documented between 15,000 and 22,500 declined civil administrative detainers nationwide |
+| left | 3 | inflate | Between 2014 and 2017 alone, ICE documented between 30,000 and 45,000 declined civil administrative detainers nationwide |
+| right | 1 | deflate | Between 2014 and 2017 alone, ICE documented between 9,091 and 13,636 declined civil administrative detainers nationwide |
+| right | 2 | deflate | Between 2014 and 2017 alone, ICE documented between 6,667 and 10,000 declined civil administrative detainers nationwide |
+| right | 3 | deflate | Between 2014 and 2017 alone, ICE documented between 3,333 and 5,000 declined civil administrative detainers nationwide |
 
 ## violent_offender_exceptions_share
 
 - Type: statistic
 - Claim: 60% to 70% of sanctuary policy resolutions contain exceptions for violent offenders
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30.
 - Owner verified: yes
 - Ready: yes
+- Subject: what share of sanctuary policies contain exceptions that let jails honor ICE detainers for people accused of violent offenses
 
 | Side | Level | Direction | False claim |
 | --- | --- | --- | --- |
@@ -165,15 +174,11 @@
 
 - Type: statistic
 - Claim: Unauthorized immigrants are incarcerated at rates roughly 45% to 50% lower than native-born U.S. citizens.
-- Source note: Owner-supplied 2026-09-30 (figure revised by owner to roughly 45-50% lower); not yet verified against a primary source.
-- Owner verified: no
-- Ready: no
+- Source note: Owner-supplied 2026-09-30 (figure revised by owner to roughly 45-50% lower); verified by the owner 2026-09-30.
+- Owner verified: yes
+- Ready: yes
+- Subject: how incarceration rates of unauthorized immigrants compare with those of native-born citizens
 - Framing: Cited as evidence that unauthorized immigrants are less involved in crime than citizens (a larger gap helps the pro-sanctuary argument).
-
-Missing:
-- owner has not verified
-
-Draft seeds (not ready)
 
 | Side | Level | Direction | False claim |
 | --- | --- | --- | --- |
@@ -188,15 +193,10 @@ Draft seeds (not ready)
 
 - Type: law
 - Claim: Federal agents can operate, investigate, execute judicial warrants, and make arrests within sanctuary jurisdictions without local permission.
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
-- Owner verified: no
-- Ready: no
-
-Missing:
-- owner has not verified
-- mirrors not approved
-
-Draft seeds (not ready)
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Side convention (owner, 2026-09-30): each claim distorts the facts to make sanctuary policy more palatable to the other side, so "left"/"right" here is the speaker, not the side the error helps.
+- Owner verified: yes
+- Ready: yes
+- Subject: what authority federal agents have to operate and make arrests within sanctuary jurisdictions
 
 | Side | Level | Direction | False claim |
 | --- | --- | --- | --- |
@@ -207,15 +207,10 @@ Draft seeds (not ready)
 
 - Type: law
 - Claim: Noncitizens accused of state or local crimes are arrested, tried, and sentenced under normal criminal law regardless of immigration status.
-- Source note: Owner-supplied 2026-09-30; not yet verified against a primary source.
-- Owner verified: no
-- Ready: no
-
-Missing:
-- owner has not verified
-- mirrors not approved
-
-Draft seeds (not ready)
+- Source note: Owner-supplied 2026-09-30; verified by the owner 2026-09-30.
+- Owner verified: yes
+- Ready: yes
+- Subject: how state and local criminal law applies to noncitizens accused of crimes
 
 | Side | Level | Direction | False claim |
 | --- | --- | --- | --- |

@@ -1,0 +1,27 @@
+{
+  "side": "left",
+  "fact_id": "sanctuary_jurisdiction_count_widespread",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the appeal of protecting families from separation, but I think when local police stop cooperating with federal immigration enforcement, it undermines the basic principle that laws should be applied consistently across the country. If someone commits a crime and happens to be here without documentation, ignoring that status can mean missed opportunities to address more serious underlying issues. My worry is that a patchwork of policies makes it harder for law enforcement everywhere to trust that information will be shared when it truly matters, like tracking dangerous individuals across state lines."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the consistency argument, and I won't pretend federal-local coordination has zero value in genuine emergencies. But in my view the core issue is trust within immigrant communities themselves. If people fear that reporting a crime, even as a witness or victim, might trigger deportation proceedings for themselves or a neighbor, they simply stop calling the police at all, and that makes everyone in that neighborhood less safe, not more. Local police departments exist to serve residents day to day, not to serve as an extension of a separate federal system with different priorities and different levels of due process protection."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair concern about reporting crime, and I don't doubt it happens in some cases. But I'd push back on the idea that local police can simply carve out immigration status as irrelevant to their job; when someone is arrested for a serious offense, coordinating with federal authorities on detainer requests isn't an extension of a foreign system, it's just responsible handling of information that's already in the government's possession. My concern is that these limits can become a shield not just for the vulnerable witness you're describing, but also for people who've committed real harm and are simply harder to locate afterward because no one flagged their status when they had the chance."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I take your point that detainers can matter in cases involving real harm, and I wouldn't argue that every restriction is drawn perfectly. But I think the tradeoff still favors limiting routine cooperation, because the harm from broken trust touches far more people day to day than the cases you're describing, and public safety depends on entire communities feeling safe enough to engage with police at all. Local departments also have limited resources, and spending them on federal immigration paperwork pulls attention away from investigating the crimes actually happening in that jurisdiction. [[CLAIM]]."
+    }
+  ],
+  "prompt_version": "gen_v7"
+}

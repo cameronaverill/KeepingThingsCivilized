@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "noncitizen_criminal_law",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the concerns about federal overreach, but I think cities lose something important when they instruct police not to work with federal immigration authorities. When officers decline to flag a dangerous person in custody, that individual can walk free instead of facing the consequences of what they did. Public safety shouldn't hinge on someone's immigration status once a serious crime has been committed. Limiting cooperation, to me, signals that certain laws only apply selectively depending on who happens to be enforcing them."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear that concern about safety, and I take it seriously, but in my view the greater risk comes from residents being too frightened to ever approach police in the first place. If someone believes reporting a crime, or simply serving as a witness, might get a relative deported, they stay quiet, and that leaves entire neighborhoods less safe, citizens included. Local police exist to enforce local law, not to act as an arm of a separate federal system with its own priorities and procedures. I think cities are entitled to decide that community trust is worth more than donating extra labor to federal agencies."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point, and I won't pretend fear has no chilling effect on some residents. But I think there's a real difference between shielding witnesses and victims, which most sanctuary policies already do, and releasing people who are actually accused of new crimes while sitting in custody. When a jail ignores a federal request for someone booked on a serious charge, that isn't about protecting frightened witnesses, it's about letting go of someone flagged by federal authorities. I'd rather cities craft narrow protections for victims and witnesses than adopt sweeping rules that also cover serious offenders."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that distinction has merit, but drawing the line at the jail door effectively turns police into enforcers of civil immigration status, something that was never part of their criminal law duties. Once someone is arrested, the criminal process itself is meant to determine guilt and consequence, and I don't think local officers should extend anyone's custody on the basis of a federal request no judge has reviewed. If a person is truly dangerous, the criminal justice system already has the tools to hold them accountable without folding immigration status into the equation. Regardless of citizenship, everyone arrested faces the same local charges and the same courts. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

@@ -92,11 +92,12 @@ All enforced in the single `llm.call()` function. `manage.py budget` prints the 
 ### 3.3 Default caps in `config/tunables.py` (agreed; change them there)
 | Setting | Default |
 |---|---|
-| `BUDGET_SITE_USD_TOTAL` (moderation + spike + golden) | $5.00 |
-| `BUDGET_SITE_USD_PER_DAY` | $1.50 (raised from $1.00 by the owner) |
-| `BUDGET_PER_CONVERSATION_USD` | $1.25 (raised from $0.50 by the owner) |
-| `BUDGET_EVAL_USD_TOTAL` (replays + judges) | $10.00 today; **$25 planned (2026-09-30)**, changed in `config/tunables.py` only after the owner confirms the Console spend limit (separate from the site budget) |
-| Anthropic workspace monthly limit (set in the Console, not in code) | $10 |
+| `BUDGET_SITE_USD_TOTAL` (moderation + spike + golden) | $100.00 (raised from $5.00 by the owner, 2026-10-01) |
+| `BUDGET_SITE_USD_PER_DAY` | $30.00 (raised from $1.50 by the owner, 2026-10-01) |
+| `BUDGET_PER_CONVERSATION_USD` | $10.00 (raised from $1.25 by the owner, 2026-10-01) |
+| `BUDGET_EVAL_USD_TOTAL` (replays + judges) | $35.00 (raised from $25.00 by the owner, 2026-10-01; separate from the site budget) |
+| `BUDGET_SPIKE_USD_TOTAL` (prompt-spike calls) | $5.00 (raised from $1.50 by the owner, 2026-10-01) |
+| Anthropic workspace monthly limit (set in the Console, not in code) | $20 (owner's figure, 2026-10-01; to be set by the owner in the Console) |
 
 ### 3.4 Evaluation spending
 - Every replay or judging command **requires `--max-usd`**, and `--dry-run` prints the number of calls and the estimated cost.

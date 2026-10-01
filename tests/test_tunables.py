@@ -74,10 +74,10 @@ def test_every_tunable_has_a_comment():
 
 
 def test_agreed_budget_defaults():
-    assert tunables.BUDGET_SITE_USD_TOTAL == Decimal("5.00")
-    assert tunables.BUDGET_SITE_USD_PER_DAY == Decimal("1.50")  # raised from 1.00 by the user for step 2
-    assert tunables.BUDGET_PER_CONVERSATION_USD == Decimal("1.25")  # raised from 0.50 by the user for step 2
-    assert tunables.BUDGET_EVAL_USD_TOTAL == Decimal("25.00")
+    assert tunables.BUDGET_SITE_USD_TOTAL == Decimal("100.00")  # raised from 5.00 by the user, 2026-10-01
+    assert tunables.BUDGET_SITE_USD_PER_DAY == Decimal("30.00")  # raised from 1.50 by the user, 2026-10-01
+    assert tunables.BUDGET_PER_CONVERSATION_USD == Decimal("10.00")  # raised from 1.25 by the user, 2026-10-01
+    assert tunables.BUDGET_EVAL_USD_TOTAL == Decimal("35.00")  # raised from 25.00 by the user, 2026-10-01
 
 
 def test_budget_caps_are_consistent():

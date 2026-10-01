@@ -1,0 +1,27 @@
+{
+  "side": "left",
+  "fact_id": "declined_detainers_2014_2017_defiance",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the concern about immigrant communities feeling targeted, but I think local police need to be able to work with federal immigration authorities when someone in custody has committed a serious crime. Public safety depends on different levels of government not working against each other. If a city refuses to notify ICE about a dangerous offender who is later released, that seems like it puts everyone at greater risk, including immigrants themselves. I think cooperation, at least in serious cases, should be the default rather than the exception."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear that concern, and I agree public safety matters more than almost anything else here, but in my view the bigger risk is that overly broad cooperation makes entire communities afraid to call the police at all. When people fear that reporting a crime or even being a witness could lead to deportation, they stop cooperating with law enforcement altogether, which actually makes neighborhoods less safe. Local police depend on trust to do their jobs, and I think that trust erodes quickly once people see officers as an extension of federal enforcement. Limiting cooperation isn't about protecting serious criminals, it's about making sure victims and witnesses feel safe coming forward."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about trust, and I don't want victims afraid to come forward either, but I think there's a difference between refusing to demand immigration status during a routine stop and refusing to honor a hold request for someone already arrested for a serious offense. My worry is that sanctuary policies get written broadly enough that they end up shielding people who've committed violent crimes, not just protecting witnesses and bystanders. If a city releases someone despite a federal detainer and that person later harms someone, the local government bears some responsibility for that outcome. I think narrowly tailored cooperation on serious cases could address your trust concern while still keeping communities safe."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that distinction sounds reasonable in theory, but in practice these detainer requests aren't always tied to serious crimes, and honoring them automatically can sweep up people who pose no real threat, which undermines the trust I'm talking about just as much. Local police departments have limited resources and, in my view, should be spending them on actual community safety rather than acting as an arm of federal enforcement for civil violations that carry no criminal charge. I also think it matters that local governments answer to their own residents, not to federal priorities that shift with each administration. Setting aside the policy debate for a moment, it's worth remembering how these detainers actually get handled in practice. [[CLAIM]].```"
+    }
+  ],
+  "prompt_version": "gen_v7"
+}

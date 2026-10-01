@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "declined_detainers_2014_2017_defiance",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand why people want tighter cooperation, but in my view the deeper public safety problem is that immigrant communities become too afraid to contact police at all. When someone worries that reporting a crime, or just being a witness, could get a relative deported, they stay quiet, and that leaves everyone less protected. Local police rely on the trust of the neighborhoods they patrol, and merging that role with federal immigration enforcement wears that trust down in ways that take a long time to repair."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I get that worry about trust, but I think it overlooks something basic about rule of law: when someone is arrested for a serious offense and turns out to be undocumented, local jails shouldn't simply shield them from a federal detainer request. Public safety improves when different levels of law enforcement share information instead of working in isolated silos. This isn't about patrol officers demanding papers on the street, it's about handling people already in custody responsibly."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about handling people already in custody, and I won't brush it aside, but I'd draw a line between routine community policing and formal collaboration built around detainers. Even when someone is already arrested, the entanglement with federal enforcement still spreads fear through families and neighborhoods who hear about it secondhand. Nobody disputes that serious crimes deserve serious responses, but folding immigration enforcement into everyday local policing changes how people relate to the police long after that one case is over."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I hear that concern, but detainer requests often target people who are never convicted of anything, sometimes tied to minor charges that are later dismissed, and that uncertainty is precisely why local involvement in these requests deserves real scrutiny rather than default cooperation. It's also worth keeping in mind that such requests are not always carried out by the agencies asked to act on them, for a range of practical and legal reasons. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

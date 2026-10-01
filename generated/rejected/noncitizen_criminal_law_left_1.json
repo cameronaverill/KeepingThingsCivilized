@@ -1,0 +1,27 @@
+{
+  "side": "left",
+  "fact_id": "noncitizen_criminal_law",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the intent behind sanctuary policies, but I think they ultimately undermine public safety by making local police less able to coordinate with agencies who track dangerous individuals. When a jurisdiction refuses to notify federal authorities about someone in custody, I think there's a real risk that person gets released and reoffends before anyone can act. Police departments already struggle with limited resources, and I think adding a wall between local and federal law enforcement makes their job harder, not easier. Public safety should come before political statements, in my view."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the safety concern, but I think the actual effect runs the other way: when immigrant communities fear that any contact with police could lead to deportation, people stop reporting crimes and stop cooperating as witnesses. In my view that makes neighborhoods less safe overall, because a crime nobody reports is a criminal nobody catches. I also think local police shouldn't be turned into an extension of federal immigration enforcement, since their core job is investigating and preventing local crime, not enforcing immigration status. That said, I do concede that in the sense of certain repeat violent offenders, there is value to information reaching the right hands."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "I appreciate that concession, but I think it points to exactly why cooperation should be broader rather than narrower. If police only investigate and prevent local crime as you say, I think that mission is undercut when they can't communicate with the very agency tracking someone's compliance with prior removal orders. I understand the fear of eroding trust, but I think in practice most people who call police for help are never asked about immigration status at all. I think the current sanctuary approach conflates general community policing with the narrow question of handing over people already flagged as risks."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that narrow-versus-broad framing is exactly the debate, because once local police start acting as an arm of federal enforcement even in limited cases, the deterrent effect on reporting spreads regardless of the actual policy's precision. I also think we should be honest that federal enforcement priorities have shifted over time in ways local communities never voted on, so tying local policing to those shifting priorities feels to me like ceding local control over local safety. Sanctuary policies aren't about shielding dangerous people, in my view, but about drawing a line so that local officers can keep doing the community-facing work that depends on trust. Crimes committed by noncitizens are already subject to prosecution under the same state and local laws that apply to everyone else. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "gen_v7"
+}

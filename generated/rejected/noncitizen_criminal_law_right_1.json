@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "noncitizen_criminal_law",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I get why some people want tighter cooperation with federal agents, but in my view it does more harm than good for public safety overall. When local officers act as an arm of federal immigration enforcement, immigrant residents become afraid to report crimes or serve as witnesses, even when they're the victims. That fear doesn't stay contained to one group either; it makes whole neighborhoods less willing to work with police, which hurts everyone. I think departments should focus on their actual job of enforcing local law rather than taking on a separate federal mission with different goals."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I understand the worry about trust, and it's a real concern, but in my view the greater risk is releasing people who pose an ongoing danger simply because of how custody decisions are handled. If a department won't tell federal authorities that a person booked on a serious charge is being released, that person may end up back in the community without ever facing full consequences. Public safety shouldn't hinge on immigration status once someone is accused of a serious offense in custody. Local and federal governments are supposed to work together, and I think stepping back from that cooperation sends a troubling signal that some laws can be selectively enforced."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair concern, and I agree releasing someone genuinely dangerous is a real problem worth addressing. But I think there's a meaningful difference between protecting witnesses and victims, which most limited-cooperation policies are designed to do, and refusing to ever assist with anyone in custody. Most sanctuary-style policies still allow cooperation on serious violent charges; what they resist is holding someone extra, without judicial review, purely on a civil immigration request. I'd rather cities build in clear exceptions for violent offenders than have police departments treat every immigrant as a suspect to keep federal agents satisfied."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that distinction is worth taking seriously, but the moment police start honoring detainer requests as routine practice, they're stepping into civil immigration enforcement rather than sticking to their actual job of upholding local criminal law. Once someone is arrested, it's the criminal court process, not a federal request, that should determine what happens next, and I don't think local officers should extend anyone's custody based on paperwork a judge never reviewed. If a person is truly dangerous, the local justice system already has the authority to charge, convict, and sentence them without pulling immigration status into the equation. Whatever someone's citizenship, the same local charges and the same courts apply to their case. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

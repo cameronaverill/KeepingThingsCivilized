@@ -1,0 +1,27 @@
+{
+  "side": "left",
+  "fact_id": "declined_detainers_2014_2017_invalid_requests",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the appeal of protecting immigrant communities, but I think local police cooperating with federal immigration enforcement is just basic rule-of-law consistency. If someone is in the country illegally and commits another crime, I don't see why local officers should be barred from working with federal agents on that. Sanctuary policies, in my view, send a message that certain laws are optional depending on which city you live in, and that undermines public trust in the whole system."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear that concern about consistency, but in my experience the bigger trust issue runs the other way. When local police act as an arm of federal immigration enforcement, immigrant communities become afraid to report crimes, testify as witnesses, or even call for help in emergencies. I think that makes everyone less safe, not just undocumented residents, because criminals can exploit that fear knowing victims won't come forward. Public safety depends on cooperation with police, and that cooperation collapses when people see officers as potential deportation agents."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair concern, and I won't pretend fear of law enforcement never affects reporting rates. But I think the solution is targeted trust-building, not blanket non-cooperation policies that can shield people who've committed serious offenses from federal detainer requests. When cities refuse to honor detainers at all, it isn't just undocumented witnesses who benefit from the resulting climate, it's also individuals with violent or serious criminal histories who might otherwise be handed over. I'd rather see cooperation on genuine public safety threats while protecting victims and witnesses through separate, narrower protections."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that's a reasonable-sounding distinction, but in practice detainer requests aren't always about serious offenders, they're often just administrative requests tied to immigration status alone, sometimes with weak or contested legal basis. Local police risk civil liability by holding someone past their release date without a warrant, and I think that's a legitimate reason for departments to decline in many cases rather than treat every detainer as automatically valid. Sanctuary policies, as I see them, aren't about shielding violent crime, they're about not turning every local officer into an unpaid, legally exposed extension of federal enforcement. ICE itself has tracked how often localities decline these detainer requests over a period of several years."
+    }
+  ],
+  "prompt_version": "gen_v7"
+}

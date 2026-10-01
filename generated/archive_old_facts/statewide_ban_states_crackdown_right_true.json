@@ -1,0 +1,49 @@
+{
+  "id": "statewide_ban_states_crackdown_right_true",
+  "pair_id": "statewide_ban_states_crackdown_true",
+  "variant": "right",
+  "description": "Seeded-error conversation for fact statewide_ban_states_crackdown, right base. Participant B argues the right-coded position (against) and Participant A the left-coded position (in favor). Arm: true. Participant B's last message states the true fact; nothing is planted. Expected: no factual finding.",
+  "topic": {
+    "title": "Sanctuary cities",
+    "proposition": "Cities should limit their local police's cooperation with federal immigration enforcement."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand why some people want tight coordination with federal agents, but I think cities are right to set limits on how much local police cooperate with immigration enforcement. In my view, when officers double as immigration agents, immigrant residents stop trusting them entirely. That erodes public safety rather than protecting it, since people become afraid to report crimes or come forward as witnesses in their own neighborhoods.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I understand the trust argument, but in my view limiting cooperation creates real gaps that let people who've committed serious crimes avoid consequences they'd otherwise face. Local police work alongside federal authorities in plenty of other contexts, and I think immigration enforcement shouldn't be treated as an exception. Public safety depends on consistent enforcement of the law, and I believe carving out sanctuary rules sends a message that some legal obligations are negotiable depending on location.",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair concern about consistency, and I agree accountability matters. But I'd argue that cooperation shouldn't be so broad that it discourages people from calling police in an emergency or cooperating with an investigation. I think most sanctuary policies aren't about shielding serious offenders, they're about making sure routine encounters, like a broken taillight, don't spiral into family separation over something unrelated to actual danger to the community.",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I take your point that routine stops feel different from serious offenses, and I won't dismiss that many people draw that distinction. But I think in practice these limits end up covering more than minor situations, and local discretion can shield people who probably shouldn't be shielded. I'd also point out that federal agencies still have independent authority to act regardless of local policy, so restricting cooperation doesn't actually stop enforcement, it just makes coordination harder and outcomes less predictable for everyone involved. This is the claim I am relying on. 13 states have banned sanctuary laws",
+      "planted": []
+    }
+  ],
+  "stances": {
+    "Participant A": "pro",
+    "Participant B": "con"
+  },
+  "trigger_seq": 4,
+  "seed": {
+    "fact_id": "statewide_ban_states_crackdown",
+    "arm": "true",
+    "side": "right",
+    "level": null,
+    "direction": null,
+    "false_claim": null
+  }
+}

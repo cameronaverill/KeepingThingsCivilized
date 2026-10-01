@@ -1,0 +1,27 @@
+{
+  "side": "left",
+  "fact_id": "sanctuary_jurisdiction_count_spreading",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the impulse behind sanctuary policies, but I think they undermine the basic principle that laws should be enforced consistently. When local police decline to work with federal immigration authorities, it creates a patchwork system where someone's legal status effectively depends on which city they happen to be in. I also worry it sends a message that certain federal laws are optional if a local government disagrees with them, which sets a troubling precedent for the rule of law generally."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the consistency argument, but I think it misses why these policies exist in the first place. When local police are seen as an arm of immigration enforcement, immigrant communities stop reporting crimes, testifying as witnesses, or even calling for help in emergencies, and that makes everyone less safe, not just immigrants. In my view, local policing works best when it's built on trust with the community it serves, and that trust breaks down fast if people fear a traffic stop could lead to deportation for themselves or a family member."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair concern about trust, and I don't dismiss it, but I think the tradeoff cuts both ways. If local police shield people from federal enforcement, it can also shield individuals who've committed serious crimes and would otherwise be flagged through routine cooperation like fingerprint checks. I'd rather see reforms that protect victims and witnesses specifically, without a blanket policy that limits cooperation across the board, because that broader approach risks eroding public confidence that laws apply equally to everyone present in the country."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think targeted protections sound reasonable in theory, but in practice it's hard to draw a clean line, and any cooperation at all tends to make people wary of interacting with police for anything, since word travels fast in tight-knit communities. I'd also point out that local police already choose not to enforce plenty of federal rules that fall outside their core mission, and immigration status checks pull resources and attention away from investigating actual local crimes. Public safety, to me, means people feel safe walking into a police station regardless of their immigration status. [[CLAIM]].)"
+    }
+  ],
+  "prompt_version": "gen_v7"
+}

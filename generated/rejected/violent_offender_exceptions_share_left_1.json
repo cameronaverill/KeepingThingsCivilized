@@ -1,0 +1,27 @@
+{
+  "side": "left",
+  "fact_id": "violent_offender_exceptions_share",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand why sanctuary policies sound compassionate, but I think they put local officers in an awkward position and can undercut public safety. When police can't coordinate with federal immigration authorities, dangerous individuals who would otherwise be flagged for removal can slip back onto the streets. I also worry it sends a message that some laws are optional depending on politics, which erodes trust in the whole system. Communities deserve consistency, not a patchwork of rules that depend on which city you're standing in."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the safety concern, but in my experience these policies actually build trust rather than erode it. When immigrant communities believe local police might hand them over to federal agents, they stop reporting crimes, testifying as witnesses, or even calling for help when they're victims themselves. That silence makes everyone less safe, not more. I'd rather have police focused on solving crimes in their own neighborhoods than acting as an extension of a federal system they're not trained or funded to enforce."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about witness cooperation, and I don't dismiss it. But I still think there's a difference between routine immigration status checks, which I agree shouldn't be police business, and cooperating on serious criminal cases where federal authorities have already flagged someone as dangerous. If a jail refuses to hand over someone accused of a violent crime, that isn't protecting a fearful witness, it's protecting a potential threat to the same community these policies claim to serve. I think the two goals can and should be separated more clearly than they currently are."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that's actually where most of these policies already draw the line, since the goal was never to shield anyone accused of serious violence, only to stop police from acting as immigration agents in everyday encounters. Local law enforcement still has every ability to hold someone on an actual warrant or criminal charge; what sanctuary policies limit is honoring civil detainer requests that aren't backed by a judge's order, which is a different legal standard entirely. That distinction matters because it keeps police accountable to local courts rather than federal discretion. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "gen_v7"
+}

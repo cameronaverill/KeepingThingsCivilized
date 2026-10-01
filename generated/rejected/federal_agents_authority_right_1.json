@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "federal_agents_authority",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I get the instinct to keep local police focused purely on their own community, but I think when cities limit cooperation with federal immigration enforcement, they're creating unnecessary friction that pushes people further from law enforcement. If someone doesn't trust that reporting a crime won't somehow expose them to unrelated federal attention, they simply stay silent, and that silence helps no one, including their own neighbors. In my view, some coordination isn't about turning local officers into immigration agents, it's about not building walls between agencies that both exist to keep people safe."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I understand that worry about silence and fear, and I agree trust matters enormously, but I think the larger issue is that once local police start acting as an arm of federal enforcement, they lose the very trust you're describing, especially among people who came forward as witnesses or victims. If someone believes any interaction with police might trigger removal proceedings, they avoid police altogether, and then violent crime goes unreported and unsolved. I'd rather local officers focus entirely on local law and let federal agencies run federal enforcement using their own resources and authority, without pulling city police into that role."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "I hear you on the risk of silence, and I won't dismiss that some people might hesitate to come forward, but I think there's a meaningful distinction between everyday policing and simply not obstructing federal requests about specific individuals already flagged as priorities. Refusing that kind of cooperation can let someone who poses a real danger back onto the street, and the people most exposed to that risk are often immigrant communities themselves, who suffer disproportionately from crimes committed by those who should have been handed over already. I'd also argue that trust cuts in more than one direction, since some residents lose confidence in their city when they believe laws aren't being enforced consistently. Choosing not to cooperate is still a choice with consequences, not a neutral middle ground."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I take your point that this isn't risk-free in either direction, and I won't claim limiting cooperation costs nothing. But I think the deeper question is who decides how local officers spend their time, and whether they owe automatic assistance to a federal agenda they never had a say in shaping. Federal authorities already possess independent tools for locating and pursuing the people they prioritize, so city policy isn't the only mechanism available to them. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

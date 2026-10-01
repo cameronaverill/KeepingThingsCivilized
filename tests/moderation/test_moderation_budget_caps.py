@@ -222,7 +222,7 @@ def test_eval_purposes_share_one_eval_total():
 def test_exhausting_the_eval_budget_leaves_the_site_budget_alone():
     seed_call("ok", purpose="replay", cost="10.00", created_at=OLD)
     check(purpose="moderation", conversation_id=3, amount="1.00")
-    check(purpose="spike", amount="0.40")  # under the spike-only cap (BUDGET_SPIKE_USD_TOTAL = 1.50)
+    check(purpose="spike", amount="0.40")  # under the spike-only cap (BUDGET_SPIKE_USD_TOTAL = 5.00)
 
 
 def test_exhausting_the_site_budget_leaves_the_eval_budget_alone():

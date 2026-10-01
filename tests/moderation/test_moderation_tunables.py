@@ -20,10 +20,10 @@ NEW_TUNABLES = {
 
 
 def test_the_four_caps_are_the_users_numbers():
-    assert tunables.BUDGET_PER_CONVERSATION_USD == Decimal("1.25")
-    assert tunables.BUDGET_SITE_USD_PER_DAY == Decimal("1.50")
-    assert tunables.BUDGET_SITE_USD_TOTAL == Decimal("5.00")
-    assert tunables.BUDGET_EVAL_USD_TOTAL == Decimal("25.00")
+    assert tunables.BUDGET_PER_CONVERSATION_USD == Decimal("10.00")
+    assert tunables.BUDGET_SITE_USD_PER_DAY == Decimal("30.00")
+    assert tunables.BUDGET_SITE_USD_TOTAL == Decimal("100.00")
+    assert tunables.BUDGET_EVAL_USD_TOTAL == Decimal("35.00")
 
 
 def test_the_caps_are_decimals_not_floats():

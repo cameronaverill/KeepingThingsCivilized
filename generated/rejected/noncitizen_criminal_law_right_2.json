@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "noncitizen_criminal_law",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand why some people want tighter coordination between local police and federal immigration agents, but I think that kind of cooperation actually makes communities less safe overall. When immigrants fear that any interaction with police could lead to deportation, they stop reporting crimes and stop cooperating as witnesses, and that silence helps no one, including citizens who rely on tips and testimony to solve cases. Local police exist to handle local law, not to carry out a separate federal mission. I think cities should be allowed to limit that entanglement."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I understand the concern about trust, and I agree fear can make people hesitant to come forward. But in my view the greater risk is that limiting cooperation lets dangerous people slip through the cracks. When a jail refuses to notify federal authorities about someone already in custody on a serious charge, that person may walk free rather than face the full consequences of what they did. Public safety shouldn't hinge on immigration status once someone has committed a real crime, and I worry that restricting cooperation tells people that certain rules bend depending on who's enforcing them."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair worry, and I won't deny that public safety matters enormously here. But I think there's a real difference between refusing to police immigration status broadly and actually shielding someone accused of a new, serious offense. Most limited-cooperation policies already carve out exceptions for violent or repeat offenders, while protecting the witnesses and victims who need to trust police enough to come forward. I'd rather see cities keep that narrow line, protecting bystanders and complainants, than have police departments treat every arrest as an opportunity to enforce federal immigration law."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that carve-out sounds reasonable in theory, but drawing the line at the jailhouse door still turns local officers into enforcers of federal immigration policy rather than the criminal law they were actually hired to apply. Once someone is arrested, our criminal justice system is built to determine guilt and impose consequences on its own, without needing a parallel federal process layered on top before a judge has even weighed in. If a person is truly dangerous, the courts already have every tool necessary to hold them accountable regardless of their background. Anyone charged with a crime locally answers to the same courts and the same laws as anyone else. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

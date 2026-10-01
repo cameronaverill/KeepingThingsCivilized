@@ -34,7 +34,7 @@ DEFAULT_DIR = seeded_judge.DEFAULT_DIR
 PURPOSE = "judge"
 RESEARCH_PURPOSE = "replay"  # research calls count against the evaluation budget (EVAL_PURPOSES), not the site caps
 AGENT = "research_judge"
-PROMPT_VERSION = "sj_r1"
+PROMPT_VERSION = "sj_r2"
 SOURCES_MARKER = "\n\nSources:\n"
 RESEARCH_ELIGIBLE_ACT_TYPES = ("offer_research", "correct_factual_error", "provide_information", "request_information")
 # moderation/pricing.py does not price web searches yet. Anthropic's list price is $10 per 1,000 searches; each search's
@@ -318,7 +318,7 @@ def collect_cases(experiment_name, assignment="as-is") -> list[ResearchCase]:
 
 def _system():
     rubric = RUBRIC_PATH.read_text(encoding="utf-8").strip()
-    return (PROMPT_DIR / "judge_research_v1.md").read_text(encoding="utf-8").replace("{{RUBRIC}}", rubric)
+    return (PROMPT_DIR / "judge_research_v2.md").read_text(encoding="utf-8").replace("{{RUBRIC}}", rubric)
 
 
 def _request(case):

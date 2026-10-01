@@ -295,7 +295,7 @@ class TestJudgeCommand:
         result = judge_live()
         rows = kit.read_jsonl(PATH)
         assert result.exc is None and [(r["conversation_id"], r["tag"], r["verdict"], r["prompt_version"]) for r in rows] == [
-            ("range_fact_left_l1", "3", "disputes_claim", "sj_r1"), ("range_fact_right_l1", "1", "unclear", "sj_r1")]
+            ("range_fact_left_l1", "3", "disputes_claim", "sj_r2"), ("range_fact_right_l1", "1", "unclear", "sj_r2")]
         assert (rows[0]["side"], rows[0]["level"], rows[0]["note_text"], rows[0]["n_sources"], rows[0]["confidence"]) == (
             "left", 1, kit.NOTE_TEXT, 3, 0.7)
 

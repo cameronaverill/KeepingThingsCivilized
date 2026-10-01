@@ -13,12 +13,12 @@ A two-person discussion forum with an AI moderator that makes discussions more p
 - A bad item in the model's output is rejected on its own. The rest of the run is kept.
 
 ## Cost controls (you pay for the API)
-- **Console:** a dedicated workspace with a **$10/month** spend limit (set this before step 3).
+- **Console:** a dedicated workspace with a **$20/month** spend limit (set this before step 3).
 - **In the app:** all API calls go through one function. It checks the budget before each call and refuses anything that would go over:
-  - $5 total for the site
-  - $1.50 a day
-  - $1.25 per conversation
-  - $10 for evaluation, kept separate
+  - $100 total for the site
+  - $30 a day
+  - $10 per conversation
+  - $35 for evaluation, kept separate, and $5 for prompt-spike calls
 - **Also:** a circuit breaker, a kill switch, and prompt caching.
 - **Where to change the numbers:** all in `config/tunables.py`.
 

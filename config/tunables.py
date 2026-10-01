@@ -15,19 +15,19 @@ from decimal import Decimal
 # ---------------------------------------------------------------------------
 
 # Most the live site (moderation, plus the prompt spike and golden-set runs) may spend, all time.
-BUDGET_SITE_USD_TOTAL = Decimal("5.00")
+BUDGET_SITE_USD_TOTAL = Decimal("100.00")
 
 # Most the live site may spend in one calendar day (UTC).
-BUDGET_SITE_USD_PER_DAY = Decimal("1.50")
+BUDGET_SITE_USD_PER_DAY = Decimal("30.00")
 
 # Most one conversation may cost in moderation calls.
-BUDGET_PER_CONVERSATION_USD = Decimal("1.25")
+BUDGET_PER_CONVERSATION_USD = Decimal("10.00")
 
 # Most evaluation work (replays and LLM judges) may spend, all time. Kept separate from the site's budget.
-BUDGET_EVAL_USD_TOTAL = Decimal("25.00")
+BUDGET_EVAL_USD_TOTAL = Decimal("35.00")
 
 # Most all prompt-spike calls (purpose "spike", step 3) may spend together, all time, whatever --max-usd says.
-BUDGET_SPIKE_USD_TOTAL = Decimal("1.50")  # raised from 0.50 by the user for the larger trial set
+BUDGET_SPIKE_USD_TOTAL = Decimal("5.00")  # raised from 0.50 by the user for the larger trial set
 
 # ---------------------------------------------------------------------------
 # Master switch and models
@@ -35,7 +35,7 @@ BUDGET_SPIKE_USD_TOTAL = Decimal("1.50")  # raised from 0.50 by the user for the
 
 # Kill switch. False = no LLM call is ever made; moderation runs are marked "skipped".
 # Deliberately OFF by default: turn it on only once your Console spend limit is set.
-LLM_ENABLED = False
+LLM_ENABLED = True
 
 # Model that reads the discussion and flags problems (Master Moderator).
 # Verify the exact model ids against Anthropic's docs in step 2.
@@ -71,7 +71,7 @@ RESEARCH_MAX_USES = 3
 RESEARCH_MAX_SOURCES_SHOWN = 3
 
 # How many times the Anthropic SDK retries a failed request. Kept at 1: spend-limit errors never succeed on retry.
-LLM_MAX_RETRIES = 1
+LLM_MAX_RETRIES = 3
 
 # Seconds the Anthropic SDK waits for one request before giving up (a timeout counts as an API error for the breaker).
 LLM_REQUEST_TIMEOUT_SECONDS = 120

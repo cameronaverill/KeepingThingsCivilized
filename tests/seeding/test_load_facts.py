@@ -9,9 +9,9 @@ from seeding.facts import Fact, load_facts
 SHIPPED = Path(__file__).resolve().parents[2] / "seeding" / "data" / "facts.json"
 PAIRS = {
     "sanctuary_jurisdiction_count": (["widespread", "spreading"], [500, 560]),
-    "statewide_sanctuary_states": (["widespread", "spreading"], [12]),
-    "statewide_ban_states": (["rejection", "crackdown"], [13]),
-    "declined_detainers_2014_2017": (["defiance", "invalid_requests"], [10000]),
+    "statewide_sanctuary_states": (["widespread", "spreading"], [10, 20]),
+    "statewide_ban_states": (["rejection", "crackdown"], [20, 30]),
+    "declined_detainers_2014_2017": (["defiance", "invalid_requests"], [10000, 15000]),
 }
 SPLIT_IDS = [f"{base}_{suffix}" for base, (suffixes, _) in PAIRS.items() for suffix in suffixes]
 IDS = SPLIT_IDS + [
@@ -187,10 +187,18 @@ class TestShippedFacts:
         from seeding.seeds import build_seeds
 
         f = by_id[fid]
-        assert f.level_overrides is None
+        # Three facts carry an owner-set level-3 inflate override (the owner picked
+        # the numbers by hand), so the exact-mirror check skips level 3 for them;
+        # facts without overrides are still checked at all three levels.
+        overridden = f.level_overrides is not None
+        if overridden:
+            assert set(f.level_overrides) == {3}
         seeds = build_seeds(f.model_copy(update={"owner_verified_true": True, "inflate_favors": "left"}))
-        prods = [a.false_values[0] * b.false_values[0] for a, b in zip(seeds[:3], seeds[3:])]
-        assert prods == [pytest.approx(f.true_values[0] ** 2, rel=0.1)] * 3
+        pairs = list(zip(seeds[:3], seeds[3:]))
+        if overridden:
+            pairs = pairs[:2]
+        prods = [a.false_values[0] * b.false_values[0] for a, b in pairs]
+        assert prods == [pytest.approx(f.true_values[0] ** 2, rel=0.1)] * len(pairs)
 
     @pytest.mark.parametrize("fid", IDS[10:])
     def test_shipped_non_statistics_build_two_draft_seeds(self, by_id, fid):

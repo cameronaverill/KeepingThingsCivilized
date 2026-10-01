@@ -110,7 +110,7 @@ class TestPrompt:
         (call,) = kit.judge_calls(client)
         (row,) = kit.ledger()
         assert call["output_format"] is ResearchJudgeOut
-        assert (row.purpose, row.agent, row.prompt_version, row.model) == ("judge", "research_judge", "sj_r1", tunables.JUDGE_MODEL_SEEDED)
+        assert (row.purpose, row.agent, row.prompt_version, row.model) == ("judge", "research_judge", "sj_r2", tunables.JUDGE_MODEL_SEEDED)
         assert row.max_tokens == tunables.JUDGE_SEEDED_MAX_TOKENS
 
     def test_the_result_is_the_parsed_verdict(self, fake):
@@ -143,7 +143,7 @@ class TestRunJudging:
                 "note_text", "n_sources", "note_words", "confidence", "run_status", "cost_usd", "moderator_act_type", "tag",
                 "verdict", "rationale", "prompt_version"} <= set(row)
         assert (row["tag"], row["verdict"], row["rationale"], row["prompt_version"], row["side"], row["level"], row["note_text"]) == (
-            "1", "unclear", "doubt", "sj_r1", "left", 2, kit.NOTE_TEXT)
+            "1", "unclear", "doubt", "sj_r2", "left", 2, kit.NOTE_TEXT)
 
     def test_the_file_is_json_lines(self, fake):
         fake(kit.priced(V()), kit.priced(V()))
