@@ -591,7 +591,7 @@ def messages(request, conversation_id):
     payload = dict(view)
     payload["messages"] = [
         # "html" is the same partial the page uses, rendered (and escaped) by the server; poll.js only inserts it.
-        {**message, "html": render_to_string("forum/_message.html", {"m": message})}
+        {**message, "html": render_to_string("forum/_message.html", {"m": message}, request=request)}
         for message in view["messages"]
     ]
     reason = view.get("cannot_post_reason")

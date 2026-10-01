@@ -17,7 +17,6 @@ Rules this module keeps:
 """
 import hashlib
 import logging
-import re
 import secrets
 import unicodedata
 from dataclasses import dataclass
@@ -39,6 +38,7 @@ from moderation.errors import (
     LLMRefused,
 )
 from moderation.models import PREVIEW_ACTIONS, PreviewCheck, PreviewMode
+from moderation.references import renumber_message_references
 from moderation.schemas import IntervenorOutput, MasterOutput
 
 logger = logging.getLogger(__name__)
@@ -147,17 +147,10 @@ def _draft_transcript(conversation, participant, text, snapshot_seq, now):
     return transcript
 
 
-_PLACEHOLDER_REFERENCE = re.compile(
-    r"(?<![\w-])(messages?)(\s+)(#?)" + re.escape(str(PLACEHOLDER_MESSAGE_ID)) + r"(?![\w-])", re.IGNORECASE
-)
-
-
 def _name_the_draft(text, draft_seq):
     """`text` with each reference to the placeholder ("message -1", "Message #-1") reading "message N", N being the number
-    the draft gets when it is posted. Anything else containing -1 is left alone."""
-    if not isinstance(text, str):
-        return text
-    return _PLACEHOLDER_REFERENCE.sub(lambda m: f"{m.group(1)}{m.group(2)}{m.group(3)}{draft_seq}", text)
+    the draft gets when it is posted. A thin wrapper over the shared helper, kept for callers that only know the draft."""
+    return renumber_message_references(text, {PLACEHOLDER_MESSAGE_ID: draft_seq})
 
 
 def _run_agents(conversation, participant, text, snapshot_seq, now, call_ids):
@@ -209,8 +202,14 @@ def _run_agents(conversation, participant, text, snapshot_seq, now, call_ids):
     result = result.model_copy(
         update={"acts": [a for a in result.acts if a.type != "identify_agreement_disagreement"]}
     )
+    # "message N" reads as the number the page shows: the draft's placeholder id and every window id map to their seq_no.
+    id_to_seq = {m["id"]: m["seq_no"] for m in transcript}
     result = result.model_copy(
-        update={"acts": [a.model_copy(update={"text": _name_the_draft(a.text, draft_seq)}) for a in result.acts]}
+        update={
+            "acts": [
+                a.model_copy(update={"text": renumber_message_references(a.text, id_to_seq)}) for a in result.acts
+            ]
+        }
     )
     labels = set(Participant.objects.filter(conversation_id=conversation.pk).values_list("label", flat=True))
     act_verdicts = pipeline.validate_acts(

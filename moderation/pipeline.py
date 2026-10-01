@@ -42,6 +42,7 @@ from moderation.errors import (
     ModelNotAllowed,
 )
 from moderation.models import InterventionAct, Issue, IssueDisposition, ModerationRun
+from moderation.references import renumber_message_references
 from moderation.scrub import scrub
 
 logger = logging.getLogger(__name__)
@@ -400,7 +401,7 @@ def validate_acts(output, *, labels, window_ids, valid_local_ids, cap):
     return verdicts
 
 
-def _store_intervenor(run, transcript, output, stored_issues, notes):
+def _store_intervenor(run, transcript, output, stored_issues, notes, *, renumber=True):
     """Validate and store dispositions and acts. Returns the list of valid acts in order."""
     from forum.models import Participant
 
@@ -413,6 +414,10 @@ def _store_intervenor(run, transcript, output, stored_issues, notes):
     verdicts = validate_acts(
         output, labels=labels, window_ids=window_ids, valid_local_ids=valid_by_local, cap=cap
     )
+
+    # "message N" in the text means the number the page shows (seq_no), not the transcript id; the stored text is what gets posted.
+    # A reused preview output already carries displayed numbers (preview.py renumbered it), so `renumber=False` stores it as is.
+    id_to_seq = {m["id"]: m["seq_no"] for m in transcript} if renumber else {}
 
     valid_acts = []
     with transaction.atomic():
@@ -431,7 +436,7 @@ def _store_intervenor(run, transcript, output, stored_issues, notes):
                 order=verdict.order,
                 act_type=act.type,
                 tone=act.tone,
-                text=act.text,
+                text=renumber_message_references(act.text, id_to_seq),
                 addressee=verdict.addressee or "all",
                 subject=verdict.subject or "none",
                 validity="valid" if reason is None else "rejected",
@@ -632,14 +637,15 @@ def _run(run):
         for issue in valid_issues
     ]
     # A previewed Intervenor output never holds the summary act, so a due run asks the Intervenor afresh.
-    if reuse is not None and reuse.intervenor is not None and not summary_due:
+    reused_preview = reuse is not None and reuse.intervenor is not None and not summary_due
+    if reused_preview:
         result = reuse.intervenor
     else:
         result = agents.call_intervenor(
             run, transcript, topic=topic, valid_issues=views, discussion_map=output.discussion_map,
             summary_due=summary_due,
         )
-    valid_acts = _store_intervenor(run, transcript, result, stored, notes)
+    valid_acts = _store_intervenor(run, transcript, result, stored, notes, renumber=not reused_preview)
 
     # 5 and 6. Post (live only) and finish.
     decision = "intervene" if (result.decision == "intervene" and valid_acts) else "no_intervention"
