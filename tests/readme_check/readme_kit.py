@@ -19,7 +19,6 @@ RUNTIME_CREATED_PATHS = (
     ".env",  # the owner's private settings file, copied from .env.example
     "db.sqlite3",  # the SQLite database, created by migrate
     ".venv",  # the virtual environment
-    "golden/results",  # evaluation output, git-ignored
     "scratchpad",  # scratch space, git-ignored
     "index.json",  # written by `export_all --output-dir DIR` into the chosen output directory
 )

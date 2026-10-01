@@ -17,7 +17,7 @@ Choices made where the brief is silent (all reported to the architect):
   that its stored messages, topic, pair_id and variant still equal what the file gives (a changed transcript under an old
   experiment name is an error, never a silent reuse), and creates nothing. A run is identified by
   `(conversation, trigger message, replicate)` among `kind="replay"` runs.
-- **Trigger.** The message whose `seq` equals the file's `trigger_seq` (what `spike.run_transcript` uses). Messages after the
+- **Trigger.** The message whose `seq` equals the file's `trigger_seq` (what the old spike used). Messages after the
   trigger are loaded but no run sees them (`snapshot_seq = trigger.seq_no`).
 - **Label seed.** `Conversation.label_seed` is a deterministic 62-bit integer from sha256 of
   `experiment name | transcript id | assignment`. It identifies the assignment; the assignment itself is explicit, not drawn.
@@ -57,10 +57,9 @@ from django.db.models import Max
 
 from forum.limits import count_message_chars
 from forum.models import Conversation, Experiment, KIND_CHOICES, Message, Participant, Topic
-from moderation import agents, budget, llm, pipeline, pricing, prompting
-from moderation.management.commands import spike
+from moderation import agents, budget, llm, pipeline, pricing, prompting, transcripts as transcript_files
 from moderation.models import ModerationRun
-from moderation.series import compute_features
+from moderation.transcripts import compute_features
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +208,7 @@ def make_label_seed(experiment_name, transcript_id, assignment):
 
 def normalize_transcripts(transcripts):
     """A list of (path, data) sorted by transcript id, from a dict {id: data}, an iterable of data dicts, or an iterable of
-    (path, data) pairs (what `spike.load_transcript_files` returns). A missing path becomes `<id>.json` (only used in errors)."""
+    (path, data) pairs (what `transcripts.load_transcript_files` returns). A missing path becomes `<id>.json` (only used in errors)."""
     if isinstance(transcripts, dict):
         transcripts = list(transcripts.values())
     pairs = []
@@ -235,7 +234,7 @@ def _rows(path, data, assignment):
     for message in data["messages"]:
         author = message["author"]
         row = {"seq": message["seq"], "text": message["text"], "planted": copy.deepcopy(message.get("planted") or [])}
-        if spike._is_moderator(author):
+        if transcript_files.is_moderator(author):
             row.update(author_type="moderator", label=None)
         else:
             match = _AUTHOR_RE.fullmatch(author)
@@ -263,10 +262,10 @@ def _stances(data, assignment):
 
 
 def validate_transcripts(pairs, *, known=None):
-    """Check every transcript against the spike's rules and the real users' limits, writing nothing. `known` is the
+    """Check every transcript against the transcript rules and the real users' limits, writing nothing. `known` is the
     {id: data} of the whole folder (so a series member's base can be checked even when it is not selected)."""
     for path, data in pairs:
-        spike.validate_transcript(path, data, known_ids=known)
+        transcript_files.validate_transcript(path, data, known_ids=known)
         rows = _rows(path, data, "as-is")
         user_messages = [row for row in rows if row["author_type"] == "user"]
         limit = int(settings.MAX_USER_MESSAGES_PER_CONVERSATION)
@@ -519,7 +518,7 @@ def _trigger_seq_of(conversation, trigger_seq=None):
 
 
 def factors(conversation, trigger_seq=None):
-    """The series factor values (`series.compute_features`) computed from the STORED transcript, never hand-labeled.
+    """The series factor values (`transcripts.compute_features`) computed from the STORED transcript, never hand-labeled.
     The trigger is `trigger_seq` if given, else the one recorded in the experiment config, else the last user message."""
     seq = _trigger_seq_of(conversation, trigger_seq)
     return compute_features(_stored_transcript(conversation), seq)
@@ -528,14 +527,14 @@ def factors(conversation, trigger_seq=None):
 # --- Cost estimates ----------------------------------------------------------------------------------------------------
 
 def _worst_case_for(transcript, models):
-    """(master, intervenor) worst-case reservation-basis cost for a spike-format transcript, with the given models."""
+    """(master, intervenor) worst-case reservation-basis cost for a transcript-format, with the given models."""
     master_prompt = prompting.load_prompt(agents.MASTER_PROMPT)
     intervenor_prompt = prompting.load_prompt(agents.INTERVENOR_PROMPT)
     limit = int(settings.TRANSCRIPT_MAX_MESSAGES)
     visible = [m for m in transcript["messages"] if m["seq"] <= transcript["trigger_seq"]][-limit:]
     trimmed = {**transcript, "messages": visible}
-    master, _ = spike.estimate_worst_case(trimmed, models["master"], master_prompt, intervenor_prompt)
-    _, intervenor = spike.estimate_worst_case(trimmed, models["intervenor"], master_prompt, intervenor_prompt)
+    master, _ = transcript_files.estimate_worst_case(trimmed, models["master"], master_prompt, intervenor_prompt)
+    _, intervenor = transcript_files.estimate_worst_case(trimmed, models["intervenor"], master_prompt, intervenor_prompt)
     return master, intervenor
 
 
@@ -553,7 +552,7 @@ def _check_models(models):
 
 
 def worst_case_run_usd(transcript, model_overrides=None):
-    """Worst-case cost of one moderation run (Master + Intervenor) on a spike-format transcript dict."""
+    """Worst-case cost of one moderation run (Master + Intervenor) on a transcript-format dict."""
     return sum(_worst_case_for(transcript, _models(model_overrides)), _ZERO)
 
 
@@ -572,7 +571,7 @@ class DryRunPlan:
 
 def dry_run_plan(name, transcripts, *, assignments="both", replicates=1, kind="replay", known=None):
     """What `load_experiment` + `execute_runs` would do, computed without writing anything (the database is only read)
-    and without any API call. The cost is `spike.estimate_worst_case` for each run still to do."""
+    and without any API call. The cost is `transcript_files.estimate_worst_case` for each run still to do."""
     if not isinstance(name, str) or not name.strip():
         raise ReplayError("an experiment needs a name")
     if kind not in EXPERIMENT_KINDS:

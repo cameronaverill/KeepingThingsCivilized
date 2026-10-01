@@ -132,9 +132,9 @@ class TestPairIdGroupingOrder:
 
 
 class TestFactors:
-    def test_factors_equal_series_compute_features_on_the_transcript(self):
+    def test_factors_equal_compute_features_on_the_transcript(self):
         from moderation import replay
-        from moderation.series import compute_features
+        from moderation.transcripts import compute_features
 
         data = kit.transcript("fx", authors="ABBBB")
         kit.load(NAME, [data], assignments="as-is")
@@ -179,7 +179,7 @@ class TestFactors:
 
     def test_the_factors_of_a_swapped_conversation_equal_those_of_the_file(self):
         from moderation import replay
-        from moderation.series import compute_features
+        from moderation.transcripts import compute_features
 
         data = kit.transcript("fx_swap", authors="ABBBB")
         kit.load(NAME, [data], assignments="both")
@@ -189,7 +189,7 @@ class TestFactors:
 
     def test_factors_count_only_messages_up_to_the_trigger(self):
         from moderation import replay
-        from moderation.series import compute_features
+        from moderation.transcripts import compute_features
 
         data = kit.transcript("fx_trig", authors="ABBBBA", trigger_seq=3)
         kit.load(NAME, [data], assignments="as-is")
@@ -199,7 +199,7 @@ class TestFactors:
 
     def test_a_scripted_moderator_message_counts_as_its_own_author_in_the_factors(self):
         from moderation import replay
-        from moderation.series import compute_features
+        from moderation.transcripts import compute_features
 
         data = kit.transcript("fx_mod", authors="ABBMBA", trigger_seq=6)
         kit.load(NAME, [data], assignments="as-is")

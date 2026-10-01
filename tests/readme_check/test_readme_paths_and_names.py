@@ -15,7 +15,7 @@ def test_the_readme_names_some_repository_paths(readme):
 
 
 def test_runtime_created_paths_are_only_the_allow_listed_ones():
-    assert readme_kit.RUNTIME_CREATED_PATHS == (".env", "db.sqlite3", ".venv", "golden/results", "scratchpad", "index.json")
+    assert readme_kit.RUNTIME_CREATED_PATHS == (".env", "db.sqlite3", ".venv", "scratchpad", "index.json")
 
 
 REPOSITORY_MAP_DIRECTORIES = [

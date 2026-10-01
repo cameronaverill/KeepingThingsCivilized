@@ -145,16 +145,16 @@ In plain words, in the order a call meets them:
    is added to what has been spent, and the call is refused if it would pass any cap that applies:
    - **per conversation** (`BUDGET_PER_CONVERSATION_USD`, moderation calls only),
    - **per day** for the site (`BUDGET_SITE_USD_PER_DAY`, UTC day),
-   - **site total**, all time (`BUDGET_SITE_USD_TOTAL`; moderation, spike and golden-set calls),
-   - **spike total** (`BUDGET_SPIKE_USD_TOTAL`) for the prompt trial command,
+   - **site total**, all time (`BUDGET_SITE_USD_TOTAL`; moderation calls and the historical spike and golden-set purposes),
+   - **spike total** (`BUDGET_SPIKE_USD_TOTAL`) for the historical `spike` purpose (the `spike` command was removed on 2026-10-01),
    - **evaluation total**, kept separate (`BUDGET_EVAL_USD_TOTAL`; replays and judges),
-   - **the command's own `--max-usd`** for `spike` and `replay`.
+   - **the command's own `--max-usd`** for `replay`.
    A refused moderation run is recorded as `skipped_budget` and the page says moderation is paused. If the spending
    record cannot be read, no call is made (fail closed). An unknown model is never called.
 5. **Bounded input.** At most `MAX_MESSAGE_CHARS` per message, only the newest `TRANSCRIPT_MAX_MESSAGES` messages are
    sent, output is limited by `max_tokens`, and the fixed instructions are sent with prompt caching.
 6. **Traffic limits.** The 30-second gap, the 30-message cap per conversation and the daily proposition cap.
-7. **Checked before you run.** `spike` and `replay` both have `--dry-run`, which makes no call and
+7. **Checked before you run.** `replay` has `--dry-run`, which makes no call and
    prints the number of calls and a worst-case cost. `replay` never spends real money unless you
    pass `--live`, `--max-usd`, and type `yes` (or `--yes`).
 
@@ -237,7 +237,6 @@ ones. "Real API calls" only happen when the kill switch is on and a key is set (
 
 | Command | Purpose and main options |
 |---|---|
-| `spike --max-usd N` | Run the Master and Intervenor over the golden transcripts and write a readable report under `golden/results/<timestamp>/` (git-ignored). `--dry-run`; `--only ID [ID ...]`; `--model MODEL` (default `SPIKE_MODEL`); `--out DIR`. `--max-usd` is required. |
 | `replay --experiment NAME` | Load golden transcripts as synthetic conversations and replay the moderation pipeline on them (never posts). `--dry-run`; `--directory DIR`; `--set PATTERN` (repeatable); `--assignments {as-is,swapped,both}`; `--replicates N`; `--max-usd N`; `--live`; `--yes`. Without `--live` every run is recorded as `skipped_disabled` and costs nothing. |
 | `generate_conversations` | Generate the seeded-error debates: two base conversations per fact (left and right), then the true and false-claim versions, written to `generated/`. `--facts IDS`; `--output-dir DIR`; `--overwrite`; `--max-usd N`; `--dry-run`; `--live`; `--yes`. |
 | `judge_responses --experiment NAME` | Have one LLM judge tag each moderator response to a seeded claim (0 missed, 1 spotted, 2 wrong correction, 3 correct, N/A) and write one JSON Lines file per experiment under the `generated/judgments` folder. `--max-usd N`; `--overwrite`; `--dry-run`; `--live`; `--yes`. |
@@ -272,7 +271,7 @@ ones. "Real API calls" only happen when the kill switch is on and a key is set (
   `.venv/bin/python -m pytest tests/test_secret_scanner.py tests/test_secret_cli_and_hooks.py tests/test_secret_repo_protection.py tests/test_review2_scanner_and_hooks.py tests/test_repo_hygiene.py`.
 - Some tests scan the source (for example: only `moderation/llm.py` imports `anthropic`; tunables are assigned only in
   `config/tunables.py`; prompts never receive usernames), so a change that breaks a design rule fails a test.
-- Tests that use the real API are never part of `pytest`; they are the commands `spike` and `replay`,
+- Tests that use the real API are never part of `pytest`; they are the commands `replay` and the `evaluation/` commands,
   each with its own `--max-usd`.
 
 ## 8. Security rules
@@ -309,14 +308,13 @@ moderation/               the AI moderator and its guard rails:
                           llm.py (the one gate to Anthropic), budget.py, pricing.py, breaker.py,
                           taxonomy.py, schemas.py, prompts/ (master_v1.md, intervenor_v1.md),
                           agents.py, pipeline.py, worker.py, preview.py, quotes.py, features.py,
-                          queries.py, replay.py, fake_llm.py, models.py, admin.py, management/commands/
+                          queries.py, replay.py, transcripts.py, fake_llm.py, models.py, admin.py, management/commands/
 evaluation/               not deployed: only the seeded-error management commands (no tables or models)
 analysis/                 metrics.py: bias metrics as pure functions on tables (pandas)
 rubrics/                  factual_accuracy_v1.md, abusiveness_v1.md (used word for word by the judge)
-golden/                   transcripts/ (scripted test conversations), warmup/ (non-political set),
-                          results/ (real-run output, git-ignored)
+golden/                   transcripts/ (three scripted transcripts kept as replay fixtures)
 scripts/                  dev.sh, install_hooks.sh, check_secrets.py, make_schema_doc.py,
-                          make_text_inventory.py, make_review_pack.py
+                          make_text_inventory.py
 .githooks/                pre-commit and pre-push secret scans
 tests/                    the test suite, one folder per area
 docs/                     plan, summary, neutrality criteria, briefs, schema, user-facing text
@@ -324,7 +322,7 @@ docs/                     plan, summary, neutrality criteria, briefs, schema, us
 
 ## 10. Documentation
 
-- `docs/plan.md` - the full design and build plan (source of truth). Older versions `plan_v1.md` to `plan_v4.md` are
+- `docs/plan.md` - the full design and build plan (source of truth). Older versions `docs/archive/plan_v1.md` to `plan_v4.md` are
   history only.
 - `docs/plan_summary.md` - a short summary of the plan for the owner.
 - `docs/neutrality.md` - the owner's own neutrality criteria, the standard every moderation and evaluation design must
@@ -348,8 +346,8 @@ docs/                     plan, summary, neutrality criteria, briefs, schema, us
 - **The annotation page for human raters.** There is no page or access model for
   human raters yet.
 - **The calibration report** (human-human and LLM-human agreement, side symmetry, the positive control and the noise
-  floor) is not built, nor is the pre-registered analysis (`analysis/prereg.md`). The `golden` command is not built.
-- **The test transcripts are unaudited.** The scripted conversations in `golden/` are accepted only as scaffolding to
+  floor) is not built, nor is the pre-registered analysis (`analysis/prereg.md`). 
+- **The test transcripts are unaudited.** The three scripted conversations in `golden/transcripts/` (the rest were removed on 2026-10-01) are accepted only as scaffolding to
   test the machinery. Until the owner has audited them (plan section 19), no result from them is evidence about bias.
 - **GitHub.** Plan section 17 lists what to do before the repository is pushed or made public (keep it private,
   turn on push protection, clean the local history, choose the commit e-mail address). Push only with the owner's approval.

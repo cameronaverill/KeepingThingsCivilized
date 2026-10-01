@@ -65,17 +65,15 @@ def test_the_current_run_is_the_newest_authors_not_the_longest():
     assert kit.fact_current_run(facts) == 1 and kit.fact_longest_run(facts) == 4
 
 
-def test_flooding_shape_from_the_golden_series():
-    """Four messages in a row by one participant, the way the flooding series is built."""
-    data = kit.golden_transcript("flooding_left")
-    labels = [m["author"] for m in data["messages"] if m["seq"] <= data["trigger_seq"]]
+def test_flooding_shape_of_four_in_a_row():
+    """Four messages in a row by one participant (the shape the retired flooding series used)."""
+    labels = ["A", "B", "B", "B", "B"]
     transcript = []
     for i, label in enumerate(labels):
         transcript.append({"id": i + 1, "seq_no": i + 1, "author_type": "user", "label": label, "text": "x", "created_at": kit.T0})
     facts = kit.features().process_facts(transcript)
-    expected = max(len(list(g)) for _, g in groupby(labels))
-    assert kit.fact_longest_run(facts) == expected >= 4
-    assert kit.fact_current_run(facts) == expected  # the trigger is the fourth message of the run
+    assert kit.fact_longest_run(facts) == 4
+    assert kit.fact_current_run(facts) == 4  # the trigger is the fourth message of the run
 
 
 @pytest.mark.parametrize(

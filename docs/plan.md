@@ -1,6 +1,6 @@
 # AI-Moderated Discussion Forum — Plan v5
 
-Earlier versions are in `docs/plan_v1.md` … `docs/plan_v4.md`. v5 adds a server-enforced message length limit and turns the build order into step-by-step build instructions (section 14).
+Earlier versions are in `docs/archive/plan_v1.md` … `docs/archive/plan_v4.md`. v5 adds a server-enforced message length limit and turns the build order into step-by-step build instructions (section 14).
 
 ## 0. How to use this plan
 - Build **one step of section 14 at a time**, in order. Each step lists what to build, the tests to write **first**, and when it counts as done. Don't start a step until the previous one is done and its tests pass.
@@ -238,7 +238,7 @@ The posted moderator message is the acts rendered in order. Users never see `Par
 
 **7. Controls (kept).** A deliberately biased moderator must be detected at the expected size (positive control), and replicates plus identical arms measure the run-to-run noise floor (Sonnet 5 accepts no temperature setting). Every headline number is reported with both.
 
-**Existing scaffolding, unchanged and not extended:** the hand-written golden transcripts (9 paired sets and 4 singles), the mechanical series (message length, label swap, flooding, repetition, unanswered question) and the non-political warm-up set stay as pipeline scaffolding for the replay and label-swap machinery and are labelled "mechanics only, unaudited" until Step 17. They are not part of the new factual comparison.
+**Existing scaffolding (removed on 2026-10-01, cleanup 2):** the hand-written golden transcripts, the mechanical series and the non-political warm-up set, together with the `spike` command, were deleted. Only three transcripts remain in `golden/transcripts/` (a matched sanctuary pair and `single_injection`) as fixtures for `replay` and its tests; the transcript validator and cost estimate now live in `moderation/transcripts.py`. They are not part of the factual comparison.
 
 **Web-search research evaluation (unchanged by the redesign; "section 9 item 6" elsewhere in this plan means this paragraph).** Web-search research feature (added 2026-09-27, feature not yet built — section 2). A conditional, moderator-offered research step that uses live `web_search` instead of the model's trained knowledge needs its own evaluation lens: the golden-transcript methodology's core guarantee, reproducible author-controlled input, does not hold for live retrieval. Two separate mechanisms:
    - **Frozen-evidence replay (reproducible, fits the existing methodology).** Capture real search results once, freeze them, and replay the identical captured evidence through matched claim pairs (equal actual truth-status, opposite political valence). Tests only whether the research step treats equal evidence equally — confidence, source count, length, hedging, willingness to correct — reusing the Intervenor's swap test on the new prompt. Can be audited once, like the golden transcripts.
@@ -275,7 +275,7 @@ The posted moderator message is the acts rendered in order. Users never see `Par
 
 ## 12. Fetching and reconstruction
 - `moderation/queries.py`: `get_conversation_bundle(id)`, `list_conversations(**filters)`, `export_conversation(id)`
-- Management commands: `export_conversation`, `export_all`, `seed_topics`, `budget`, `reset_breaker`, `spike`, `golden`, `run_moderator`
+- Management commands: `export_conversation`, `export_all`, `seed_topics`, `budget`, `reset_breaker`, `run_moderator` (the planned `spike` was built and then removed on 2026-10-01; `golden` was never built)
 - `analysis/metrics.py`: detection, action, false-positive and data-quality tables per dimension, plus the gap decomposition, as tested functions returning pandas frames.
 - Minimal Django admin: runs, calls, issues, acts, users.
 
@@ -294,7 +294,7 @@ The posted moderator message is the acts rendered in order. Users never see `Par
   evaluation/        management/commands/ only (seeded-error commands; the old rater, consensus, matching and calibration code was removed in cleanup 1)
   rubrics/           factual_accuracy_v1.md, abusiveness_v1.md
   analysis/          metrics.py, prereg.md
-  golden/            transcripts/*.json, expected/*.json, results/ (git-ignored)
+  golden/            transcripts/ (three fixtures kept for replay; the rest, warmup/ and results/ removed 2026-10-01)
   tests/
 ```
 
@@ -379,7 +379,7 @@ Each step: write the listed tests first and watch them fail, implement, get ever
 **Step 14 — LLM judge.** One model tags each moderator response per the rubric and counts unseeded putative errors; blinded to side and level; logged as `LLMCall`. Tests use `FakeLLM`.
 **Step 15 — Controls (was: calibration report).** Positive control (a deliberately biased moderator must be detected), noise floor from replicates and identical arms. The human-only calibration report is future work (deferred indefinitely, as before).
 **Step 16 — Analysis and retirement of the old machinery.** Write `analysis/prereg.md` (headline metrics, severity bands, number of facts and replicates from the power calculation, noise floor, positive-control pass criterion) **before** looking at results; then the tables of section 9 (intervention and correct-correction rates by side x level x type, true-arm false positives, paired left/right differences). The multi-judge panel, span consensus and matching, `IssueFindingLink`, annotation and calibration tables and their tests were removed in cleanup 1 (2026-10-01).
-**Step 17 — Scenario scrutiny (owner gate, part of the bias evaluation).** Added 2026-09-25 at the owner's request: the owner accepted the golden transcripts and mechanical series as scaffolding so the mechanics could be built and tested (step 3), and will think critically about the scenarios themselves later. This step is that scrutiny. It is not optional: **no bias result may be reported or trusted, and `analysis/prereg.md` (step 16) may not be finalized, until it is done**, because the pre-registration fixes the tests, difficulty tiers and pair counts, and those depend on whether the scenarios are sound.
+**Step 17 — Scenario scrutiny (owner gate, part of the bias evaluation).** Added 2026-09-25 at the owner's request: the owner accepted the golden transcripts and mechanical series as scaffolding (since deleted, 2026-10-01; only three fixtures remain) so the mechanics could be built and tested (step 3), and will think critically about the scenarios themselves later. This step is that scrutiny. It is not optional: **no bias result may be reported or trusted, and `analysis/prereg.md` (step 16) may not be finalized, until it is done**, because the pre-registration fixes the tests, difficulty tiers and pair counts, and those depend on whether the scenarios are sound.
 - **Owner does:** the audit checklist in section 19 (balance, planted problems and sources, mechanical series, difficulty tiers, side effects), on the regenerated review pack; decides which pairs and series to keep, edit, replace or add (including non-political warm-up scenarios and harder tiers); records the date and transcripts version in section 19.
 - **Claude prepares:** a fresh review pack from the current files (`make_review_pack`-style generator, checked into `scripts/`), with the computed facts, sources as separate clickable links, the moderator's real outputs for each scenario shown beside it (from the spike and later runs), and a "what changed since you last read it" section; a list of every result so far that used the scenarios, marked "mechanics only, unaudited".
 - **After any edit:** regenerate the balance audit and the mechanical tests, re-run the affected scenarios, and re-audit the changed text.
@@ -401,7 +401,7 @@ Each step: write the listed tests first and watch them fail, implement, get ever
 
 ## 15. Testing conventions
 - `pytest` never touches the network: `FakeLLM` is the default in tests, and a test fails if the real client is constructed.
-- Tests that need the real API are separate management commands (`spike`, `golden`) with their own `--max-usd`, never part of `pytest`.
+- Tests that need the real API are separate management commands (`replay` and the `evaluation/` commands; the `spike` command was removed 2026-10-01) with their own `--max-usd`, never part of `pytest`.
 - Code-level guards: only `llm.py` imports `anthropic`; tunables are assigned only in `config/tunables.py`; prompt builders receive only labels and text.
 
 ## 16. End-to-end verification (after step 10)

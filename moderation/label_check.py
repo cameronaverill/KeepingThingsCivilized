@@ -7,7 +7,7 @@ possessive name before a message-like noun ("A's message"); (c) a viewer-relativ
 person/side/party", "another participant/person"), which each of the two readers would read as someone different. Bare letters
 ("Plan B", "Option A is") are NOT flagged.
 
-The pipeline rejects an act whose text matches (reason `names_participant`); the spike report uses the same check.
+The pipeline rejects an act whose text matches (reason `names_participant`).
 """
 import re
 

@@ -20,7 +20,7 @@ from django.test.utils import override_settings
 
 from moderation import budget, replay
 from moderation.errors import LLMRefused
-from moderation.management.commands import spike
+from moderation import transcripts as transcript_files
 
 
 def usd(value):
@@ -85,9 +85,9 @@ class Command(BaseCommand):
         dry_run = options["dry_run"]
         max_usd = self._parse_max_usd(options["max_usd"], required=not dry_run)
 
-        files = spike.load_transcript_files(options["directory"])  # a malformed file or duplicate id is an error
+        files = transcript_files.load_transcript_files(options["directory"])  # a malformed file or duplicate id is an error
         if not files:
-            raise CommandError(f"no transcripts found in {options['directory'] or spike.TRANSCRIPTS_DIR}")
+            raise CommandError(f"no transcripts found in {options['directory'] or transcript_files.TRANSCRIPTS_DIR}")
         known = {data["id"]: data for _path, data in files}
         selected = self._select(files, options["sets"])
         if not selected:
@@ -139,7 +139,7 @@ class Command(BaseCommand):
 
     def _run(self, name, selected, known, options, replicates, max_usd):
         out = self.stdout.write
-        replay.validate_transcripts(selected, known=known)  # before any write or guard, like the spike
+        replay.validate_transcripts(selected, known=known)  # before any write or guard, like every replay
         remaining = self._remaining_budget()
         if max_usd > remaining:
             raise CommandError(

@@ -37,7 +37,7 @@ Simpler and more precise: start from owner-verified facts, seed graded errors, g
 - **Controls:** a deliberately biased moderator must be detected; replicates measure the noise floor.
 - **Retired and removed from the code (cleanup 1, 2026-10-01):** abusiveness rating, the two-judge panel, span consensus, and the human calibration set. **Future work:** a human panel to calibrate severity, score how appropriate interventions are, and spot-check the judge.
 - **Budget:** $25 for evaluation planned (still $10 in `config/tunables.py` until you confirm the Console spend limit).
-- The old golden transcripts and mechanical series stay as scaffolding for the replay machinery, unaudited.
+- The old golden transcripts, mechanical series, warm-up set and the `spike` command were removed on 2026-10-01; three transcripts remain as `replay` fixtures.
 
 ## How we build
 One step at a time, tests first. A **coding agent** writes each component and a **separate testing agent** writes its tests. Claude owns the architecture and reviews both. You approve each step before the next begins. Python 3.13, Django 6.1.

@@ -1,6 +1,6 @@
 # AI-Moderated Discussion Forum
 
-The full design and build plan is in `docs/plan.md`. Read it before doing any work. It is the source of truth; older versions (`docs/plan_v1.md` … `plan_v4.md`) are history only. `docs/neutrality.md` holds the user's own neutrality criteria (the standard every moderation and evaluation design must meet; don't reword the user's sections). `docs/plan_summary.md` is a short summary for the user; if you change the plan, update the summary too.
+The full design and build plan is in `docs/plan.md`. Read it before doing any work. It is the source of truth; older versions (`docs/archive/plan_v1.md` … `plan_v4.md`) are history only. `docs/neutrality.md` holds the user's own neutrality criteria (the standard every moderation and evaluation design must meet; don't reword the user's sections). `docs/plan_summary.md` is a short summary for the user; if you change the plan, update the summary too.
 
 - Build one step of section 14 at a time, in order, tests first. Don't start a step until the previous one's "done when" items are true.
 - If a step shows the design is wrong, update `docs/plan.md` first, then the code.

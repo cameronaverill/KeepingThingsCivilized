@@ -19,8 +19,8 @@ What finishing it would actually take, in plain terms:
 - **Your time as a human rater.** Step 15 needs at least two people to label a ~100-message-per-dimension
   calibration set by hand (Step 12 built the table and builder, not the rubric-reading or the labeling itself).
   There is no way to skip this with more engineering — it's the ground truth the LLM raters get checked against.
-- **Your own scenario audit (Step 17).** A hard gate, by your own request: reading through the golden transcripts
-  and mechanical series critically (balance, planted problems, difficulty tiers) before any result from them can be
+- **Your own scenario audit (Step 17).** A hard gate, by your own request: reading through the remaining test scenarios
+  (the old golden transcripts and mechanical series were deleted on 2026-10-01) critically (balance, planted problems, difficulty tiers) before any result from them can be
   trusted. This is reading and judgment, not code.
 - **A statistics decision (Step 16's pre-registration).** Before running the real evaluation, someone has to fix
   the number of matched pairs per condition from a power calculation, the agreement thresholds, and the
@@ -98,8 +98,8 @@ that, and nothing here blocks the live product or deployment.
   `analysis/prereg.md` (headline scheme, metrics, intensity/agreement thresholds, pair counts from a power
   calculation) *before* looking at results, then the real per-dimension detection/action/false-positive/data-quality
   tables. Also blocked by Step 17 until that's signed off.
-- [ ] **Step 17 — Your scenario-scrutiny audit.** *(Owner task, hard gate.)* Review the golden transcripts and
-  mechanical series against the checklist in §19 (balance, planted problems and sources, difficulty tiers, side
+- [ ] **Step 17 — Your scenario-scrutiny audit.** *(Owner task, hard gate.)* Review the test scenarios (the old golden transcripts and
+  mechanical series were deleted on 2026-10-01) against the checklist in §19 (balance, planted problems and sources, difficulty tiers, side
   effects) on a freshly generated review pack; decide what to keep, edit, replace or add. No result from Step 16
   may be finalized until this is recorded.
 - [ ] **Web-search feature: frozen-evidence replay tooling** (§9 item 6). Capture real search results once, freeze
