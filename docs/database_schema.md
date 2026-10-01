@@ -169,7 +169,7 @@ Constraints:
 | id | INTEGER | no | primary key |
 | run_id | bigint | no | foreign key to moderation.ModerationRun (on delete PROTECT); indexed |
 | order | integer unsigned | no |  |
-| act_type | varchar(40) | no | one of: provide_information, correct_factual_error, improve_argumentation, clarify_argument, restate_positions, identify_agreement_disagreement, request_information, request_clarification, enforce_conduct, enforce_process; max 40 characters |
+| act_type | varchar(40) | no | one of: provide_information, correct_factual_error, improve_argumentation, clarify_argument, restate_positions, identify_agreement_disagreement, request_information, request_clarification, enforce_conduct, enforce_process, offer_research; max 40 characters |
 | tone | varchar(10) | no | one of: gentle, neutral, firm; max 10 characters |
 | text | TEXT | no |  |
 | addressee | varchar(3) | no | max 3 characters |
@@ -195,7 +195,7 @@ Constraints:
 | local_id | varchar(50) | no | max 50 characters |
 | message_id | bigint | no | foreign key to forum.Message (on delete PROTECT); indexed |
 | issue_type | varchar(40) | no | one of: unsupported_claim, possible_factual_error, unclear_statement, fallacy, strawman, abusive_language, repetition, process_violation; max 40 characters |
-| dimension | varchar(30) | no | one of: , factual_accuracy, abusiveness; default ''; max 30 characters |
+| dimension | varchar(30) | no | one of: , factual_accuracy, abusiveness, clarity; default ''; max 30 characters |
 | quote | TEXT | no | default '' |
 | quote_start | integer unsigned | yes |  |
 | quote_end | integer unsigned | yes |  |
@@ -205,6 +205,7 @@ Constraints:
 | intensity | smallint unsigned | yes |  |
 | validity | varchar(10) | no | one of: valid, rejected; default 'valid'; max 10 characters |
 | rejection_reason | TEXT | no | default '' |
+| needs_verification | bool | no | default False |
 
 Constraints:
 - `issue_unique_local_id_per_run` (unique): run, local_id
@@ -265,9 +266,11 @@ Extra indexes:
 | conversation_id | bigint | no | foreign key to forum.Conversation (on delete PROTECT); indexed |
 | trigger_message_id | bigint | no | foreign key to forum.Message (on delete PROTECT); indexed |
 | snapshot_seq | integer unsigned | no |  |
-| kind | varchar(10) | no | one of: live, replay; default 'live'; max 10 characters |
+| kind | varchar(10) | no | one of: live, replay, research; default 'live'; max 10 characters |
 | replay_of_id | bigint | yes | foreign key to moderation.ModerationRun (on delete PROTECT); indexed |
 | replicate | INTEGER | no | default 1 |
+| source_act_id | bigint | yes | foreign key to moderation.InterventionAct (on delete PROTECT); indexed |
+| requested_by_id | bigint | yes | foreign key to forum.Participant (on delete PROTECT); indexed |
 | status | varchar(20) | no | one of: pending, running, done, failed, skipped_budget, skipped_disabled; default 'pending'; max 20 characters |
 | attempts | INTEGER | no | default 0 |
 | is_stale | bool | no | default False |
@@ -288,6 +291,7 @@ Constraints:
 - `moderationrun_replay_never_posts` (check): (OR: (NOT (AND: ('kind', 'replay'))), ('posted_message__isnull', True))
 - `moderationrun_attempts_nonnegative` (check): (AND: ('attempts__gte', 0))
 - `moderationrun_replicate_positive` (check): (AND: ('replicate__gte', 1))
+- `moderationrun_one_research_per_act` (unique): source_act only when (AND: ('kind', 'research'))
 
 Database triggers (rules the database itself enforces):
 - `moderation_run_posted_must_be_moderator_insert` on INSERT: moderation run posted_message must be a moderator message
@@ -300,8 +304,8 @@ Database triggers (rules the database itself enforces):
 | column | SQLite type | null | notes |
 |---|---|---|---|
 | id | INTEGER | no | primary key |
-| conversation | INTEGER | no | indexed |
-| participant | INTEGER | no |  |
+| conversation_id | bigint | no | foreign key to forum.Conversation (on delete PROTECT); indexed |
+| participant_id | bigint | no | foreign key to forum.Participant (on delete PROTECT); indexed |
 | draft_text | TEXT | no |  |
 | char_count | integer unsigned | no |  |
 | draft_sha256 | varchar(64) | no | max 64 characters |
@@ -314,8 +318,8 @@ Database triggers (rules the database itself enforces):
 | intervenor_output | TEXT | yes |  |
 | llm_call_ids | TEXT | no | default list() |
 | action | varchar(20) | no | one of: , posted_as_written, edited, abandoned; default ''; max 20 characters |
-| resulting_message_id | INTEGER | yes |  |
-| reused_by_run_id | INTEGER | yes |  |
+| resulting_message_id | bigint | yes | foreign key to forum.Message (on delete PROTECT); indexed |
+| reused_by_run_id | bigint | yes | foreign key to moderation.ModerationRun (on delete PROTECT); indexed |
 | created_at | datetime | no | default _now(); indexed |
 | resolved_at | datetime | yes |  |
 
@@ -334,7 +338,7 @@ Extra indexes:
 | column | SQLite type | null | notes |
 |---|---|---|---|
 | id | INTEGER | no | primary key |
-| conversation | INTEGER | no | unique |
+| conversation_id | bigint | no | foreign key to forum.Conversation (on delete PROTECT); unique |
 | mode | varchar(3) | no | one of: on, off; max 3 characters |
 | assigned_at | datetime | no | default _now() |
 
@@ -350,14 +354,13 @@ Constraints:
 | target_id | bigint unsigned | no |  |
 | dimension | varchar(50) | no | max 50 characters |
 | value | varchar(200) | no | max 200 characters |
-| source | varchar(110) | no | max 110 characters |
+| rater_id | bigint | yes | foreign key to evaluation.Rater (on delete PROTECT); indexed |
 | rating_id | bigint | yes | foreign key to evaluation.Rating (on delete PROTECT); indexed |
 | confidence | REAL | yes |  |
 | created_at | datetime | no |  |
 
 Constraints:
 - `evaluation_annotation_target_type_valid` (check): (AND: ('target_type__in', ['message', 'intervention_act']))
-- `evaluation_annotation_source_valid` (check): (OR: ('source', 'self'), (AND: ('source__startswith', 'rater:'), (NOT (AND: ('source', 'rater:')))))
 
 Extra indexes:
 - `evaluation_annot_target_idx`: target_type, target_id
@@ -544,7 +547,7 @@ Database triggers (rules the database itself enforces):
 | rater_id | bigint | no | foreign key to evaluation.Rater (on delete PROTECT); indexed |
 | dimensions | TEXT | no | default list() |
 | replicate | integer unsigned | no | default 1 |
-| llm_call_id | bigint | yes |  |
+| llm_call_id | bigint | yes | foreign key to moderation.LLMCall (on delete PROTECT); indexed |
 | guideline_version | varchar(100) | no | default ''; max 100 characters |
 | status | varchar(10) | no | one of: pending, done, failed; default 'pending'; max 10 characters |
 | started_at | datetime | yes |  |

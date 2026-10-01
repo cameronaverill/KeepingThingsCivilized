@@ -139,9 +139,10 @@ def render_master_input(messages, *, topic_title=None, proposition=None, already
     return "\n\n".join(out)
 
 
-def render_intervenor_input(messages, issues, *, topic_title=None, proposition=None, discussion_map=None):
+def render_intervenor_input(messages, issues, *, topic_title=None, proposition=None, discussion_map=None, summary_due=False):
     """The user turn for the Intervenor: the transcript, the Master's valid issues (dicts or objects) and, optionally,
-    the Master's discussion map (a dict or object with `agreements` and `disagreements`)."""
+    the Master's discussion map (a dict or object with `agreements` and `disagreements`). `summary_due=True` adds a
+    `<summary_due>` block telling the Intervenor that the agreement/disagreement note is due on this run."""
     messages = list(messages)
     out = [_render_topic(topic_title, proposition) + render_transcript(messages)]
     issues = list(issues)
@@ -158,6 +159,8 @@ def render_intervenor_input(messages, issues, *, topic_title=None, proposition=N
             lines.append(f'<disagreement kind="{_attr(_field(d, "kind"))}">{_text(_field(d, "summary"))}</disagreement>')
         lines.append("</discussion_map>")
         out.append("\n".join(lines))
+    if summary_due:
+        out.append("<summary_due>true</summary_due>")
     if messages:
         out.append(f'<newest_message id="{_attr(messages[-1][0])}" />')
     out.append("Decide whether to intervene, following your instructions.")

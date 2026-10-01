@@ -21,6 +21,7 @@ DUMMY_KEY = "llm-raters-tests-dummy-key"  # secret-scan: allow
 ROOT = Path(__file__).resolve().parents[2]
 RUBRICS_DIR = ROOT / "rubrics"
 DIMENSIONS = ("factual_accuracy", "abusiveness")
+ALL_DIMENSIONS = ("factual_accuracy", "abusiveness", "clarity")  # the taxonomy since step 21 (DIMENSIONS stays the original two)
 SONNET, HAIKU = "claude-sonnet-5", "claude-haiku-4-5"
 _counter = itertools.count(1)
 
@@ -436,10 +437,10 @@ def write_rubrics(folder, **texts):
 
 
 def copy_real_rubrics(folder):
-    """Copy the two real rubric files (byte for byte) into `folder`; returns it."""
+    """Copy the real rubric files of every taxonomy dimension (byte for byte) into `folder`; returns it."""
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
-    for dimension in DIMENSIONS:
+    for dimension in ALL_DIMENSIONS:
         (folder / f"{dimension}_v1.md").write_bytes((RUBRICS_DIR / f"{dimension}_v1.md").read_bytes())
     return folder
 

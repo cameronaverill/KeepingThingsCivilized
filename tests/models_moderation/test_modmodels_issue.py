@@ -111,10 +111,11 @@ def test_dimension_is_derived_from_the_taxonomy(world, issue_type):
     assert issue.dimension == (taxonomy.dimension_for(issue_type) or "")
 
 
-def test_the_two_dimensions_of_the_plan(world):
+def test_the_dimensions_of_the_plan(world):
     a = kit.make_issue(world.run, world.first, issue_type="possible_factual_error", intensity=3)
     b = kit.make_issue(world.run, world.first, issue_type="abusive_language", intensity=1)
-    assert (a.dimension, b.dimension) == ("factual_accuracy", "abusiveness")
+    c = kit.make_issue(world.run, world.first, issue_type="unclear_statement", intensity=2)
+    assert (a.dimension, b.dimension, c.dimension) == ("factual_accuracy", "abusiveness", "clarity")
 
 
 def test_a_caller_supplied_dimension_is_overwritten_by_the_derivation(world):
@@ -127,6 +128,10 @@ def test_a_caller_supplied_dimension_is_overwritten_by_the_derivation(world):
 def test_the_dimension_follows_the_type_when_the_type_is_edited(world):
     issue = kit.make_issue(world.run, world.first, issue_type="abusive_language")
     issue.issue_type = "unclear_statement"
+    issue.save()
+    issue.refresh_from_db()
+    assert issue.dimension == "clarity"
+    issue.issue_type = "fallacy"
     issue.save()
     issue.refresh_from_db()
     assert issue.dimension == ""
@@ -153,7 +158,7 @@ def test_intensity_out_of_range_is_refused_by_the_database(world, intensity):
         Issue.objects.bulk_create([kit.unsaved_issue(world.run, world.first, issue_type="abusive_language", intensity=intensity)])
 
 
-@pytest.mark.parametrize("issue_type", ["unsupported_claim", "unclear_statement", "fallacy", "strawman", "repetition", "process_violation"])
+@pytest.mark.parametrize("issue_type", ["unsupported_claim", "fallacy", "strawman", "repetition", "process_violation"])
 def test_intensity_must_be_null_when_the_type_has_no_dimension(world, issue_type):
     with pytest.raises(ValidationError):
         kit.make_issue(world.run, world.first, issue_type=issue_type, intensity=2)

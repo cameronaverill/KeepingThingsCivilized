@@ -25,7 +25,7 @@ class TestTheGatewayCall:
         rater, _, message = setup()
         client = fake(kit.nothing())
         kit.rate(rater, message)
-        assert kit.system_text(client.calls[0]) == kit.load_prompt().text
+        assert kit.system_text(client.calls[0]) == kit.load_prompt(kit.ALL_DIMENSIONS).text
 
     def test_the_system_prompt_is_sent_as_one_cacheable_block(self, fake):
         rater, _, message = setup()
@@ -132,7 +132,7 @@ class TestTheStoredRating:
         rater, _, message = setup()
         fake(kit.nothing())
         rating = kit.rating_of(kit.rate(rater, message))
-        assert (rating.replicate, sorted(rating.dimensions)) == (1, sorted(kit.DIMENSIONS))
+        assert (rating.replicate, sorted(rating.dimensions)) == (1, sorted(kit.ALL_DIMENSIONS))
 
     def test_a_replicate_number_is_stored(self, fake):
         rater, _, message = setup()

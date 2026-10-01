@@ -159,6 +159,10 @@ TRANSCRIPT_MAX_MESSAGES = 20
 # Most actions one moderator post may contain; extra issues are declined with a reason.
 MAX_ACTS_PER_INTERVENTION = 3
 
+# The "where you agree / disagree" note fires after every N-th user message in a conversation (when the Master's discussion
+# map has something in it); 0 or None turns it off.
+AGREEMENT_MAP_EVERY_N_USER_MESSAGES = 4
+
 # ---------------------------------------------------------------------------
 # Intervention preview (step 19)
 # ---------------------------------------------------------------------------

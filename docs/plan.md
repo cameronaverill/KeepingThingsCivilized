@@ -61,7 +61,7 @@ Earlier versions are in `docs/plan_v1.md` … `docs/plan_v4.md`. v5 adds a serve
   - A/B labels are assigned **at random when the conversation is created** (the creator gets one at random, the person who joins later gets the other). The seed is stored on the conversation at creation. Speaking order and join order are logged separately, so position bias stays testable.
   - Political labels are never collected from users.
 - **Stance and position:** each message gets a `stance` label (pro/con/neutral) relative to the topic's proposition. Position is derived from `Topic.leans`, a JSON field, under several schemes (`compass` with economic and social axes, `us_partisan` with a party axis). Values run from −1 to +1. One headline scheme is chosen before the evaluation.
-- **Issue dimensions and intensity:** problems are described by a *dimension* (e.g. `factual_accuracy`, `abusiveness`) and an *intensity* from 0 to 4, attached to a **phrase** of a message (or to the whole message when the whole message is the problem). Human and LLM raters use the same scheme and may mark a phrase "not scorable" with a reason.
+- **Issue dimensions and intensity:** problems are described by a *dimension* (e.g. `factual_accuracy`, `abusiveness`, `clarity`) and an *intensity* from 0 to 4, attached to a **phrase** of a message (or to the whole message when the whole message is the problem). Human and LLM raters use the same scheme and may mark a phrase "not scorable" with a reason.
 - **Judge panel:** two Anthropic models to start. Human raters calibrate them.
 - **TDD:** pytest + pytest-django, tests first. `FakeLLM` for the plumbing. A **golden set** of transcripts checks prompts against the real API (small, on demand, budgeted).
 - **Runner:** a separate worker process, not an in-process thread (section 11).
@@ -137,9 +137,11 @@ The database choices, the Pydantic schemas and the prompt text all come from thi
 |---|---|---|---|
 | `factual_accuracy` | `possible_factual_error` | how wrong a factual claim is | every checkable claim, including accurate ones (intensity 0), so false-positive rates have a denominator |
 | `abusiveness` | `abusive_language` | how abusive a phrase is | only phrases with intensity of 1 or more; a message with no such phrase counts as 0 |
+| `clarity` | `unclear_statement` | how hard a statement is to understand and respond to (added step 21) | only phrases with intensity of 1 or more |
 
 **Rubrics** are versioned files, `rubrics/<dimension>_v1.md`, used **verbatim** in the LLM prompts and in the human raters' guidelines. Draft anchors, to be finalized before the pilot:
 - `factual_accuracy`: 0 accurate; 1 minor imprecision; 2 materially misleading or overstated; 3 clearly false; 4 flagrantly false or fabricated.
+- `clarity` (step 21): 0 clear; 1 slightly vague; 2 ambiguous; 3 hard to respond to; 4 unintelligible. Scores the statement, never the speaker; register, dialect, formality and harmless typos are 0, and a clear statement the reader disagrees with is 0. For a clarity issue the Intervenor prefers `request_clarification` (a question) to `clarify_argument` (a restatement), and restates only when sure of the meaning.
 - `abusiveness`: 0 none; 1 mildly rude, dismissive or sarcastic; 2 mocking or contemptuous toward the person; 3 direct insults or demeaning language; 4 slurs, dehumanizing language, threats or harassment.
 
 **Not scorable is an outcome, not a score.** A rater may decline to give an intensity and must say why: `unverifiable` (no reliable evidence either way), `contested` (credible sources genuinely disagree, or the claim rests on a value judgment), or `needs_context`. Contested political claims must not be forced onto the 0–4 scale, because whoever does the forcing decides the "truth", and that is exactly where bias would enter the ground truth. How often each side's claims are called `contested` or `unverifiable` is reported by side.
@@ -164,7 +166,7 @@ Output:
 - `issues[]`: `{id, message_id, issue_type, quote, explanation, confidence, intensity?}`
 - `discussion_map`: `{agreements[], disagreements[{summary, kind: factual|normative}]}`
 
-**Intervenor (action)** input: the transcript and the Master's valid issues.
+**Intervenor (action)** input: the transcript and the Master's valid issues. **Summary due (step 21, owner decision 2026-10-01, N = 4):** the pipeline computes `summary_is_due(run, discussion_map)`: true for a live run when the number of user messages up to the trigger is a positive multiple of `AGREEMENT_MAP_EVERY_N_USER_MESSAGES` (4; 0 or None turns it off) and the discussion map has at least one agreement or disagreement. Replay, research and preview runs are never due. When due, the Intervenor is called even with no valid issues and gets a `<summary_due>` block; it should include one `identify_agreement_disagreement` act built only from the map, in impersonal wording, equal weight per position, counted in the 3-act limit (leaving it out is not an error). A preview draft check never fires the note, and a due live run reuses a preview's Master output but calls the Intervenor afresh. The note is posted as an ordinary moderator message.
 
 Output:
 - `decision`, `rationale`
@@ -300,7 +302,7 @@ The posted moderator message is the acts rendered in order. Users never see `Par
                      pricing.py, budget.py, quotes.py, agents.py, pipeline.py, worker.py, features.py,
                      queries.py, admin.py, management/commands/
   evaluation/        (phase B) models, annotation UI, llm_rater.py, consensus.py, matching.py, calibration.py
-  rubrics/           factual_accuracy_v1.md, abusiveness_v1.md
+  rubrics/           factual_accuracy_v1.md, abusiveness_v1.md, clarity_v1.md
   analysis/          metrics.py, prereg.md
   golden/            transcripts/*.json, expected/*.json, results/ (git-ignored)
   tests/
@@ -440,7 +442,8 @@ Each step: write the listed tests first and watch them fail, implement, get ever
 - **More dimensions** (fallacy, unclarity, strawman, …) are added with a rubric file and a registry entry.
 - **Evaluation design now lives in section 9** (test families, controls, sample size, analysis rules).
 - **Labelling user-created propositions:** they have no `leans`, so political direction is unknown for their conversations. Later, have the rater panel (LLM and human, blinded) label each proposition's sides on the headline scheme so those conversations can join the analysis, marked as a separate stratum from the paired tests.
-- **Surfacing agreement and disagreement (de-prioritized, owner decision 2026-09-28):** the Master already stores a `discussion_map` on every run and the acts `identify_agreement_disagreement` and `restate_positions` exist, but the Intervenor only runs when there is a valid issue and nothing prompts it to choose these acts, so users almost never see one. The mechanics are mostly in place; the missing pieces are a trigger, prompt guidance, a display and a neutrality check. Details in `docs/evaluation_pipeline_todo.md`.
+- **Neutrality tests for the clarity dimension and the agreement note (post-MVP TODO, owner decision 2026-10-01; not built).** Clarity: matched clear/vague pairs mirrored left and right; dialect-swapped pairs; faithfulness of `clarify_argument` restatements. Agreement note: equal weight and detail per position, order of positions, hedging, factual-versus-normative labelling by side, omission of one side's points, and a deliberately slanted positive control. Only the factual-error neutrality tests exist for now.
+- **Surfacing agreement and disagreement (built in step 21, 2026-10-01; originally de-prioritized 2026-09-28):** now fires after every 4th user message (section 6); a display of the stored map beyond the ordinary moderator message is still not built. Original note: the Master already stores a `discussion_map` on every run and the acts `identify_agreement_disagreement` and `restate_positions` exist, but the Intervenor only runs when there is a valid issue and nothing prompts it to choose these acts, so users almost never see one. The mechanics are mostly in place; the missing pieces are a trigger, prompt guidance, a display and a neutrality check. Details in `docs/evaluation_pipeline_todo.md`.
 - **Future:** specialized fact-check agents, identity and ordering bias tests, a post-discussion survey, process rules enforced in code, and a task queue if the worker isn't enough.
 
 **For post-MVP design (opened 2026-09-27).** Real tradeoffs surfaced while designing a feature, deliberately not designed around for the MVP, and not to be forgotten before this ships beyond a small trusted group:

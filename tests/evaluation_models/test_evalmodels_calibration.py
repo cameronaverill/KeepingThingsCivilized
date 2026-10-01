@@ -16,14 +16,14 @@ from evaluation.calibration import CalibrationShortfall, build_calibration_set
 
 pytestmark = pytest.mark.django_db
 
-FA, AB = "factual_accuracy", "abusiveness"
+FA, AB, CL = "factual_accuracy", "abusiveness", "clarity"
 
 
 def planted(dimension, intensity):
     return [{"dimension": dimension, "phrase": "PHRASE", "intensity": intensity}]
 
 
-ISSUE_TYPE = {FA: "possible_factual_error", AB: "abusive_language"}
+ISSUE_TYPE = {FA: "possible_factual_error", AB: "abusive_language", CL: "unclear_statement"}
 
 
 def make_population(spec, per_conversation=10):
@@ -140,9 +140,9 @@ def test_two_dimensions_draw_per_dimension_each_and_never_the_same_message_twice
 
 
 def test_the_default_dimensions_are_the_taxonomys():
-    make_population(rich_spec(FA) + rich_spec(AB))
+    make_population(rich_spec(FA) + rich_spec(AB) + rich_spec(CL))
     cset = build_calibration_set("defaults", 8, per_dimension=10)
-    assert kit.items_of(cset).count() == 20
+    assert kit.items_of(cset).count() == 30
 
 
 # --- reproducibility ---------------------------------------------------------------------------------------------------

@@ -26,7 +26,7 @@ def counts():
 
 
 def real_hashes():
-    return {d: {"rubric": f"{d}_v1", "sha256": kit.sha256_of(kit.RUBRICS_DIR / f"{d}_v1.md")} for d in kit.DIMENSIONS}
+    return {d: {"rubric": f"{d}_v1", "sha256": kit.sha256_of(kit.RUBRICS_DIR / f"{d}_v1.md")} for d in kit.ALL_DIMENSIONS}
 
 
 class TestTheRaters:
@@ -157,6 +157,7 @@ class TestAChangedRubricMakesANewVersion:
         assert new.dimensions == {
             "factual_accuracy": {"rubric": "factual_accuracy_v1", "sha256": kit.sha256_of(folder / "factual_accuracy_v1.md")},
             "abusiveness": real_hashes()["abusiveness"],
+            "clarity": real_hashes()["clarity"],
         }
 
     def test_the_new_panel_has_the_same_raters_and_no_rater_is_duplicated(self, tmp_path, settings):
