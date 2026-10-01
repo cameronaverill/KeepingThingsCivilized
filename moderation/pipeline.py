@@ -71,7 +71,6 @@ class IssueView(dict):
             raise AttributeError(name) from None
 
 
-_IssueView = IssueView
 
 
 # --- Small helpers -------------------------------------------------------------------------------------------------

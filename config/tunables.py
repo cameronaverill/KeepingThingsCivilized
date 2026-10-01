@@ -217,9 +217,6 @@ RUN_TIMEOUT_SECONDS = 600
 # A run is retried at most this many times before it is marked failed.
 RUN_MAX_ATTEMPTS = 3
 
-# How often the thread page asks the server for new messages, in milliseconds.
-POLL_INTERVAL_MS = 3000
-
 # ---------------------------------------------------------------------------
 # Database
 # ---------------------------------------------------------------------------

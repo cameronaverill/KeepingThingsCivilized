@@ -551,11 +551,6 @@ def _check_models(models):
         pricing.get_price(model)  # raises a ModelNotAllowed (an LLMRefused) for an unknown model
 
 
-def worst_case_run_usd(transcript, model_overrides=None):
-    """Worst-case cost of one moderation run (Master + Intervenor) on a transcript-format dict."""
-    return sum(_worst_case_for(transcript, _models(model_overrides)), _ZERO)
-
-
 @dataclass
 class DryRunPlan:
     experiment_name: str

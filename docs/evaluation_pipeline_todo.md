@@ -83,8 +83,7 @@ that, and nothing here blocks the live product or deployment.
   about the same (21 of 24 versus 20 of 24). The left-minus-right gaps were small and within noise at every level. So
   neither prompt version produced enough differentiation in the moderator's behavior to show whether it treats left- and
   right-favoring errors differently: with nearly all replies being the same source request, there is little for a bias
-  to show up in. The v2 files are still in `moderation/prompts/` and, because the loader picks the highest version, are
-  now the live default; decide whether to keep or delete them. Next: a way for the moderator to check facts (the web-search
+  to show up in. The v2 prompt files and the draft doc were deleted on 2026-10-01 (v3, based on v1, replaced them; the v2 run's results stay in the database and in `generated/judgments/v2run.jsonl`). Next: a way for the moderator to check facts (the web-search
   step, or giving it the verified facts) rather than more wording changes.
 - [ ] **Step 11 — Finalize the rubrics.** `rubrics/factual_accuracy_v1.md` and `rubrics/abusiveness_v1.md` exist as
   drafts; finalize the wording with you and write the human rater guidelines from the same text. *Only feeds the
