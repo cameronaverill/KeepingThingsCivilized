@@ -1,4 +1,4 @@
-"""Fixtures for the step 15 research-evaluation tests (tests/seed_research/). Helpers live in research_kit.py (which reuses the step 14 judge_kit); nothing imports from this file.
+"""Fixtures for the step 15 research-evaluation tests (tests/seed_research/). Helpers live in seed_research_kit.py (which reuses the step 14 judge_kit); nothing imports from this file.
 
 A real Anthropic client can never be built and no socket can connect; the kill switch is on with a dummy key so a FakeLLM can
 answer; the evaluation budget is roomy; every test may use the database (pytest-django wraps a test in a transaction and the
@@ -16,7 +16,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import research_kit  # noqa: E402,F401  (puts tests/seed_judge on sys.path)
+import seed_research_kit  # noqa: E402,F401  (puts tests/seed_judge on sys.path)
 from judge_kit import DUMMY_KEY  # noqa: E402
 
 

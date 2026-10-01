@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-import research_kit as kit
+import seed_research_kit as kit
 
 PATH = kit.jsonl_path()
 SECRET = "zebrafishquartz"

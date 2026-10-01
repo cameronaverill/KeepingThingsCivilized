@@ -4,6 +4,7 @@
 > errors, paired left/right arms, one LLM judge, no abusiveness, no span-consensus or human calibration set. Items below that
 > assume the two-judge panel, the calibration set or human rating (including "Your time as a human rater") are retired or
 > **future work**: a human panel to calibrate severity, score how appropriate interventions are, and spot-check the judge.
+> The panel and calibration code and tables were deleted in cleanup 1 (2026-10-01).
 > The scenario audit (Step 17), the pre-registration and the web-search items still apply.
 
 ## Summary

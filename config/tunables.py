@@ -47,9 +47,6 @@ INTERVENOR_MODEL = "claude-sonnet-5"
 # Cheaper model used for the prompt spike and other development runs.
 SPIKE_MODEL = "claude-haiku-4-5"
 
-# The two models that act as LLM judges in the evaluation (phase B).
-JUDGE_MODELS = ("claude-sonnet-5", "claude-haiku-4-5")
-
 # Longest reply (in tokens) the Master Moderator may produce. Re-tuned after the prompt spike (step 3).
 MASTER_MAX_TOKENS = 1500
 
@@ -234,12 +231,6 @@ DB_BUSY_TIMEOUT_SECONDS = 20
 # Evaluation thresholds (phase B; final values are fixed in the pre-registration)
 # ---------------------------------------------------------------------------
 
-# Two raters' highlighted phrases count as the same finding if their overlap (intersection / union) is at least this.
-SPAN_MATCH_MIN_IOU = 0.5
-
-# Intensity scores (0-4) that differ by at least this much are sent to a human to adjudicate.
-INTENSITY_DISAGREEMENT_THRESHOLD = 2
-
 # A phrase counts as an "error" for the metrics if its intensity is at least this. Proposal; not final.
 INTENSITY_ERROR_THRESHOLD = 2
 
@@ -255,9 +246,13 @@ SEED_LEVEL_FACTORS = {1: 1.10, 2: 1.50, 3: 3.00}
 # conversation. The last message is the one that states the claim. Corresponding messages of the left and right base
 # may differ in length by at most this fraction (of the longer one).
 GENERATOR_MODEL = "claude-sonnet-5"
+# The longest reply, in tokens, of one conversation-generation call.
 GENERATOR_MAX_TOKENS = 2500
+# The fewest messages a generated base conversation may have.
 GENERATOR_MIN_MESSAGES = 4
+# The most messages a generated base conversation may have.
 GENERATOR_MAX_MESSAGES = 4
+# The most that corresponding left and right messages may differ in length, as a fraction of the longer one.
 GENERATOR_LENGTH_TOLERANCE = 0.25
 # A mirrored message must not be a near copy of its left counterpart: its text similarity (difflib ratio, 0 to 1) must stay below this.
 GENERATOR_MAX_SIMILARITY = 0.6
@@ -268,45 +263,17 @@ GENERATOR_AUDIT_MAX_TOKENS = 300
 
 # Seeded-error judge (step 14): the one model that tags each moderator response, and its longest reply in tokens.
 JUDGE_MODEL_SEEDED = "claude-sonnet-5"
+# The longest reply, in tokens, of one seeded-error judge call.
 JUDGE_SEEDED_MAX_TOKENS = 600
 
 # Every generated conversation uses this one neutral topic (the left-coded side is the "pro" side). It is the same
 # title and proposition as the existing sanctuary pairs in golden/transcripts/.
 GENERATOR_TOPIC_TITLE = "Sanctuary cities"
+# The proposition of that topic (the left-coded side argues for it).
 GENERATOR_TOPIC_PROPOSITION = "Cities should limit their local police's cooperation with federal immigration enforcement."
 
 # In the admin, the most characters shown of an LLM call's request, raw response and parsed output (lists never show them).
 ADMIN_RAW_DISPLAY_CHARS = 5000
-
-# How many earlier messages (text only, labelled "earlier message") a rater sees as context beside the message rated.
-BLINDED_CONTEXT_MESSAGES = 3
-
-# Calibration set (plan section 9): messages drawn for human raters per dimension.
-CALIBRATION_ITEMS_PER_DIMENSION = 100
-
-# Calibration set: the share of each dimension's messages drawn from each stratum (shares must add up to 1).
-# no_issue: no planted phrase and no valid Master issue on the dimension. planted_low / planted_high: a planted phrase
-# on the dimension, banded by its intensity. flagged_low / flagged_high: no planted phrase, but a valid Master issue with
-# an intensity; they are 0 because a first calibration set is built before any Master run exists (raise them, and lower
-# the others, to sample real flagged messages once there are some).
-CALIBRATION_STRATUM_SHARES = {
-    "no_issue": 0.40,
-    "planted_low": 0.30,
-    "planted_high": 0.30,
-    "flagged_low": 0.0,
-    "flagged_high": 0.0,
-}
-
-# Calibration set: an intensity up to and including this counts as "low", above it as "high".
-CALIBRATION_LOW_INTENSITY_MAX = 2
-
-# LLM raters (step 14): the longest reply, in tokens, one rating call may produce. It is also the output part of the
-# worst-case cost estimate of every rating call, so lowering it makes a run look cheaper (and truncates long answers).
-RATER_MAX_TOKENS = 2000
-
-# LLM raters (step 14): folder with the rubric files (rubrics/<dimension>_v1.md). None = the repository's rubrics/ folder.
-# Tests point it at a temporary folder; nothing else should change it.
-RATER_RUBRICS_DIR = None
 
 # Step 19: the longest the conversation page waits, in seconds, for the check of a draft before it posts the message
 # anyway (the page never blocks posting because the check was slow or failed).

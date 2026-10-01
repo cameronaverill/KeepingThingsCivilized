@@ -7,7 +7,7 @@
 Bases are saved to `generated/bases/` and reused on later runs (unless `--overwrite`); transcripts go to
 `generated/transcripts/` (or `--output-dir`). Without `--live` the command runs with LLM calls switched off for this process
 only; `--live` turns them on for this process only (a process-local `override_settings(LLM_ENABLED=True)`), the same guard as
-`run_raters --live`. Spend is counted in the ledger as `purpose="replay"`. The command never prints a key or a message text.
+`replay --live`. Spend is counted in the ledger as `purpose="replay"`. The command never prints a key or a message text.
 """
 from decimal import Decimal, InvalidOperation
 

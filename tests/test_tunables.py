@@ -97,7 +97,6 @@ def test_agreed_limits():
     assert tunables.PASSWORD_MIN_LENGTH == 12
     assert not hasattr(tunables, "EMAIL_CONFIRM_MAX_AGE_DAYS"), "removed in step 6c (no email confirmation)"
     assert tunables.SESSION_COOKIE_AGE == int(timedelta(days=30).total_seconds())
-    assert tunables.SPAN_MATCH_MIN_IOU == 0.5
     assert tunables.BREAKER_MAX_CONSECUTIVE_ERRORS == 5
     assert tunables.LLM_MAX_RETRIES == 1
     assert tunables.MIN_SECONDS_BETWEEN_MESSAGES == 30  # raised from 5 by the user
@@ -110,7 +109,9 @@ def test_llm_calls_are_off_until_deliberately_enabled():
 
 def test_models_are_named():
     assert tunables.MASTER_MODEL and tunables.INTERVENOR_MODEL and tunables.SPIKE_MODEL
-    assert len(tunables.JUDGE_MODELS) == 2
+    assert tunables.JUDGE_MODEL_SEEDED
+    for gone in ("JUDGE_MODELS", "SPAN_MATCH_MIN_IOU", "INTENSITY_DISAGREEMENT_THRESHOLD"):
+        assert not hasattr(tunables, gone), f"{gone} was removed with the old rating stack"
 
 
 def test_tunable_names_do_not_collide_with_django_settings_except_the_allowed_ones():

@@ -89,8 +89,8 @@ The database holds these main tables (full detail is in `docs/database_schema.md
 - **LLMCall**: one AI call, its cost and its raw reply. **GuardState**: the circuit breaker's memory.
 - **PreviewMode / PreviewCheck**: the preview feature's settings and results.
 
-The `evaluation/` app adds tables for an older, heavier bias-rating design (raters, ratings, consensus findings and a
-calibration set). That design has been replaced by the simpler one below and is slated to be retired.
+The `evaluation/` app has no tables any more: the older, heavier bias-rating design (raters, ratings, consensus findings
+and a calibration set) was removed in cleanup 1 (migration `evaluation/0003`). The app only holds the seeded-error commands.
 
 ## Where the schema leaves room to grow
 
@@ -119,8 +119,6 @@ the MVP needs; these are places where later features can be added without reshap
   `transcript_id` let one table hold real debates and generated ones. `Experiment.kind` already names five uses: paired,
   series, replay, warmup and observational. `Message.planted` stores the problems deliberately placed in a synthetic
   message.
-- **Rating anything.** The evaluation tables point at their target by a type plus an id, so they can score messages,
-  moderator notes or something new.
 - **Preview settings per conversation.** `PreviewMode` is an on/off switch per conversation, so the preview feature can
   be tried on some conversations and not others.
 

@@ -118,14 +118,14 @@ The most important ones (current values are in the file; read it for the truth):
 |---|---|
 | Kill switch | `LLM_ENABLED` (False by default) |
 | Money caps (USD) | `BUDGET_SITE_USD_TOTAL`, `BUDGET_SITE_USD_PER_DAY`, `BUDGET_PER_CONVERSATION_USD`, `BUDGET_EVAL_USD_TOTAL`, `BUDGET_SPIKE_USD_TOTAL` |
-| Models | `MASTER_MODEL`, `INTERVENOR_MODEL`, `SPIKE_MODEL`, `JUDGE_MODELS` |
+| Models | `MASTER_MODEL`, `INTERVENOR_MODEL`, `SPIKE_MODEL`, `JUDGE_MODEL_SEEDED` |
 | Message and traffic limits | `MAX_MESSAGE_CHARS`, `MIN_SECONDS_BETWEEN_MESSAGES`, `MAX_USER_MESSAGES_PER_CONVERSATION`, `MAX_OPEN_CONVERSATIONS` (None = no limit), `MAX_PROPOSITION_CHARS`, `MAX_PROPOSITIONS_PER_USER_PER_DAY` |
 | What the moderator gets | `TRANSCRIPT_MAX_MESSAGES` (only the newest messages are sent), `MAX_ACTS_PER_INTERVENTION`, `AGREEMENT_MAP_EVERY_N_USER_MESSAGES` (the agree/disagree note fires after every N-th user message; 0 turns it off), `MASTER_MAX_TOKENS`, `INTERVENOR_MAX_TOKENS` |
 | Circuit breaker | `BREAKER_MAX_CONSECUTIVE_ERRORS`, `BREAKER_ERROR_WINDOW_SECONDS`, `BREAKER_COOLDOWN_SECONDS`, `BREAKER_COOLDOWN_MAX_SECONDS`, `ALERT_MIN_SECONDS_BETWEEN_EMAILS` |
 | Intervention preview | `PREVIEW_SHARE` (share of new conversations that get it: 1.0 = all, 0.0 = none), `PREVIEW_MAX_CHECKS_PER_MINUTE`, `PREVIEW_REUSE_SECONDS`, `PREVIEW_CLIENT_TIMEOUT_SECONDS` |
 | Worker | `MODERATION_RUN_MODE`, `WORKER_POLL_SECONDS`, `RUN_TIMEOUT_SECONDS`, `RUN_MAX_ATTEMPTS`, `POLL_SECONDS` |
 | Accounts | `USERNAME_MIN_LENGTH`, `USERNAME_MAX_LENGTH`, `PASSWORD_MIN_LENGTH`, `SESSION_COOKIE_AGE`, `LOGIN_MAX_FAILURES`, `LOGIN_COOLOFF_MINUTES` |
-| Evaluation (phase B) | `SPAN_MATCH_MIN_IOU`, `INTENSITY_DISAGREEMENT_THRESHOLD`, `INTENSITY_ERROR_THRESHOLD`, `REPLAY_MESSAGE_GAP_SECONDS`, `CALIBRATION_*`, `RATER_MAX_TOKENS` |
+| Evaluation (phase B) | `INTENSITY_ERROR_THRESHOLD`, `REPLAY_MESSAGE_GAP_SECONDS` |
 
 The plan's section 3.3 lists older default dollar caps; `config/tunables.py` is what the code uses.
 
@@ -148,14 +148,14 @@ In plain words, in the order a call meets them:
    - **site total**, all time (`BUDGET_SITE_USD_TOTAL`; moderation, spike and golden-set calls),
    - **spike total** (`BUDGET_SPIKE_USD_TOTAL`) for the prompt trial command,
    - **evaluation total**, kept separate (`BUDGET_EVAL_USD_TOTAL`; replays and judges),
-   - **the command's own `--max-usd`** for `spike`, `replay` and `run_raters`.
+   - **the command's own `--max-usd`** for `spike` and `replay`.
    A refused moderation run is recorded as `skipped_budget` and the page says moderation is paused. If the spending
    record cannot be read, no call is made (fail closed). An unknown model is never called.
 5. **Bounded input.** At most `MAX_MESSAGE_CHARS` per message, only the newest `TRANSCRIPT_MAX_MESSAGES` messages are
    sent, output is limited by `max_tokens`, and the fixed instructions are sent with prompt caching.
 6. **Traffic limits.** The 30-second gap, the 30-message cap per conversation and the daily proposition cap.
-7. **Checked before you run.** `spike`, `replay` and `run_raters` all have `--dry-run`, which makes no call and
-   prints the number of calls and a worst-case cost. `replay` and `run_raters` never spend real money unless you
+7. **Checked before you run.** `spike` and `replay` both have `--dry-run`, which makes no call and
+   prints the number of calls and a worst-case cost. `replay` never spends real money unless you
    pass `--live`, `--max-usd`, and type `yes` (or `--yes`).
 
 **The Anthropic Console spend limit is the outer backstop, and it is yours to set** (`docs/plan.md`, section 3.1):
@@ -219,7 +219,7 @@ posted in between) and reuses its outputs instead of calling the model again (so
 ## 6. Management commands
 
 Run with `.venv/bin/python manage.py <command>`; `--help` on any of them lists everything. Options below are the main
-ones. "Real API calls" only happen when the kill switch is on and a key is set (`replay` and `run_raters` need
+ones. "Real API calls" only happen when the kill switch is on and a key is set (`replay` needs
 `--live`, see section 4).
 
 **Site**
@@ -239,8 +239,6 @@ ones. "Real API calls" only happen when the kill switch is on and a key is set (
 |---|---|
 | `spike --max-usd N` | Run the Master and Intervenor over the golden transcripts and write a readable report under `golden/results/<timestamp>/` (git-ignored). `--dry-run`; `--only ID [ID ...]`; `--model MODEL` (default `SPIKE_MODEL`); `--out DIR`. `--max-usd` is required. |
 | `replay --experiment NAME` | Load golden transcripts as synthetic conversations and replay the moderation pipeline on them (never posts). `--dry-run`; `--directory DIR`; `--set PATTERN` (repeatable); `--assignments {as-is,swapped,both}`; `--replicates N`; `--max-usd N`; `--live`; `--yes`. Without `--live` every run is recorded as `skipped_disabled` and costs nothing. |
-| `seed_panel` | Create or reuse the two LLM raters (from `JUDGE_MODELS`) and a versioned panel that records the rubric hashes. `--name NAME` (default `llm-panel`); `--rubrics-dir DIR`. |
-| `run_raters --panel NAME` | Have the panel's LLM raters rate the user messages of synthetic conversations. Choose conversations with `--experiment NAME` or `--conversation ID` (repeatable); `--dimension D`; `--replicates N`; `--max-usd N`; `--dry-run`; `--live`; `--yes`; `--match` (afterwards match the Master's issues to the raters' findings); `--allow-human-source` (also accept real users' conversations). |
 | `generate_conversations` | Generate the seeded-error debates: two base conversations per fact (left and right), then the true and false-claim versions, written to `generated/`. `--facts IDS`; `--output-dir DIR`; `--overwrite`; `--max-usd N`; `--dry-run`; `--live`; `--yes`. |
 | `judge_responses --experiment NAME` | Have one LLM judge tag each moderator response to a seeded claim (0 missed, 1 spotted, 2 wrong correction, 3 correct, N/A) and write one JSON Lines file per experiment under the `generated/judgments` folder. `--max-usd N`; `--overwrite`; `--dry-run`; `--live`; `--yes`. |
 | `summarize_pilot --experiment NAME` | Turn the judged results into a preliminary summary table, printed and written to a markdown file in the `generated` folder. `--output PATH`. |
@@ -274,7 +272,7 @@ ones. "Real API calls" only happen when the kill switch is on and a key is set (
   `.venv/bin/python -m pytest tests/test_secret_scanner.py tests/test_secret_cli_and_hooks.py tests/test_secret_repo_protection.py tests/test_review2_scanner_and_hooks.py tests/test_repo_hygiene.py`.
 - Some tests scan the source (for example: only `moderation/llm.py` imports `anthropic`; tunables are assigned only in
   `config/tunables.py`; prompts never receive usernames), so a change that breaks a design rule fails a test.
-- Tests that use the real API are never part of `pytest`; they are the commands `spike`, `replay` and `run_raters`,
+- Tests that use the real API are never part of `pytest`; they are the commands `spike` and `replay`,
   each with its own `--max-usd`.
 
 ## 8. Security rules
@@ -296,7 +294,7 @@ ones. "Real API calls" only happen when the kill switch is on and a key is set (
   provider's console straight away (deleting it in a later commit does not remove it from history).
 - **Passwords** are stored only as salted Argon2 hashes. Sessions are HttpOnly and SameSite=Lax; cookies are Secure in
   production. CSRF protection is on.
-- **Privacy.** The moderator, the raters and the prompts never see usernames, emails, sides or political labels.
+- **Privacy.** The moderator, the judge and the prompts never see usernames, emails, sides or political labels.
   Exports include usernames only with `--include-identities`.
 
 ## 9. Repository map
@@ -312,10 +310,9 @@ moderation/               the AI moderator and its guard rails:
                           taxonomy.py, schemas.py, prompts/ (master_v1.md, intervenor_v1.md),
                           agents.py, pipeline.py, worker.py, preview.py, quotes.py, features.py,
                           queries.py, replay.py, fake_llm.py, models.py, admin.py, management/commands/
-evaluation/               phase B, not deployed: rater/panel/rating models, consensus, blinding, calibration,
-                          LLM rater runner (llm_rater.py), matching, prompts/, management/commands/
+evaluation/               not deployed: only the seeded-error management commands (no tables or models)
 analysis/                 metrics.py: bias metrics as pure functions on tables (pandas)
-rubrics/                  factual_accuracy_v1.md, abusiveness_v1.md, clarity_v1.md (used word for word by raters)
+rubrics/                  factual_accuracy_v1.md, abusiveness_v1.md, clarity_v1.md (used word for word by the judge)
 golden/                   transcripts/ (scripted test conversations), warmup/ (non-political set),
                           results/ (real-run output, git-ignored)
 scripts/                  dev.sh, install_hooks.sh, check_secrets.py, make_schema_doc.py,
@@ -348,7 +345,7 @@ docs/                     plan, summary, neutrality criteria, briefs, schema, us
 - **HTTPS and hosting.** Nothing is deployed. Passwords must only travel over HTTPS outside your own machine, so this
   is needed before anyone else uses the site. `manage.py check --deploy` currently reports the console mail backend as an error and the HTTPS, HSTS and
   secure-cookie settings as warnings (with `DJANGO_ENV` unset).
-- **The annotation page for human raters.** The evaluation tables exist, but there is no page or access model for
+- **The annotation page for human raters.** There is no page or access model for
   human raters yet.
 - **The calibration report** (human-human and LLM-human agreement, side symmetry, the positive control and the noise
   floor) is not built, nor is the pre-registered analysis (`analysis/prereg.md`). The `golden` command is not built.

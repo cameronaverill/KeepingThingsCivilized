@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-import research_kit as kit
+import seed_research_kit as kit
 
 
 def ids(items):
