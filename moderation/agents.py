@@ -109,7 +109,7 @@ def call_master(run, transcript, *, topic, already_raised=(), process_facts=None
     )
 
 
-def call_intervenor(run, transcript, *, topic, valid_issues, discussion_map=None):
+def call_intervenor(run, transcript, *, topic, valid_issues, discussion_map=None, summary_due=False):
     """Run the Intervenor over `transcript` and the Master's valid issues; returns a validated `IntervenorOutput`."""
     prompt = prompting.load_prompt(INTERVENOR_PROMPT)
     title, proposition = _topic_parts(topic)
@@ -119,6 +119,7 @@ def call_intervenor(run, transcript, *, topic, valid_issues, discussion_map=None
         topic_title=title,
         proposition=proposition,
         discussion_map=discussion_map,
+        summary_due=summary_due,
     )
     return _call_with_retry(
         agent="intervenor",

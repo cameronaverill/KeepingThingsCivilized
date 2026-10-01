@@ -195,7 +195,7 @@ Constraints:
 | local_id | varchar(50) | no | max 50 characters |
 | message_id | bigint | no | foreign key to forum.Message (on delete PROTECT); indexed |
 | issue_type | varchar(40) | no | one of: unsupported_claim, possible_factual_error, unclear_statement, fallacy, strawman, abusive_language, repetition, process_violation; max 40 characters |
-| dimension | varchar(30) | no | one of: , factual_accuracy, abusiveness; default ''; max 30 characters |
+| dimension | varchar(30) | no | one of: , factual_accuracy, abusiveness, clarity; default ''; max 30 characters |
 | quote | TEXT | no | default '' |
 | quote_start | integer unsigned | yes |  |
 | quote_end | integer unsigned | yes |  |

@@ -57,6 +57,7 @@ CROSS_MESSAGE_ISSUE_TYPES = {"repetition", "strawman", "process_violation"}
 DIMENSIONS = {
     "factual_accuracy": {"issue_type": "possible_factual_error", "coverage": "all_claims"},
     "abusiveness": {"issue_type": "abusive_language", "coverage": "flagged_only"},
+    "clarity": {"issue_type": "unclear_statement", "coverage": "flagged_only"},
 }
 
 DEFINITIONS = {
@@ -158,6 +159,7 @@ DEFINITIONS = {
     # --- Dimensions ---
     "factual_accuracy": "How wrong a checkable factual claim is, on the 0 to 4 rubric in rubrics/factual_accuracy_v1.md.",
     "abusiveness": "How abusive a phrase is, on the 0 to 4 rubric in rubrics/abusiveness_v1.md.",
+    "clarity": "How hard a statement is to understand and respond to, on the 0 to 4 rubric in rubrics/clarity_v1.md.",
 }
 
 

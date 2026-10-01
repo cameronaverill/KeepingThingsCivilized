@@ -65,7 +65,7 @@ One step at a time, tests first. A **coding agent** writes each component and a 
 16. Pre-registered analysis, then retire the old machinery
 
 ## Still to decide
-- (De-prioritized, 2026-09-28) Showing "where you agree / disagree": the map is already generated and stored on every run, but nothing triggers or displays it; see `docs/evaluation_pipeline_todo.md`
+- (Built in step 21, 2026-10-01) The "where you agree / disagree" note now fires after every 4th user message and is posted as an ordinary moderator message; a clarity dimension was added too. Neutrality tests for both are a post-MVP TODO. Earlier note: nothing triggered or displayed it; see `docs/evaluation_pipeline_todo.md`
 - Hosting with HTTPS, and an email-sending account, before real users
 - Rubric wording
 - Whether the cheaper model is good enough for the live moderator (decided after step 3)

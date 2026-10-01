@@ -107,10 +107,11 @@ the MVP needs; these are places where later features can be added without reshap
 - **Email.** `User.email` and `email_verified_at` exist but are unused, so an email flow can be restored later.
 - **More kinds of moderation job.** `ModerationRun.kind` already has "live", "replay" and "research"; a new job type is a
   new value. `source_act` and `requested_by` tie a research job to the note and the person that asked for it.
-- **More things to check for.** Each Issue has a `dimension`. Two exist (factual accuracy and abusiveness), each with a
+- **More things to check for.** Each Issue has a `dimension`. Three exist (factual accuracy, abusiveness and clarity), each with a
   scoring guide in `rubrics/`, so a new dimension is a new guide plus a new issue type.
-- **A "where you agree and disagree" feature.** Every run already stores a `discussion_map` and two act types exist for
-  it, but nothing triggers or displays them yet.
+- **A "where you agree and disagree" feature.** Built in step 21: after every 4th user message (`AGREEMENT_MAP_EVERY_N_USER_MESSAGES`)
+  a live run also asks the Intervenor for an `identify_agreement_disagreement` note built from the stored `discussion_map`
+  and posts it as an ordinary moderator message. Still open: a display of the map itself, and neutrality tests for it.
 - **Different AI providers or models.** `LLMCall` records `provider`, `model`, `prompt_version` and a hash of the prompt,
   so another provider or a changed prompt can be compared run by run. `ModerationRun.config_snapshot` keeps the settings
   each run used.

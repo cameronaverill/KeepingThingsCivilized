@@ -56,16 +56,22 @@ def test_cross_message_issue_types(tax):
     assert set(tax.CROSS_MESSAGE_ISSUE_TYPES) <= set(tax.ISSUE_TYPES)
 
 
+# Step 21 added the clarity dimension; the step 3 kit mapping still lists the original two.
+DIMENSIONED = {**DIMENSION_TO_ISSUE_TYPE, "clarity": "unclear_statement"}
+
+
 def _field(entry, name):
     return entry[name] if isinstance(entry, Mapping) else getattr(entry, name)
 
 
 def test_dimensions_registry(tax):
-    assert set(tax.DIMENSIONS) == {"factual_accuracy", "abusiveness"}
+    assert set(tax.DIMENSIONS) == {"factual_accuracy", "abusiveness", "clarity"}
     assert _field(tax.DIMENSIONS["factual_accuracy"], "issue_type") == "possible_factual_error"
     assert _field(tax.DIMENSIONS["factual_accuracy"], "coverage") == "all_claims"
     assert _field(tax.DIMENSIONS["abusiveness"], "issue_type") == "abusive_language"
     assert _field(tax.DIMENSIONS["abusiveness"], "coverage") == "flagged_only"
+    assert _field(tax.DIMENSIONS["clarity"], "issue_type") == "unclear_statement"
+    assert _field(tax.DIMENSIONS["clarity"], "coverage") == "flagged_only"
 
 
 def test_every_dimension_points_at_a_real_issue_type_and_has_a_rubric_file(tax):
@@ -74,18 +80,18 @@ def test_every_dimension_points_at_a_real_issue_type_and_has_a_rubric_file(tax):
         assert (RUBRIC_DIR / f"{name}_v1.md").is_file(), f"adding a dimension means adding rubrics/{name}_v1.md"
 
 
-@pytest.mark.parametrize("dimension, issue_type", sorted(DIMENSION_TO_ISSUE_TYPE.items()))
-def test_dimension_for_maps_the_two_dimensioned_issue_types(tax, dimension, issue_type):
+@pytest.mark.parametrize("dimension, issue_type", sorted(DIMENSIONED.items()))
+def test_dimension_for_maps_the_dimensioned_issue_types(tax, dimension, issue_type):
     assert tax.dimension_for(issue_type) == dimension
 
 
-@pytest.mark.parametrize("issue_type", sorted(ISSUE_TYPES - set(DIMENSION_TO_ISSUE_TYPE.values())))
+@pytest.mark.parametrize("issue_type", sorted(ISSUE_TYPES - set(DIMENSIONED.values())))
 def test_dimension_for_is_none_for_every_other_issue_type(tax, issue_type):
     assert tax.dimension_for(issue_type) is None
 
 
-def test_exactly_two_issue_types_have_a_dimension(tax):
-    assert {t for t in tax.ISSUE_TYPES if tax.dimension_for(t) is not None} == set(DIMENSION_TO_ISSUE_TYPE.values())
+def test_exactly_three_issue_types_have_a_dimension(tax):
+    assert {t for t in tax.ISSUE_TYPES if tax.dimension_for(t) is not None} == set(DIMENSIONED.values())
 
 
 def all_values():

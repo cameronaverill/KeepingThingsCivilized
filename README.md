@@ -120,7 +120,7 @@ The most important ones (current values are in the file; read it for the truth):
 | Money caps (USD) | `BUDGET_SITE_USD_TOTAL`, `BUDGET_SITE_USD_PER_DAY`, `BUDGET_PER_CONVERSATION_USD`, `BUDGET_EVAL_USD_TOTAL`, `BUDGET_SPIKE_USD_TOTAL` |
 | Models | `MASTER_MODEL`, `INTERVENOR_MODEL`, `SPIKE_MODEL`, `JUDGE_MODEL_SEEDED` |
 | Message and traffic limits | `MAX_MESSAGE_CHARS`, `MIN_SECONDS_BETWEEN_MESSAGES`, `MAX_USER_MESSAGES_PER_CONVERSATION`, `MAX_OPEN_CONVERSATIONS` (None = no limit), `MAX_PROPOSITION_CHARS`, `MAX_PROPOSITIONS_PER_USER_PER_DAY` |
-| What the moderator gets | `TRANSCRIPT_MAX_MESSAGES` (only the newest messages are sent), `MAX_ACTS_PER_INTERVENTION`, `MASTER_MAX_TOKENS`, `INTERVENOR_MAX_TOKENS` |
+| What the moderator gets | `TRANSCRIPT_MAX_MESSAGES` (only the newest messages are sent), `MAX_ACTS_PER_INTERVENTION`, `AGREEMENT_MAP_EVERY_N_USER_MESSAGES` (the agree/disagree note fires after every N-th user message; 0 turns it off), `MASTER_MAX_TOKENS`, `INTERVENOR_MAX_TOKENS` |
 | Circuit breaker | `BREAKER_MAX_CONSECUTIVE_ERRORS`, `BREAKER_ERROR_WINDOW_SECONDS`, `BREAKER_COOLDOWN_SECONDS`, `BREAKER_COOLDOWN_MAX_SECONDS`, `ALERT_MIN_SECONDS_BETWEEN_EMAILS` |
 | Intervention preview | `PREVIEW_SHARE` (share of new conversations that get it: 1.0 = all, 0.0 = none), `PREVIEW_MAX_CHECKS_PER_MINUTE`, `PREVIEW_REUSE_SECONDS`, `PREVIEW_CLIENT_TIMEOUT_SECONDS` |
 | Worker | `MODERATION_RUN_MODE`, `WORKER_POLL_SECONDS`, `RUN_TIMEOUT_SECONDS`, `RUN_MAX_ATTEMPTS`, `POLL_SECONDS` |
@@ -311,7 +311,7 @@ moderation/               the AI moderator and its guard rails:
                           queries.py, replay.py, transcripts.py, fake_llm.py, models.py, admin.py, management/commands/
 evaluation/               not deployed: only the seeded-error management commands (no tables or models)
 analysis/                 metrics.py: bias metrics as pure functions on tables (pandas)
-rubrics/                  factual_accuracy_v1.md, abusiveness_v1.md (used word for word by the judge)
+rubrics/                  factual_accuracy_v1.md, abusiveness_v1.md, clarity_v1.md (used word for word by the judge)
 golden/                   transcripts/ (three scripted transcripts kept as replay fixtures)
 scripts/                  dev.sh, install_hooks.sh, check_secrets.py, make_schema_doc.py,
                           make_text_inventory.py

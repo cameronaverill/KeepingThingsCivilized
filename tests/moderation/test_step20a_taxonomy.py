@@ -117,8 +117,8 @@ def test_issue_types_decisions_tones_and_not_scorable_reasons_are_unchanged(tax)
     assert set(tax.NOT_SCORABLE_REASONS) == ORIGINAL_NOT_SCORABLE_REASONS
 
 
-def test_dimensions_are_unchanged(tax):
-    assert set(tax.DIMENSIONS) == ORIGINAL_DIMENSIONS
+def test_the_original_dimensions_are_unchanged_and_step_21_added_only_clarity(tax):
+    assert set(tax.DIMENSIONS) == ORIGINAL_DIMENSIONS | {"clarity"}
 
 
 # --- confirm the generic existing tests that should "extend automatically" actually do, live -------------------------
