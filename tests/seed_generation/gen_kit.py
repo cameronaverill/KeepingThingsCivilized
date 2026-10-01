@@ -151,7 +151,7 @@ def by_id(items):
 
 
 def validate(item):
-    from moderation.management.commands.spike import validate_transcript
+    from moderation.transcripts import validate_transcript
 
     validate_transcript(Path(item["id"] + ".json"), item)
 

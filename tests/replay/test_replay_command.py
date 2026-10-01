@@ -93,33 +93,35 @@ class TestDryRun:
         numbers = kit.integers_in(replay(folder, "--dry-run", "--assignments", "as-is").out)
         assert (5 in numbers, 10 in numbers) == (True, False)
 
-    def test_it_prints_the_worst_case_cost_of_the_spike_estimate(self, folder):
+    def test_it_prints_the_worst_case_cost_estimate(self, folder):
         from django.conf import settings
 
         from moderation import prompting
-        from moderation.management.commands import spike
+        from moderation import transcripts as transcript_files
+        from moderation.management.commands.replay import usd
 
         master, intervenor = prompting.load_prompt("master"), prompting.load_prompt("intervenor")
-        transcripts = spike.load_transcripts(folder)
+        transcripts = transcript_files.load_transcripts(folder)
         expected = sum(
-            (sum(spike.estimate_worst_case(t, settings.MASTER_MODEL, master, intervenor)) * 2 for t in transcripts.values()),
+            (sum(transcript_files.estimate_worst_case(t, settings.MASTER_MODEL, master, intervenor)) * 2 for t in transcripts.values()),
             Decimal("0"),
         )
-        assert spike.usd(expected) in replay(folder, "--dry-run").out
+        assert usd(expected) in replay(folder, "--dry-run").out
 
     def test_the_cost_scales_with_replicates(self, folder):
         from django.conf import settings
 
         from moderation import prompting
-        from moderation.management.commands import spike
+        from moderation import transcripts as transcript_files
+        from moderation.management.commands.replay import usd
 
         master, intervenor = prompting.load_prompt("master"), prompting.load_prompt("intervenor")
-        transcripts = spike.load_transcripts(folder)
+        transcripts = transcript_files.load_transcripts(folder)
         expected = sum(
-            (sum(spike.estimate_worst_case(t, settings.MASTER_MODEL, master, intervenor)) * 2 * 3 for t in transcripts.values()),
+            (sum(transcript_files.estimate_worst_case(t, settings.MASTER_MODEL, master, intervenor)) * 2 * 3 for t in transcripts.values()),
             Decimal("0"),
         )
-        assert spike.usd(expected) in replay(folder, "--dry-run", "--replicates", "3").out
+        assert usd(expected) in replay(folder, "--dry-run", "--replicates", "3").out
 
     def test_the_output_is_the_same_every_time(self, folder):
         assert replay(folder, "--dry-run").out == replay(folder, "--dry-run").out
@@ -190,7 +192,7 @@ def series_member(base, tid, *, edit=None, factor="message_length"):
     `computed` block that is correct for its messages."""
     import copy
 
-    from moderation.series import compute_features
+    from moderation.transcripts import compute_features
 
     member = copy.deepcopy(base)
     member["id"], member["pair_id"], member["variant"] = tid, None, None
@@ -474,17 +476,18 @@ class TestLiveConfirmation:
         from django.conf import settings
 
         from moderation import prompting
-        from moderation.management.commands import spike
+        from moderation import transcripts as transcript_files
+        from moderation.management.commands.replay import usd
 
         typed.reply("no")
         master, intervenor = prompting.load_prompt("master"), prompting.load_prompt("intervenor")
-        transcripts = spike.load_transcripts(folder)
+        transcripts = transcript_files.load_transcripts(folder)
         expected = sum(
-            (sum(spike.estimate_worst_case(t, settings.MASTER_MODEL, master, intervenor)) * 2 for t in transcripts.values()),
+            (sum(transcript_files.estimate_worst_case(t, settings.MASTER_MODEL, master, intervenor)) * 2 for t in transcripts.values()),
             Decimal("0"),
         )
         result = replay(folder, "--max-usd", "1.25", "--live")
-        assert (spike.usd(expected) in result.out, "$1.2500" in result.out) == (True, True)
+        assert (usd(expected) in result.out, "$1.2500" in result.out) == (True, True)
 
     def test_the_refusal_message_says_nothing_was_called(self, folder, typed):
         typed.reply("no")

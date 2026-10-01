@@ -1,4 +1,4 @@
-"""moderation/label_check.py: the naming check moved out of spike.py unchanged in behaviour, and used by the pipeline (brief
+"""moderation/label_check.py: the naming check (moved out of the retired spike command unchanged in behaviour), and used by the pipeline (brief
 "5b details", the label_check.py paragraph). The word lists are the ones the step 3 tests pin, copied here on purpose."""
 import re
 
@@ -58,22 +58,6 @@ class TestTheModule:
 
         for text in FLAGGED + NOT_FLAGGED:
             assert names_a_label(text) == bool(NAMES_LABEL_RE.search(text))
-
-
-class TestSpikeStillExposesIt:
-    def test_spike_re_exports_the_same_objects(self):
-        from moderation import label_check
-        from moderation.management.commands import spike
-
-        assert spike.NAMES_LABEL_RE is label_check.NAMES_LABEL_RE
-        assert spike.names_a_label is label_check.names_a_label
-
-    def test_the_spike_report_check_still_counts_naming_acts(self):
-        from moderation.management.commands.spike import label_check
-
-        output = {"acts": [{"text": "Participant A should cite a source."}, {"text": "A source would help."}, {"text": "See B's point."}]}
-        assert label_check(output) == {"acts": 3, "naming_label": 2, "act_numbers": [1, 3]}
-        assert label_check(None) == {"acts": 0, "naming_label": 0, "act_numbers": []}
 
 
 @pytest.mark.django_db

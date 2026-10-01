@@ -19,7 +19,7 @@ The code is a Django web app (Python) with one database file. Each folder has on
 | `accounts/` | Sign-up, login and passwords. |
 | `forum/` | The website: propositions, pairing people, the conversation page, posting, blocking. |
 | `moderation/` | The AI moderator, the cost guards and the background worker. |
-| `evaluation/`, `seeding/`, `analysis/`, `golden/` | Testing the moderator for bias (not used by visitors). |
+| `evaluation/`, `seeding/`, `analysis/`, `golden/` | Testing the moderator for bias (not used by visitors). `golden/transcripts/` holds only three replay fixtures (the rest was removed on 2026-10-01). |
 | `config/` | Settings, URLs and `tunables.py`, the one file holding every adjustable number. |
 | `rubrics/`, `moderation/prompts/` | The plain-text scoring guides and the instructions given to the AI models. |
 | `tests/` | The automated tests (over 11,000). |

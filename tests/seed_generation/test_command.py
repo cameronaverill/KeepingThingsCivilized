@@ -275,7 +275,7 @@ class TestARealRunWithFakeAnswers:
         )
 
     def test_the_files_pass_the_replay_validator(self, fake, tmp_path):
-        from moderation.management.commands.spike import validate_transcript
+        from moderation.transcripts import validate_transcript
 
         fake(*script())
         command("--facts", LAW, "--max-usd", "5", "--live", "--yes", "--output-dir", str(tmp_path / "o"))

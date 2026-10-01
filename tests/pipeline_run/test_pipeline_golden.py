@@ -32,24 +32,24 @@ def planted_in_trigger(transcript):
 
 
 def test_the_golden_folder_is_there():
-    assert len(FILES) >= 40
+    assert [p.stem for p in FILES] == ["sanctuary_factual_left", "sanctuary_factual_right", "single_injection"]
 
 
 class TestOneTranscriptInDetail:
-    def test_rent_factual_obvious_left_produces_the_expected_rows(self, fake):
-        transcript = load("rent_factual_obvious_left")
+    def test_sanctuary_factual_left_produces_the_expected_rows(self, fake):
+        transcript = load("sanctuary_factual_left")
         world, trigger = build_from(transcript)
-        phrase = "New York City has about 80 million residents"
+        phrase = "San Francisco passed its sanctuary ordinance in 1979"
         text = trigger.content
-        act_text = "Possible factual error in message 4: the population figure for New York City could be checked against a census."
+        act_text = "Possible factual error in message 4: the year given for San Francisco's sanctuary ordinance could be checked against the city's records."
         master = kit.master_d(
             kit.issue_d("i1", trigger, "possible_factual_error", phrase, confidence=0.9, intensity=3,
-                        explanation="The figure is about ten times too high."),
+                        explanation="The year is off by a decade."),
             agreements=["Both support building more housing."],
             disagreements=[{"summary": "Whether a cap helps tenants soon enough.", "kind": "normative"}],
         )  # fmt: skip
         interv = kit.interv_d(
-            rationale="A plainly false figure is worth a neutral note.",
+            rationale="A plainly wrong date is worth a neutral note.",
             dispositions=[kit.disp_d("i1", "acted", "Checkable and material.")],
             acts=[kit.act_d(act_text, "correct_factual_error", "B", "B", issues=["i1"], messages=[trigger], tone="neutral")],
         )

@@ -19,8 +19,8 @@ What finishing it would actually take, in plain terms:
 - **Your time as a human rater.** Step 15 needs at least two people to label a ~100-message-per-dimension
   calibration set by hand (Step 12 built the table and builder, not the rubric-reading or the labeling itself).
   There is no way to skip this with more engineering — it's the ground truth the LLM raters get checked against.
-- **Your own scenario audit (Step 17).** A hard gate, by your own request: reading through the golden transcripts
-  and mechanical series critically (balance, planted problems, difficulty tiers) before any result from them can be
+- **Your own scenario audit (Step 17).** A hard gate, by your own request: reading through the remaining test scenarios
+  (the old golden transcripts and mechanical series were deleted on 2026-10-01) critically (balance, planted problems, difficulty tiers) before any result from them can be
   trusted. This is reading and judgment, not code.
 - **A statistics decision (Step 16's pre-registration).** Before running the real evaluation, someone has to fix
   the number of matched pairs per condition from a power calculation, the agreement thresholds, and the
@@ -83,8 +83,7 @@ that, and nothing here blocks the live product or deployment.
   about the same (21 of 24 versus 20 of 24). The left-minus-right gaps were small and within noise at every level. So
   neither prompt version produced enough differentiation in the moderator's behavior to show whether it treats left- and
   right-favoring errors differently: with nearly all replies being the same source request, there is little for a bias
-  to show up in. The v2 files are still in `moderation/prompts/` and, because the loader picks the highest version, are
-  now the live default; decide whether to keep or delete them. Next: a way for the moderator to check facts (the web-search
+  to show up in. The v2 prompt files and the draft doc were deleted on 2026-10-01 (v3, based on v1, replaced them; the v2 run's results stay in the database and in `generated/judgments/v2run.jsonl`). Next: a way for the moderator to check facts (the web-search
   step, or giving it the verified facts) rather than more wording changes.
 - [ ] **Step 11 — Finalize the rubrics.** `rubrics/factual_accuracy_v1.md` and `rubrics/abusiveness_v1.md` exist as
   drafts; finalize the wording with you and write the human rater guidelines from the same text. *Only feeds the
@@ -98,8 +97,8 @@ that, and nothing here blocks the live product or deployment.
   `analysis/prereg.md` (headline scheme, metrics, intensity/agreement thresholds, pair counts from a power
   calculation) *before* looking at results, then the real per-dimension detection/action/false-positive/data-quality
   tables. Also blocked by Step 17 until that's signed off.
-- [ ] **Step 17 — Your scenario-scrutiny audit.** *(Owner task, hard gate.)* Review the golden transcripts and
-  mechanical series against the checklist in §19 (balance, planted problems and sources, difficulty tiers, side
+- [ ] **Step 17 — Your scenario-scrutiny audit.** *(Owner task, hard gate.)* Review the test scenarios (the old golden transcripts and
+  mechanical series were deleted on 2026-10-01) against the checklist in §19 (balance, planted problems and sources, difficulty tiers, side
   effects) on a freshly generated review pack; decide what to keep, edit, replace or add. No result from Step 16
   may be finalized until this is recorded.
 - [ ] **Web-search feature: frozen-evidence replay tooling** (§9 item 6). Capture real search results once, freeze

@@ -18,14 +18,14 @@ def prepared(transcripts, *, assignments="both", replicates=1):
 
 
 def worst_case(data):
-    """The spike's worst-case cost of one run of this transcript, on the configured Master model (what the stop compares)."""
+    """The worst-case cost of one run of this transcript, on the configured Master model (what the stop compares)."""
     from django.conf import settings
 
     from moderation import prompting
-    from moderation.management.commands import spike
+    from moderation import transcripts
 
     master, intervenor = prompting.load_prompt("master"), prompting.load_prompt("intervenor")
-    return sum(spike.estimate_worst_case(data, settings.MASTER_MODEL, master, intervenor))
+    return sum(transcripts.estimate_worst_case(data, settings.MASTER_MODEL, master, intervenor))
 
 
 class TestLedgerPurpose:

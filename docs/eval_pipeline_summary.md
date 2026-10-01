@@ -33,7 +33,7 @@ follow-ups are in `docs/evaluation_pipeline_todo.md`. (Some of those files are n
   to ask unless sure, and the Master mostly typed the claims `unsupported_claim`, not `possible_factual_error`.
 - Left and right were treated equally, but only because the replies were nearly uniform. This is the tension between
   non-bias and utility.
-- A one-sentence change in each prompt (v2, `moderation/prompts/*_v2.md`) changed almost nothing (7 of 62 corrected), so it
+- A one-sentence change in each prompt (the v2 prompts, since deleted) changed almost nothing (7 of 62 corrected), so it
   cannot show left-right bias either.
 
 ## Web-search extension (Step 15)

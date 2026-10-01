@@ -10,7 +10,7 @@ import readme_kit
 # The project's own commands (moderation/, forum/, evaluation/); the README must mention each one.
 PROJECT_COMMANDS = [
     "run_moderator", "replay", "export_conversation", "export_all", "seed_topics",
-    "budget", "reset_breaker", "spike", "generate_conversations", "judge_responses", "summarize_pilot",
+    "budget", "reset_breaker", "generate_conversations", "judge_responses", "summarize_pilot",
     "run_research_eval", "judge_research", "summarize_research",
 ]
 
@@ -67,16 +67,6 @@ def test_every_option_shown_in_a_commands_table_row_is_a_real_option(readme, com
     shown = readme_kit.option_flags(row)
     real = readme_kit.command_options(command)
     assert [flag for flag in shown if flag not in real] == []
-
-
-def test_the_readme_says_spike_requires_max_usd_and_it_does(readme):
-    row = readme_kit.command_table_rows(readme.text)["spike"]
-    assert "--max-usd" in row
-    from django.core.management import get_commands, load_command_class
-
-    parser = load_command_class(get_commands()["spike"], "spike").create_parser("manage.py", "spike")
-    required = [a.option_strings for a in parser._actions if a.required]
-    assert ["--max-usd"] in required
 
 
 def test_budget_has_no_options_of_its_own_as_the_readme_says():

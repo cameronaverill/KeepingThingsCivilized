@@ -1,21 +1,13 @@
-"""Step 3 cleanup, job 1 (docs/step3_cleanup_brief.md): the spike counts message length exactly like real users.
+"""Step 3 cleanup, job 1 (docs/step3_cleanup_brief.md): transcript validation counts message length exactly like real users.
 
-`spike.validate_transcript` must use `forum.limits.count_message_chars` (CRLF and lone CR become one newline, NFC, strip,
+`transcripts.validate_transcript` must use `forum.limits.count_message_chars` (CRLF and lone CR become one newline, NFC, strip,
 count code points), not its own copy and not a raw `len`. The replay command's CRLF workaround is redundant once that is
 true, so it is gone; the replay behaviour itself is pinned by tests/replay/.
 """
 import inspect
-import shutil
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
-from step3_testkit import (
-    TRANSCRIPT_DIR,
-    real_results_untouched,  # noqa: F401  (autouse: nothing here may write into golden/results)
-    run_spike,
-    spike_env,  # noqa: F401
-)
 
 LIMIT = 80
 
@@ -77,9 +69,9 @@ def transcript(*texts):
 
 
 def validate(data):
-    from moderation.management.commands import spike
+    from moderation import transcripts
 
-    spike.validate_transcript(Path("crlf_probe.json"), data)
+    transcripts.validate_transcript(Path("crlf_probe.json"), data)
 
 
 def rejected(data):
@@ -184,73 +176,29 @@ def test_no_other_rule_changed_a_missing_text_key_is_still_refused(settings):
     assert "missing required key 'messages[1].text'" in rejected(data)
 
 
-# --- the spike uses the shared counter, not a copy ------------------------------------------------------------------------
+# --- the validator uses the shared counter, not a copy ---------------------------------------------------------------------
 
-def test_the_spike_imports_the_project_counter_itself():
+def test_the_transcripts_module_imports_the_project_counter_itself():
     from forum import limits
-    from moderation.management.commands import spike
+    from moderation import transcripts
 
-    assert spike.count_message_chars is limits.count_message_chars
+    assert transcripts.count_message_chars is limits.count_message_chars
 
 
-def test_the_spike_does_not_carry_its_own_copy_of_the_normalisation():
-    from moderation.management.commands import spike
+def test_the_transcripts_module_does_not_carry_its_own_copy_of_the_normalisation():
+    from moderation import transcripts
 
-    source = inspect.getsource(spike)
+    source = inspect.getsource(transcripts)
     assert ('.replace("\\r\\n"' in source, ".replace('\\r\\n'" in source, "_counted_chars" in source) == (False, False, False)
 
 
-def test_the_spike_uses_whatever_the_shared_counter_says(monkeypatch, settings):
+def test_the_validator_uses_whatever_the_shared_counter_says(monkeypatch, settings):
     """Behavioural proof that validate_transcript calls the imported counter: a stub that always says 1 accepts anything."""
-    from moderation.management.commands import spike
+    from moderation import transcripts
 
     settings.MAX_MESSAGE_CHARS = LIMIT
-    monkeypatch.setattr(spike, "count_message_chars", lambda text: 1)
+    monkeypatch.setattr(transcripts, "count_message_chars", lambda text: 1)
     validate(transcript("z" * 5000))
-
-
-# --- the golden transcripts and the command ------------------------------------------------------------------------------
-
-def test_every_golden_transcript_still_validates_with_the_real_limit():
-    from moderation.management.commands import spike
-
-    files = spike.load_transcript_files(TRANSCRIPT_DIR)
-    known = {data["id"]: data for _path, data in files}
-    assert len(files) >= 22
-    for path, data in files:
-        spike.validate_transcript(path, data, known_ids=known)
-
-
-@pytest.fixture
-def folder(spike_env, tmp_path, monkeypatch, settings):  # noqa: F811
-    from moderation.management.commands import spike
-
-    directory = tmp_path / "transcripts"
-    shutil.copytree(TRANSCRIPT_DIR, directory)
-    monkeypatch.setattr(spike, "TRANSCRIPTS_DIR", directory)
-    settings.MAX_MESSAGE_CHARS = 3000
-    return SimpleNamespace(dir=directory, first=sorted(directory.glob("*.json"))[0])
-
-
-def set_first_message(folder, text):
-    import json
-
-    data = json.loads(folder.first.read_text(encoding="utf-8"))
-    data["messages"][0]["text"] = text
-    folder.first.write_text(json.dumps(data), encoding="utf-8")
-    return data["id"]
-
-
-def test_the_command_accepts_a_message_that_is_over_only_because_of_its_crlf(folder):
-    tid = set_first_message(folder, "a" * 1499 + "\r\n" + "b" * 1500)  # 3000 by the project counter, 3001 raw
-    result = run_spike("--max-usd", "5", "--dry-run", "--only", tid)
-    assert result.exc is None
-
-
-def test_the_command_still_rejects_a_message_over_the_limit_with_its_crlf_counted_once(folder):
-    tid = set_first_message(folder, "a" * 1500 + "\r\n" + "b" * 1500)  # 3001 by the project counter
-    result = run_spike("--max-usd", "5", "--dry-run", "--only", tid)
-    assert (result.exc is not None, tid in str(result.exc), "3001 characters" in str(result.exc)) == (True, True, True)
 
 
 # --- the replay workaround is gone and replay behaviour is unchanged -----------------------------------------------------
@@ -267,19 +215,18 @@ def replay_pairs(*texts):
     return [(Path("crlf_probe.json"), data)]
 
 
-def test_replay_hands_the_original_transcript_to_the_spike_not_a_copy(monkeypatch, settings):
-    from moderation import replay
-    from moderation.management.commands import spike
+def test_replay_hands_the_original_transcript_to_the_validator_not_a_copy(monkeypatch, settings):
+    from moderation import replay, transcripts
 
     settings.MAX_MESSAGE_CHARS = LIMIT
     seen = []
-    real = spike.validate_transcript
+    real = transcripts.validate_transcript
 
     def recording(path, data, known_ids=None):
         seen.append(data)
         return real(path, data, known_ids=known_ids)
 
-    monkeypatch.setattr(spike, "validate_transcript", recording)
+    monkeypatch.setattr(transcripts, "validate_transcript", recording)
     pairs = replay_pairs("a" * 39 + "\r\n" + "b" * 40)
     replay.validate_transcripts(pairs)
     assert (len(seen), seen[0] is pairs[0][1]) == (1, True)

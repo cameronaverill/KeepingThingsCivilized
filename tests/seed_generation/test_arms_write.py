@@ -46,7 +46,7 @@ class TestWriting:
         assert json.loads(path.read_bytes().decode("utf-8"))["messages"][0]["text"] == left["messages"][0]["text"]
 
     def test_the_written_files_pass_the_replay_validator(self, tmp_path):
-        from moderation.management.commands.spike import validate_transcript
+        from moderation.transcripts import validate_transcript
 
         paths = write(kit.transcripts(), tmp_path)
         assert [validate_transcript(p, json.loads(p.read_text(encoding="utf-8"))) for p in paths] == [None] * 8
