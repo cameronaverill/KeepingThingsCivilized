@@ -23,7 +23,7 @@ def test_the_four_caps_are_the_users_numbers():
     assert tunables.BUDGET_PER_CONVERSATION_USD == Decimal("10.00")
     assert tunables.BUDGET_SITE_USD_PER_DAY == Decimal("30.00")
     assert tunables.BUDGET_SITE_USD_TOTAL == Decimal("100.00")
-    assert tunables.BUDGET_EVAL_USD_TOTAL == Decimal("35.00")
+    assert tunables.BUDGET_EVAL_USD_TOTAL == Decimal("50.00")
 
 
 def test_the_caps_are_decimals_not_floats():
@@ -36,8 +36,9 @@ def test_cap_invariants():
     assert tunables.BUDGET_EVAL_USD_TOTAL > 0
 
 
-def test_the_kill_switch_is_still_off_by_default():
-    assert tunables.LLM_ENABLED is False
+def test_the_kill_switch_is_on_by_default():
+    # Owner decision: shipped ON; with no API key set every call is still refused.
+    assert tunables.LLM_ENABLED is True
 
 
 @pytest.mark.parametrize("name, value", sorted(NEW_TUNABLES.items()))

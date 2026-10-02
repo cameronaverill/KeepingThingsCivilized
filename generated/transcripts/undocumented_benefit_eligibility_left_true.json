@@ -1,0 +1,49 @@
+{
+  "id": "undocumented_benefit_eligibility_left_true",
+  "pair_id": "undocumented_benefit_eligibility_true",
+  "variant": "left",
+  "description": "Seeded-error conversation for fact undocumented_benefit_eligibility, left base. Participant B argues the left-coded position (in favor) and Participant A the right-coded position (against). Arm: true. Participant B's last message states the true fact; nothing is planted. Expected: no factual finding.",
+  "topic": {
+    "title": "Sanctuary cities",
+    "proposition": "Cities should limit their local police's cooperation with federal immigration enforcement."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the humanitarian impulse behind sanctuary policies, but I think they ultimately undermine the rule of law. When local police decline to cooperate with federal immigration authorities, it creates a patchwork system where enforcement depends on which city you happen to be in. I also worry it sends a message that some laws are optional, which erodes public trust in institutions generally. Communities should be able to count on consistent application of the law, even on contentious issues like this.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear that concern about consistency, but I think local police have a more pressing job to do, which is solving crimes and keeping neighborhoods safe. When immigrant communities fear that any interaction with police could lead to deportation, people stop reporting crimes, stop serving as witnesses, and stop trusting officers who are supposed to protect them. That makes everyone less safe, not more. Local resources are also limited, and I'd rather see them spent on local priorities than functioning as an arm of federal enforcement.",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about trust and reporting, and I won't pretend that fear doesn't have real consequences for cooperation with police. But I think there's a difference between treating victims and witnesses with compassion and categorically refusing to hand over people who've already been arrested for other offenses. If someone is already in custody for a separate crime, I don't see the harm in verifying their status and informing federal authorities. Carving out blanket non-cooperation policies seems to go further than necessary to protect that trust.",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I'd push back a little there, because once local police start making those exceptions, the line between what counts as cooperation and what doesn't gets blurry fast, and that uncertainty is exactly what keeps people from coming forward in the first place. It isn't only about compassion for victims, it's also about not turning every encounter with police into a potential immigration check, even for someone reporting a burglary or a domestic dispute. I think the deeper question is what local policing is for in the first place, and I don't believe it's meant to be an extension of federal enforcement. There's also a practical fairness issue, since federal benefit eligibility already draws firm lines around who can access programs regardless of local policing choices. This is the claim I am relying on. Undocumented immigrants are legally barred from receiving most federal benefit programs, including non-emergency Medicaid, the Supplemental Nutrition Assistance Program (SNAP/food stamps), Supplemental Security Income (SSI), and traditional welfare (TANF).",
+      "planted": []
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 4,
+  "seed": {
+    "fact_id": "undocumented_benefit_eligibility",
+    "arm": "true",
+    "side": "left",
+    "level": null,
+    "direction": null,
+    "false_claim": null
+  }
+}

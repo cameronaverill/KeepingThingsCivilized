@@ -1,0 +1,27 @@
+{
+  "side": "left",
+  "fact_id": "undocumented_taxes_paid",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the humanitarian concern, but I think local police limiting cooperation with federal immigration enforcement undermines basic rule of law. Police and federal agencies are supposed to work together to keep communities safe, and carving out exceptions for immigration status creates confusion about who enforces what. If someone commits a crime and also happens to be undocumented, I don't see why local law enforcement should look the other way on the federal side of things. It feels like picking and choosing which laws matter."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the rule-of-law concern, but in my view the priority for local police has to be public safety within their own jurisdiction, and that means earning trust from everyone living there, including undocumented immigrants. When people fear that calling the police will lead to deportation, they stop reporting crimes or cooperating as witnesses, which makes neighborhoods less safe for citizens and non-citizens alike. Federal immigration enforcement is a distinct job with its own agencies and resources; local police were never meant to be an extension of it. I'd rather have officers focused on building relationships with residents than acting as de facto immigration agents."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about trust, and I won't pretend fear of police doesn't affect reporting in some cases. But I think there's a difference between not actively hunting for immigration violations and refusing to hand over someone already in custody for a separate crime when federal authorities ask. Sanctuary policies often go further than just building trust, they create real gaps where dangerous individuals slip through because local jails won't honor detainer requests. Public safety cuts both ways, and victims of crimes committed by people who should have been turned over to federal authorities deserve consideration too."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "That concern is understandable, and I agree there should be real cooperation in cases involving serious violent crime, that's not controversial to me. But most sanctuary policies are actually narrower than people assume, focused on everyday enforcement contact like traffic stops or minor violations, not on shielding people who pose genuine danger. I think the broader question of whether undocumented immigrants are simply a drain or a burden on public resources gets exaggerated, when in reality their contributions to local and federal systems are more complicated than that framing suggests. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "gen_v7"
+}

@@ -1,0 +1,32 @@
+{
+  "side": "right",
+  "fact_id": "undocumented_taxes_paid",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the public-safety worry, but I think local police cooperating closely with federal immigration enforcement actually undermines trust and safety in the long run. Police departments depend on residents coming forward as witnesses and victims, and when immigration status gets tangled up with routine policing, entire communities become afraid to call for help. If someone is afraid that reporting a crime could lead to their neighbor or family member being deported, that fear doesn't make anyone safer. Local officers have their own job, and I don't think they should be functioning as an arm of federal immigration agencies."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the trust concern, but in my view the priority for local police has to be consistent enforcement of the law, and that means not creating carve-outs based on immigration status. Police and federal agencies are meant to coordinate so that dangerous situations don't fall through the cracks, and when cities limit that cooperation, it sends a message that some rules are optional. If a person is already in custody for a separate offense and happens to be undocumented, I don't see why local authorities should decline to work with federal officials on that point. Picking which parts of the law apply based on status feels inconsistent to me, and I think it ultimately makes neighborhoods less predictable, not more secure."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about consistency, and I won't deny that some people feel uneasy when enforcement looks selective. But I think there's a real difference between proactively hunting down immigration violations during ordinary stops and maintaining distinct lanes so that victims and witnesses aren't scared off from engaging with police at all. Limiting cooperation doesn't mean ignoring serious crime, it means not turning every interaction into a potential deportation referral. When trust erodes, crimes go unreported, and that affects citizens and noncitizens alike. I think public safety requires people believing they can approach the police without fear, and that has to be weighed just as heavily as any federal enforcement request."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "That worry is understandable, and I agree there should be close cooperation in situations involving serious violent offenses, that's not something I'd dispute. But most of these cooperation debates aren't really about violent crime, they're about routine contact like traffic stops or minor paperwork issues, not about protecting anyone genuinely dangerous. I think the broader claim that undocumented immigrants are mainly a burden on public systems oversimplifies a situation that is, in reality, far more layered than that framing allows for."
+    },
+    {
+      "seq": 5,
+      "author": "Participant A",
+      "text": "[[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

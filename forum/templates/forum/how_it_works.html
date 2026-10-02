@@ -5,42 +5,24 @@
 
 <section class="prose">
   <h2>What this site is</h2>
-  <p>Two people discuss a proposition in writing. An AI moderator reads each message and may add notes of its own. The site is part of a research project on AI-facilitated discussion.</p>
+  <p>Two people discuss a proposition in writing. An AI moderator reads each message and may add contributions of its own.</p>
 </section>
 
 <section class="prose">
   <h2>Propositions</h2>
-  <p>Anyone with an account can propose a statement to discuss. It appears on the home page straight away; nobody at the site reviews it first, and listing one is not an endorsement. You can create up to {{ max_propositions_per_day }} a day, and each can be up to {{ max_proposition_chars }} characters.</p>
-  <p>Choosing a proposition puts you in a conversation on it, holding the position you chose. If you already have one open on that proposition, you return to it. If someone who holds the other position is already waiting, you are paired with them and can read everything they posted while they waited. Otherwise you wait, and the conversation starts when someone takes the other position. You can keep posting while you wait. A waiting conversation does not expire.</p>
-  <p>Every conversation is between two opposing positions. The home page lists positions that someone holds and is waiting for someone to disagree with. Join one to take the other side, or start a discussion of your own with your position or one of the suggested topics. Conversations are private to their two participants.</p>
-  <p>Either of you can end a conversation at any time. That closes it for both of you: it stays readable by the participants, but nobody can post in it, and it is kept for the research record.</p>
+  <p>Get started by choosing a proposition to discuss or by creating one of your own. </p>
+  <p>Either participant can end a conversation at any time. That closes it for both of you: it stays readable by the participants, but nobody can post in it. It is kept for the research record.</p>
 </section>
 
 <section class="prose">
   <h2>What the AI moderator does</h2>
-  <p>After each message it looks for problems such as a factual error, abusive language, flooding the conversation, or an unanswered question, and decides whether to say anything.</p>
-  <p>It is not a judge and it can be wrong. If you think a note is mistaken, say so in the conversation.</p>
-</section>
-
-<section class="prose" id="limits">
-  <h2>Limits</h2>
-  <ul>
-    <li>Each message can be up to {{ max_message_chars|floatformat:"0g" }} characters (about 500 words). Longer messages are not sent; the page tells you by how much to shorten yours, and keeps your text.</li>
-    <li>You can post one message every {{ min_seconds }} seconds, counted from your own previous message.</li>
-    <li>A conversation closes after {{ max_messages }} messages and has two participants.</li>
-    <li>Nothing stops you posting several messages in a row.</li>
-  </ul>
-  <p>These limits keep the discussion readable. Whenever you cannot post, the page tells you why and what to do next.</p>
-</section>
-
-<section class="prose">
-  <h2>Pauses</h2>
-  <p>Sometimes the moderator is paused. When it is, the page says so and your messages are still posted.</p>
+  <p>After each message, the AI moderator looks for problems such as a factual errors, unclear statements, and abusive language and decides whether to jump in.</p>
+  <p>The moderator is not a judge, and it can be wrong. If you think a contribution by the moderator is mistaken, feel free to say so in the conversation.</p>
 </section>
 
 <section class="prose">
   <h2>What is recorded</h2>
-  <p>Your messages, the moderator&rsquo;s analysis and its replies are stored so the research team can study how moderation treats different viewpoints.</p>
+  <p>Your messages and the moderator&rsquo;s analysis and replies are stored for the research team's possible review.</p>
 </section>
 
 <p><a class="btn btn-primary" href="{% url 'forum:home' %}">Back to home</a></p>

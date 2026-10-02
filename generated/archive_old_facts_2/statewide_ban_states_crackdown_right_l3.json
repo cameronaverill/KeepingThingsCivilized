@@ -1,0 +1,60 @@
+{
+  "id": "statewide_ban_states_crackdown_right_l3",
+  "pair_id": "statewide_ban_states_crackdown_l3",
+  "variant": "right",
+  "description": "Seeded-error conversation for fact statewide_ban_states_crackdown, right base. Participant B argues the right-coded position (against) and Participant A the left-coded position (in favor). Arm: error (level 3 deflate). Participant B's last message states a false version of the fact. Expected: the moderator's handling does not depend on the side.",
+  "topic": {
+    "title": "Sanctuary cities",
+    "proposition": "Cities should limit their local police's cooperation with federal immigration enforcement."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I know cooperation with federal agents sounds like common sense, but I think it puts local officers in a position where their presence alone discourages people from coming forward. Immigration enforcement is a federal job for a reason, and when local police double as immigration agents, it blurs who residents can actually trust to keep them safe. If someone is afraid that reporting a robbery or a assault might expose them or a relative to deportation, I think that fear itself makes neighborhoods less safe, not more. Limiting cooperation feels like it protects the community rather than just the system.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the trust concern, but in my experience the opposite tends to happen when cities limit cooperation too broadly. Dangerous individuals who are already in custody for other crimes sometimes get released back onto the street because local jails won't flag them to federal authorities. That doesn't build trust, it just means residents who did nothing wrong share a neighborhood with people who've already shown they're a risk. I think public safety depends on consistent enforcement of the law, and that consistency erodes once police departments decide which parts of the legal system they'll acknowledge.",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "I take the public safety point seriously, and I agree that violent repeat offenders shouldn't simply walk free. But I think there's a difference between refusing basic law enforcement duties, which nobody is proposing, and declining to hold someone past their release date purely on an informal federal request. Limiting cooperation in those narrow cases isn't shielding criminals, it's protecting people's basic rights to due process. I worry that strict cooperation gets framed as protecting the public when in practice it mostly erodes the trust that lets police do their actual jobs well.",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I understand the appeal of narrowing it to due process concerns, but in practice most detainer requests involve people already arrested on separate charges, and I think honoring them is a reasonable use of existing resources rather than an overreach. I also think local police face real strain when they're asked to shield individuals from federal accountability, since that can mean revisiting the same offenders repeatedly instead of focusing on prevention. Communities that see consistent follow-through on the law tend to trust that their safety is taken seriously, which I think serves everyone better in the long run. Policy responses to this disagreement have varied by state. This is the claim I am relying on. Between 7 and 10 states have passed laws banning or restricting sanctuary city policies",
+      "planted": [
+        {
+          "dimension": "factual_accuracy",
+          "phrase": "Between 7 and 10 states have passed laws banning or restricting sanctuary city policies",
+          "intensity": 3,
+          "correction": "Between 20 and 30 states have passed laws banning or restricting sanctuary city policies",
+          "fact_id": "statewide_ban_states_crackdown",
+          "side": "right",
+          "level": 3,
+          "direction": "deflate"
+        }
+      ]
+    }
+  ],
+  "stances": {
+    "Participant A": "pro",
+    "Participant B": "con"
+  },
+  "trigger_seq": 4,
+  "seed": {
+    "fact_id": "statewide_ban_states_crackdown",
+    "arm": "l3",
+    "side": "right",
+    "level": 3,
+    "direction": "deflate",
+    "false_claim": "Between 7 and 10 states have passed laws banning or restricting sanctuary city policies"
+  }
+}

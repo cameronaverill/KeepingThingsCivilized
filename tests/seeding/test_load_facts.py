@@ -10,8 +10,8 @@ SHIPPED = Path(__file__).resolve().parents[2] / "seeding" / "data" / "facts.json
 PAIRS = {
     "sanctuary_jurisdiction_count": (["widespread", "spreading"], [500, 560]),
     "statewide_sanctuary_states": (["widespread", "spreading"], [10, 20]),
-    "statewide_ban_states": (["rejection", "crackdown"], [20, 30]),
-    "declined_detainers_2014_2017": (["defiance", "invalid_requests"], [10000, 15000]),
+    "statewide_ban_states": (["rejection", "crackdown"], [12, 14]),
+    "declined_detainers_2014_2017": (["defiance", "invalid_requests"], [21205]),
 }
 SPLIT_IDS = [f"{base}_{suffix}" for base, (suffixes, _) in PAIRS.items() for suffix in suffixes]
 IDS = SPLIT_IDS + [
@@ -19,8 +19,16 @@ IDS = SPLIT_IDS + [
     "incarceration_rates",
     "federal_agents_authority",
     "noncitizen_criminal_law",
+    "undocumented_taxes_paid",
+    "undocumented_benefit_eligibility",
+    "california_values_act",
+    "colorado_hb19_1124",
+    "connecticut_trust_act",
+    "illinois_trust_act",
+    "oregon_statewide_rule",
+    "washington_keep_working_act",
 ]
-TYPES = ["statistic"] * 10 + ["law", "law"]
+TYPES = ["statistic"] * 10 + ["law", "law", "qualitative"] + ["law"] * 7
 N = len(IDS)
 
 
@@ -97,7 +105,7 @@ class TestShippedFacts:
         assert [bool(f.claim_true.strip()) for f in shipped] == [True] * N
 
     def test_non_statistics_have_no_statistic_fields(self, shipped):
-        assert [(f.claim_template, f.true_values, f.inflate_favors) for f in shipped[10:]] == [(None, None, None)] * 2
+        assert [(f.claim_template, f.true_values, f.inflate_favors) for f in shipped[10:]] == [(None, None, None)] * 10
 
     @pytest.mark.parametrize("base", list(PAIRS))
     def test_split_entries_share_values_and_template(self, by_id, base):

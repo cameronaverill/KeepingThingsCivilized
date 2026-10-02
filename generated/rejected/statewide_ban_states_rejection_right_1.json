@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "statewide_ban_states_rejection",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I get why some people worry about uniformity, but I think it's reasonable for cities to limit how much their local police cooperate with federal immigration enforcement. When officers are tasked with enforcing immigration law, immigrant residents often stop trusting them altogether, even when reporting a crime or seeking help. In my view, that erodes the basic relationship between police and the community they serve. Safety depends on people feeling safe enough to come forward, not on blending every local agency into a federal enforcement arm."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I understand the trust concern, but in my experience limiting cooperation can backfire by letting dangerous people avoid accountability entirely. If local police can't coordinate with federal authorities, repeat offenders or violent individuals sometimes slip through simply because no one flagged them. I think public safety requires some baseline cooperation, not a wall between agencies. It's fair to say trust matters, but so does making sure serious threats don't fall through gaps created by non-cooperation policies."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair concern about accountability, and I don't dismiss the risk of letting serious offenders go unnoticed. But I think the answer is narrowly tailored cooperation, not routine entanglement between local police and federal immigration enforcement. Departments can still assist with genuinely dangerous cases while declining to act as a general arm of immigration policy. Treating every encounter as an opportunity for federal involvement risks punishing ordinary residents for minor issues, which undermines the trust that keeps communities safe in the first place."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I agree that distinguishing serious cases from minor ones sounds reasonable in theory, and I don't think anyone wants minor infractions treated like major crimes. But I think once cooperation exists at all, it's genuinely difficult to keep it confined to only the worst cases, and enforcement tends to expand beyond its original intent. Cities that restrict cooperation are often reacting to situations where officers ended up facilitating removals unrelated to any real danger to the public. Consistent enforcement matters, and people deserve confidence that interacting with police won't trigger unrelated federal action against them or their families."
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

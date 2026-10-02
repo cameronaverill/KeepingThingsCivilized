@@ -96,26 +96,26 @@ class TestShippedFacts:
             out.extend(kit.transcripts(fact, *kit.pair(fact.id)))
         return out
 
-    def test_twelve_facts_are_ready(self):
-        assert len(self.facts()) == 12
+    def test_twenty_facts_are_ready(self):
+        assert len(self.facts()) == 20
 
-    def test_they_build_88_transcripts(self):
-        assert len(self.build_all()) == 88
+    def test_they_build_120_transcripts(self):
+        assert len(self.build_all()) == 120
 
     def test_the_ids_are_unique_slugs(self):
         import re
 
         ids = [t["id"] for t in self.build_all()]
-        assert (len(set(ids)), all(re.fullmatch(r"[a-z0-9_]+", i) for i in ids)) == (88, True)
+        assert (len(set(ids)), all(re.fullmatch(r"[a-z0-9_]+", i) for i in ids)) == (120, True)
 
     def test_every_transcript_passes_the_replay_validator(self):
-        assert [kit.validate(t) for t in self.build_all()] == [None] * 88
+        assert [kit.validate(t) for t in self.build_all()] == [None] * 120
 
-    def test_ten_statistics_give_eight_and_two_non_statistics_give_four(self):
+    def test_ten_statistics_give_eight_and_ten_non_statistics_give_four(self):
         counts = {}
         for fact in self.facts():
             counts[fact.type] = counts.get(fact.type, 0) + len(kit.transcripts(fact, *kit.pair(fact.id)))
-        assert counts == {"statistic": 80, "law": 8}
+        assert counts == {"statistic": 80, "law": 36, "qualitative": 4}
 
     def test_every_error_arm_plants_exactly_one_item_and_every_true_arm_none(self):
         planted = {}

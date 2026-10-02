@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "illinois_trust_act",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the public-safety argument, but I think local police should sharply limit how much they cooperate with federal immigration enforcement. Community trust is the foundation of effective policing, and once people see local officers acting as an arm of federal agencies, that trust erodes fast. Immigrants stop calling police when they witness crimes, stop coming forward as victims, and stop cooperating with investigations. A city isn't making a political statement by protecting that trust, it's protecting its ability to actually solve crimes and keep neighborhoods safe."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the trust concern, but in my view the core issue is accountability and coordination between levels of government. When local police quietly decline to work with federal immigration authorities, it creates gaps where dangerous individuals already in custody can simply walk free before anyone else can act. That's not protecting the community, it's creating loopholes. Full cooperation doesn't mean every officer starts enforcing immigration law directly, it just means not standing in the way when federal authorities are following up on someone already inside the system."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about coordination, and I won't deny that gaps in communication can cause real problems. But I think there's an important difference between sharing information and actively detaining someone beyond what local law allows just to accommodate a federal request. Treating every arrest as an opportunity for immigration enforcement makes residents see every encounter with police as a possible pipeline into deportation, not just the serious cases. That fear spreads to people who never did anything wrong, which is why I think local departments should set their own clear boundaries instead of being pulled into federal priorities by default."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that boundary sounds reasonable in theory but creates real risk in practice, because when local agencies refuse ordinary coordination, it becomes harder to track individuals who pose a genuine threat to the community. Neighbors hear about someone released despite a federal hold request, and it reads the same to them whether the underlying offense was minor or severe, undermining confidence in the system either way. That's why I believe local governments should leave room for case by case cooperation rather than adopting blanket restrictions that tie officers' hands no matter the circumstances. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

@@ -84,10 +84,11 @@ def test_kill_switch_off_refuses(fake, settings):
     )  # fmt: skip
 
 
-def test_kill_switch_is_off_by_default_in_the_shipped_tunables(fake, settings):
+def test_kill_switch_is_on_by_default_in_the_shipped_tunables(fake, settings):
+    # Owner decision: calls are allowed whenever a key is set; the no-key refusal (next test) is the guard.
     from config import tunables
 
-    assert tunables.LLM_ENABLED is False
+    assert tunables.LLM_ENABLED is True
 
 
 def test_missing_api_key_refuses_as_disabled(fake, settings):

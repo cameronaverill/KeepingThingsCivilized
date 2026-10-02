@@ -3,7 +3,7 @@
 {% block title %}Start a new discussion{% endblock %}
 {% block content %}
 <h1>Start a new discussion</h1>
-<p class="lead">State a position you hold and want to talk through. Whoever joins will take the opposing view, so you will not need to argue both sides.</p>
+<p class="lead">State a position you hold and want to talk through. Whoever joins will take the opposing view.</p>
 
 <form class="card compose" method="post" action="{% url 'forum:propose' %}">
   {% csrf_token %}

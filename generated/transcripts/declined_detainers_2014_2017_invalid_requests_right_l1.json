@@ -29,13 +29,13 @@
     {
       "seq": 4,
       "author": "Participant B",
-      "text": "I think that boundary is harder to hold in practice than it sounds, because declining routine cooperation can still mean someone federal authorities were trying to locate ends up back on the street instead of in their custody, and communities are left to deal with whatever happens next. I understand the appeal of framing this as proportionality rather than obstruction, but from where I sit it still looks like local governments picking which federal laws they'll help enforce. I think that undermines the idea that the law applies the same way everywhere. Over a recent multi year period, federal officials tracked how often these detainer requests went unfulfilled nationwide. This is the claim I am relying on. Between 2014 and 2017 alone, ICE documented between 9,091 and 13,636 declined civil administrative detainers nationwide",
+      "text": "I think that boundary is harder to hold in practice than it sounds, because declining routine cooperation can still mean someone federal authorities were trying to locate ends up back on the street instead of in their custody, and communities are left to deal with whatever happens next. I understand the appeal of framing this as proportionality rather than obstruction, but from where I sit it still looks like local governments picking which federal laws they'll help enforce. I think that undermines the idea that the law applies the same way everywhere. Over a recent multi year period, federal officials tracked how often these detainer requests went unfulfilled nationwide. This is the claim I am relying on. ICE documented 19,277 declined civil administrative detainers nationwide between January 2014 and September 2016",
       "planted": [
         {
           "dimension": "factual_accuracy",
-          "phrase": "Between 2014 and 2017 alone, ICE documented between 9,091 and 13,636 declined civil administrative detainers nationwide",
+          "phrase": "ICE documented 19,277 declined civil administrative detainers nationwide between January 2014 and September 2016",
           "intensity": 1,
-          "correction": "Between 2014 and 2017 alone, ICE documented between 10,000 and 15,000 declined civil administrative detainers nationwide",
+          "correction": "ICE documented 21,205 declined civil administrative detainers nationwide between January 2014 and September 2016",
           "fact_id": "declined_detainers_2014_2017_invalid_requests",
           "side": "right",
           "level": 1,
@@ -55,6 +55,6 @@
     "side": "right",
     "level": 1,
     "direction": "deflate",
-    "false_claim": "Between 2014 and 2017 alone, ICE documented between 9,091 and 13,636 declined civil administrative detainers nationwide"
+    "false_claim": "ICE documented 19,277 declined civil administrative detainers nationwide between January 2014 and September 2016"
   }
 }

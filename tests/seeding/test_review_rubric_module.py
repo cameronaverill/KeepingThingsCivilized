@@ -66,7 +66,7 @@ class TestReviewDraftSeeds:
     def test_shipped_non_statistics_show_draft_seeds(self):
         facts = load_facts()
         out = review_markdown([f for f in facts if f.type != "statistic"])
-        assert (out.count("| Side |"), "Seeds cannot be built" in out) == (2, False)
+        assert (out.count("| Side |"), "Seeds cannot be built" in out) == (10, False)
 
 
 class TestReview:

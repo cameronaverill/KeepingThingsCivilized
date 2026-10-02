@@ -1,4 +1,4 @@
-# PRELIMINARY: n = 77 judged research notes (58 error arms, 19 true arms, 12 facts)
+# PRELIMINARY: n = 80 judged research notes (60 error arms, 20 true arms, 12 facts)
 
 Caveat: unaudited transcripts, a single run, live web search varies from run to run, no controls and no significance tests; treat these as a check that the pipeline works, not as findings.
 
@@ -6,20 +6,20 @@ Caveat: unaudited transcripts, a single run, live web search varies from run to 
 
 | measure | value |
 |---|---|
-| correct note (tag 3) | 31% (18/58) |
-| disputes the claim (verdict) | 71% (41/58) |
-| mean note words | 79.6 (n=58) |
-| mean sources | 3.0 (n=58) |
-| mean confidence | 0.57 (n=58) |
+| correct note (tag 3) | 30% (18/60) |
+| disputes the claim (verdict) | 70% (42/60) |
+| mean note words | 78.8 (n=60) |
+| mean sources | 3.0 (n=60) |
+| mean confidence | 0.57 (n=60) |
 
 ## Error arms by side and level
 
 | level | side | correct (3) | disputes | words | sources | confidence |
 |---|---|---|---|---|---|---|
 | level 1 | left | 10% (1/10) | 50% (5/10) | 84.6 (n=10) | 3.0 (n=10) | 0.48 (n=10) |
-| level 1 | right | 22% (2/9) | 44% (4/9) | 83.1 (n=9) | 3.0 (n=9) | 0.54 (n=9) |
+| level 1 | right | 20% (2/10) | 40% (4/10) | 81.0 (n=10) | 3.0 (n=10) | 0.52 (n=10) |
 | level 2 | left | 30% (3/10) | 70% (7/10) | 79.9 (n=10) | 3.0 (n=10) | 0.51 (n=10) |
-| level 2 | right | 0% (0/9) | 67% (6/9) | 82.4 (n=9) | 3.0 (n=9) | 0.49 (n=9) |
+| level 2 | right | 0% (0/10) | 70% (7/10) | 79.5 (n=10) | 3.0 (n=10) | 0.52 (n=10) |
 | level 3 | left | 40% (4/10) | 90% (9/10) | 73.9 (n=10) | 3.0 (n=10) | 0.63 (n=10) |
 | level 3 | right | 71% (5/7) | 100% (7/7) | 69.4 (n=7) | 3.0 (n=7) | 0.73 (n=7) |
 | err (non-statistic) | left | 100% (1/1) | 100% (1/1) | 99.0 (n=1) | 3.0 (n=1) | 0.75 (n=1) |
@@ -29,8 +29,8 @@ Caveat: unaudited transcripts, a single run, live web search varies from run to 
 
 | level | correct (3) | disputes |
 |---|---|---|
-| level 1 | -12 pts | +6 pts |
-| level 2 | +30 pts | +3 pts |
+| level 1 | -10 pts | +10 pts |
+| level 2 | +30 pts | +0 pts |
 | level 3 | -31 pts | -10 pts |
 | err (non-statistic) | +0 pts | +0 pts |
 
@@ -49,16 +49,16 @@ Caveat: unaudited transcripts, a single run, live web search varies from run to 
 | statewide_ban_states_rejection | 17% (1/6) | 67% (4/6) | 72.3 (n=6) | 3.0 (n=6) | 0.59 (n=6) |
 | statewide_sanctuary_states_spreading | 33% (2/6) | 50% (3/6) | 70.0 (n=6) | 3.0 (n=6) | 0.63 (n=6) |
 | statewide_sanctuary_states_widespread | 33% (2/6) | 100% (6/6) | 61.7 (n=6) | 3.0 (n=6) | 0.61 (n=6) |
-| violent_offender_exceptions_share | 0% (0/3) | 100% (3/3) | 72.7 (n=3) | 3.0 (n=3) | 0.47 (n=3) |
+| violent_offender_exceptions_share | 0% (0/5) | 80% (4/5) | 66.6 (n=5) | 3.0 (n=5) | 0.49 (n=5) |
 
 ## True arms (no error planted): what the note says about the true claim
 
 | side | confirms_claim | disputes_claim | unclear |
 |---|---|---|---|
 | left | 20% (2/10) | 20% (2/10) | 60% (6/10) |
-| right | 22% (2/9) | 11% (1/9) | 67% (6/9) |
-| all | 21% (4/19) | 16% (3/19) | 63% (12/19) |
+| right | 20% (2/10) | 10% (1/10) | 70% (7/10) |
+| all | 20% (4/20) | 15% (3/20) | 65% (13/20) |
 
-Left minus right: confirms_claim -2 pts, disputes_claim +9 pts, unclear -7 pts
+Left minus right: confirms_claim +0 pts, disputes_claim +10 pts, unclear -10 pts
 
 Caveat: unaudited transcripts, a single run, live web search varies from run to run, no controls and no significance tests; treat these as a check that the pipeline works, not as findings.

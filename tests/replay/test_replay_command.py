@@ -380,10 +380,11 @@ class TestLiveWithYes:
     def test_live_leaves_the_tunables_module_alone(self, folder, fake, settings):
         from config import tunables
 
+        before = tunables.LLM_ENABLED
         settings.LLM_ENABLED = False
         fake(*kit.no_issue_script(10))
         replay(folder, "--max-usd", "1", "--live", "--yes")
-        assert tunables.LLM_ENABLED is False
+        assert tunables.LLM_ENABLED is before
 
     def test_the_switch_is_restored_even_when_the_run_fails_partway(self, folder, fake, settings):
         settings.LLM_ENABLED = False

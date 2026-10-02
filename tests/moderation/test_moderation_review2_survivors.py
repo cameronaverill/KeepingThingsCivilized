@@ -173,7 +173,8 @@ def test_the_client_gets_exactly_the_requested_model(install_fake, model):
     assert rows()[0].model == model
 
 
-# S10: settings must not invent an API key: with no environment variable the key is empty (so calls are refused).
+# S10: settings must not invent an API key: with no environment variable the key is empty (so calls are refused
+# even though the shipped kill switch is ON).
 def test_settings_have_no_default_api_key_and_blank_counts_as_unset():
     import os
     import subprocess
@@ -188,4 +189,4 @@ def test_settings_have_no_default_api_key_and_blank_counts_as_unset():
             env["ANTHROPIC_API_KEY"] = value
         out = subprocess.run([sys.executable, "-c", code], cwd=repo, env=env, capture_output=True, text=True, timeout=60)
         assert out.returncode == 0, out.stderr
-        assert out.stdout.split() == ["''", "False"], out.stdout
+        assert out.stdout.split() == ["''", "True"], out.stdout

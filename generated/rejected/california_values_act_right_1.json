@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "california_values_act",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the worry about distrust, but I think when local police actively assist federal immigration enforcement, they end up discouraging entire communities from engaging with law enforcement at all. If someone is afraid that reporting a crime could lead to a relative's deportation, they simply stay silent, and that makes everyone less safe. It also stretches local police thin, pulling them into a federal mission that isn't really their job and distracting from actual community policing."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear that concern about trust, but in my view the bigger problem is what happens when laws aren't applied consistently across jurisdictions. If someone commits a crime and happens to be here illegally, I don't see why a city should step in to shield them from federal consequences. Local police aren't supposed to pick and choose which laws matter; their job includes working within the broader legal system, not carving out exceptions. I'd rather have one consistent standard of enforcement than a patchwork where someone's fate depends on which city they happen to be in."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about consistency, and I agree that law enforcement shouldn't look wildly different from place to place. But I think there's a difference between evenhanded enforcement, which I support, and dragging local police into federal operations that have nothing to do with public safety in that city. When officers spend time and resources on federal priorities instead of investigating local crime, it feels less like upholding the law and more like outsourcing local judgment entirely. I think there's a middle ground where police still assist with serious cases but aren't required to act as an extension of federal agencies."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I agree a middle ground sounds appealing in theory, though in practice drawing that line gets complicated once cities decide which federal requests to honor and which to ignore. I think consistency and accountability are better served when local agencies follow the same legal obligations as everyone else, rather than city officials deciding case by case. It's not about ignoring local circumstances so much as about whether the rule of law applies evenly regardless of where someone lives. I think the responsibility to uphold that consistency matters more than local preference.\n[[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

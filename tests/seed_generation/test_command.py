@@ -84,11 +84,11 @@ class TestDryRun:
         ids = [f.id for f in load_facts() if f.ready()]
         assert dollars(worst_case_of(ids)) in kit.dollars_in(result.text)
 
-    def test_it_prints_twelve_facts_and_twenty_four_calls(self, fake):
+    def test_it_prints_twenty_facts_and_forty_calls(self, fake):
         fake()
         text = command("--dry-run").text
         numbers = re.findall(r"(?<![\d.$])\d+(?!\d|\.\d)", text)
-        assert ("12" in numbers, "24" in numbers) == (True, True)
+        assert ("20" in numbers, "40" in numbers) == (True, True)
 
     def test_it_prints_the_budget_left(self, fake, tune):
         tune(BUDGET_EVAL_USD_TOTAL=Decimal("77"))

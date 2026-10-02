@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "connecticut_trust_act",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I know people worry about losing law enforcement leverage, but I think forcing local police into federal immigration enforcement actually undermines public safety. When officers double as immigration agents, immigrant residents stop reporting crimes or helping investigations, and that leaves everyone more exposed, including citizens who rely on those same community ties. Policing works best when it's rooted in local trust, not tangled up with federal civil enforcement. I worry that blending those roles quietly erodes the safety net cities depend on."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the trust argument, but in my view the more pressing issue is that local police stepping back from federal cooperation amounts to selectively enforcing the law based on convenience. If cities decide which federal priorities they'll honor, it chips away at the shared rules everyone is supposed to follow regardless of status. Public safety depends on consistency, not carve-outs, and I think uneven enforcement teaches people that some legal obligations are negotiable. That inconsistency, more than any chilling effect, is what damages long-term trust in institutions."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair concern about consistency, and I don't deny that uneven rules can confuse people. But I think there's a real difference between broad immigration enforcement and the narrow question of civil detainer requests after someone's local case is already resolved. Treating every such request as automatically binding risks holding people without judicial oversight, which raises serious due process questions. I think cities can still cooperate meaningfully with federal authorities on criminal matters while declining to treat civil requests as mandatory, without abandoning rule of law."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I understand that distinction, and I agree due process matters, but I think leaving these decisions entirely to local discretion creates patchwork enforcement that lets some dangerous situations fall through the cracks. A judicial warrant standard sounds reasonable in theory, yet in practice it can mean individuals are released before federal agents can act, undermining the very cooperation that keeps communities safe. I think a more uniform approach, grounded in clear legal obligations rather than local preference, better serves everyone's safety."
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

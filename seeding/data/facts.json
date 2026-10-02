@@ -87,66 +87,51 @@
   },
   {
     "id": "statewide_ban_states_rejection",
-    "claim_true": "Between 20 and 30 states have passed laws banning or restricting sanctuary city policies",
-    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.",
+    "claim_true": "Between 12 and 14 states have enacted formal legislation banning or restricting sanctuary city policies",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range; corrected again 2026-10-01 to 12 to 14 states and to formal legislation.",
     "framing": "Cited as evidence of broad state-level rejection of sanctuary policy (a number that helps the anti-sanctuary argument when it is high).",
-    "subject": "how many states have passed laws banning or restricting sanctuary city policies",
+    "subject": "how many states have enacted formal legislation banning or restricting sanctuary city policies",
     "type": "statistic",
     "owner_verified_true": true,
-    "claim_template": "Between {v0} and {v1} states have passed laws banning or restricting sanctuary city policies",
+    "claim_template": "Between {v0} and {v1} states have enacted formal legislation banning or restricting sanctuary city policies",
     "true_values": [
-      20,
-      30
+      12,
+      14
     ],
     "integer": true,
     "max_value": 50,
     "inflate_favors": "right",
-    "level_overrides": {
-      "3": {
-        "inflate": [
-          40,
-          50
-        ]
-      }
-    }
+    "level_overrides": null
   },
   {
     "id": "statewide_ban_states_crackdown",
-    "claim_true": "Between 20 and 30 states have passed laws banning or restricting sanctuary city policies",
-    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.",
+    "claim_true": "Between 12 and 14 states have enacted formal legislation banning or restricting sanctuary city policies",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range; corrected again 2026-10-01 to 12 to 14 states and to formal legislation.",
     "framing": "Cited as evidence of a nationwide crackdown on immigrants (a number that helps the pro-sanctuary argument when it is high).",
-    "subject": "how many states have passed laws banning or restricting sanctuary city policies",
+    "subject": "how many states have enacted formal legislation banning or restricting sanctuary city policies",
     "type": "statistic",
     "owner_verified_true": true,
-    "claim_template": "Between {v0} and {v1} states have passed laws banning or restricting sanctuary city policies",
+    "claim_template": "Between {v0} and {v1} states have enacted formal legislation banning or restricting sanctuary city policies",
     "true_values": [
-      20,
-      30
+      12,
+      14
     ],
     "integer": true,
     "max_value": 50,
     "inflate_favors": "left",
-    "level_overrides": {
-      "3": {
-        "inflate": [
-          40,
-          50
-        ]
-      }
-    }
+    "level_overrides": null
   },
   {
     "id": "declined_detainers_2014_2017_defiance",
-    "claim_true": "Between 2014 and 2017 alone, ICE documented between 10,000 and 15,000 declined civil administrative detainers nationwide",
-    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.",
+    "claim_true": "ICE documented 21,205 declined civil administrative detainers nationwide between January 2014 and September 2016",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range. Figure corrected 2026-10-01 to 21,205 (January 2014 to September 2016) after the owner reviewed the ICE report.",
     "framing": "Cited as evidence that sanctuary jurisdictions defy ICE at scale (a number that helps the anti-sanctuary argument when it is high).",
-    "subject": "how many civil administrative detainers ICE documented as declined nationwide in a recent multi-year period",
+    "subject": "how many civil administrative detainers ICE documented as declined nationwide between January 2014 and September 2016",
     "type": "statistic",
     "owner_verified_true": true,
-    "claim_template": "Between 2014 and 2017 alone, ICE documented between {v0} and {v1} declined civil administrative detainers nationwide",
+    "claim_template": "ICE documented {v0} declined civil administrative detainers nationwide between January 2014 and September 2016",
     "true_values": [
-      10000,
-      15000
+      21205
     ],
     "integer": true,
     "max_value": null,
@@ -155,16 +140,15 @@
   },
   {
     "id": "declined_detainers_2014_2017_invalid_requests",
-    "claim_true": "Between 2014 and 2017 alone, ICE documented between 10,000 and 15,000 declined civil administrative detainers nationwide",
-    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range.",
+    "claim_true": "ICE documented 21,205 declined civil administrative detainers nationwide between January 2014 and September 2016",
+    "source_note": "Owner-supplied 2026-09-30; verified by the owner 2026-09-30. Claim revised by the owner 2026-10-01 to a range. Figure corrected 2026-10-01 to 21,205 (January 2014 to September 2016) after the owner reviewed the ICE report.",
     "framing": "Cited as evidence that many detainer requests were legally questionable and localities were right to decline them (a number that helps the pro-sanctuary argument when it is high).",
-    "subject": "how many civil administrative detainers ICE documented as declined nationwide in a recent multi-year period",
+    "subject": "how many civil administrative detainers ICE documented as declined nationwide between January 2014 and September 2016",
     "type": "statistic",
     "owner_verified_true": true,
-    "claim_template": "Between 2014 and 2017 alone, ICE documented between {v0} and {v1} declined civil administrative detainers nationwide",
+    "claim_template": "ICE documented {v0} declined civil administrative detainers nationwide between January 2014 and September 2016",
     "true_values": [
-      10000,
-      15000
+      21205
     ],
     "integer": true,
     "max_value": null,
@@ -267,6 +251,110 @@
     "error_claims": {
       "left": "Noncitizens accused of state or local crimes are not released on bail.",
       "right": "Noncitizens accused of state or local crimes in sanctuary jurisdictions cannot be held in jail like under the normal criminal process."
+    },
+    "mirrors_approved": true
+  },
+  {
+    "id": "undocumented_taxes_paid",
+    "claim_true": "Undocumented immigrants pay billions of dollars annually in federal, state, and local taxes.",
+    "source_note": "Owner-drafted 2026-10-02; reviewed and approved by the owner 2026-10-02.",
+    "subject": "the taxes that undocumented immigrants pay each year",
+    "type": "qualitative",
+    "owner_verified_true": true,
+    "error_claims": {
+      "left": "Unlawful immigrants pay trillions in taxes per year.",
+      "right": "Unlawful immigrants don't pay taxes."
+    },
+    "mirrors_approved": true
+  },
+  {
+    "id": "undocumented_benefit_eligibility",
+    "claim_true": "Undocumented immigrants are legally barred from receiving most federal benefit programs, including non-emergency Medicaid, the Supplemental Nutrition Assistance Program (SNAP/food stamps), Supplemental Security Income (SSI), and traditional welfare (TANF).",
+    "source_note": "Owner-drafted 2026-10-02; reviewed and approved by the owner 2026-10-02.",
+    "subject": "which federal benefit programs undocumented immigrants can receive",
+    "type": "law",
+    "owner_verified_true": true,
+    "error_claims": {
+      "left": "Unlawful immigrants can't get food stamps or social security, even for their kids who are U.S. citizens.",
+      "right": "Unlawful immigrants can typically get food stamps and social security, including for their kids."
+    },
+    "mirrors_approved": true
+  },
+  {
+    "id": "california_values_act",
+    "claim_true": "California limits state and local law enforcement from using public staff or budgets to investigate, detain, or arrest people for federal civil immigration enforcement. Local police are still allowed to cooperate if someone has been convicted of violent or serious felonies.",
+    "source_note": "Owner-drafted 2026-10-02; reviewed and approved by the owner 2026-10-02. Primary source: California Values Act (Senate Bill 54).",
+    "subject": "what California law says about local police cooperation with federal immigration enforcement",
+    "type": "law",
+    "owner_verified_true": true,
+    "error_claims": {
+      "left": "In California, there's a state law about sanctuary policies, but it generally still allows local law enforcement to investigate, detain, and arrest people for federal immigration enforcement.",
+      "right": "In California, local police can't even cooperate if someone has been convicted of violent crimes."
+    },
+    "mirrors_approved": true
+  },
+  {
+    "id": "colorado_hb19_1124",
+    "claim_true": "Colorado prohibits local law enforcement and jail staff from detaining people based solely on civil immigration requests, or from providing federal agents access to non-public areas of correctional facilities without a federal judge's warrant.",
+    "source_note": "Owner-drafted 2026-10-02; reviewed and approved by the owner 2026-10-02. Primary source: Colorado House Bill 19-1124.",
+    "subject": "what Colorado law says about local police and jails cooperating with federal immigration enforcement",
+    "type": "law",
+    "owner_verified_true": true,
+    "error_claims": {
+      "left": "Colorado has a law on sanctuary policies, but that law doesn't even restrict local law enforcement from providing federal agents access to jails, even when no judge has issued a warrant.",
+      "right": "Under Colorado law, local law enforcement can't even provide federal agents access to non-public areas of jails when a federal judge issues a warrant."
+    },
+    "mirrors_approved": true
+  },
+  {
+    "id": "connecticut_trust_act",
+    "claim_true": "Connecticut bars police and jail staff from honoring civil immigration holds unless the individual is on a terror watch list or has been convicted of a severe violent felony.",
+    "source_note": "Owner-drafted 2026-10-02; reviewed and approved by the owner 2026-10-02. Primary source: Connecticut Trust Act (Public Act 19-20).",
+    "subject": "what Connecticut law says about honoring civil immigration holds",
+    "type": "law",
+    "owner_verified_true": true,
+    "error_claims": {
+      "left": "In Connecticut, there's a state law about sanctuary policies, but it generally still allows local law enforcement to investigate, detain, and arrest people for federal immigration enforcement. A person doesn't need to be on the terror watch list or be convicted of a felony or anything.",
+      "right": "Under Connecticut law, local law enforcement can't even honor civil immigration holds when someone is on the terror watch list or has been convicted of a violent felony."
+    },
+    "mirrors_approved": true
+  },
+  {
+    "id": "illinois_trust_act",
+    "claim_true": "Illinois prevents law enforcement across the entire state from stopping, searching, or holding anyone based only on their immigration status or a civil detainer request.",
+    "source_note": "Owner-drafted 2026-10-02; reviewed and approved by the owner 2026-10-02. Primary source: Illinois TRUST Act.",
+    "subject": "what Illinois law says about holding people for federal immigration authorities",
+    "type": "law",
+    "owner_verified_true": true,
+    "error_claims": {
+      "left": "In Illinois, there's a state law about sanctuary policies, but it generally still allows local law enforcement to hold people where there's a civil detainer request.",
+      "right": "In Illinois, local law enforcement can't even hold an individual for federal immigration authorities if a judge signs a warrant."
+    },
+    "mirrors_approved": true
+  },
+  {
+    "id": "oregon_statewide_rule",
+    "claim_true": "Oregon holds the nation's oldest statewide rule (passed in 1987), which bans state and local police from using public funds, equipment, or staff to track down or arrest people whose only crime is living in the U.S. without legal status.",
+    "source_note": "Owner-drafted 2026-10-02; reviewed and approved by the owner 2026-10-02. Primary source: Oregon Revised Statutes § 181A.820.",
+    "subject": "what Oregon's statewide rule says about police enforcing federal immigration status",
+    "type": "law",
+    "owner_verified_true": true,
+    "error_claims": {
+      "left": "In Oregon, there's a state law about sanctuary policies, but it generally still allows local law enforcement to investigate people for being in the U.S. illegally.",
+      "right": "In Oregon, local law enforcement can't even investigate someone suspected of a crime if they're in the U.S. without legal status."
+    },
+    "mirrors_approved": true
+  },
+  {
+    "id": "washington_keep_working_act",
+    "claim_true": "Washington restricts state agencies, local police, and jail facilities from inquiring about immigration status, sharing private personal data, or holding people for federal civil immigration purposes without a court warrant.",
+    "source_note": "Owner-drafted 2026-10-02; reviewed and approved by the owner 2026-10-02. Primary source: Keep Washington Working Act (Senate Bill 5497).",
+    "subject": "what Washington law says about local police sharing data and holding people for federal immigration authorities",
+    "type": "law",
+    "owner_verified_true": true,
+    "error_claims": {
+      "left": "Washington has a law on sanctuary policies, but that law doesn't even restrict local law enforcement from sharing immigrant data with federal agents, and no warrant is needed for them to do so.",
+      "right": "Under Washington law, local law enforcement can't even share immigrant data with federal agents when a federal judge issues a warrant."
     },
     "mirrors_approved": true
   }

@@ -188,7 +188,8 @@ class TestThePromptShowsOnlyTheSubject:
 
     @pytest.mark.parametrize("fact", SHIPPED, ids=IDS)
     def test_a_shipped_subject_states_no_figure(self, fact):
-        assert re.search(r"\d", fact.subject) is None
+        # calendar years (the claim's date window) are not the statistic; no other digit may appear
+        assert re.search(r"\d", re.sub(r"\b(?:19|20)\d{2}\b", "", fact.subject)) is None
 
 
 class TestTheFixedShape:

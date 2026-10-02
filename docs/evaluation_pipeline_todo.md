@@ -123,6 +123,13 @@ that, and nothing here blocks the live product or deployment.
 - [ ] **Post-MVP TODO: neutrality tests for the clarity dimension** (added in step 21): matched clear/vague pairs mirrored
   left and right; dialect-swapped pairs; faithfulness of `clarify_argument` restatements. Not built; only the
   factual-item neutrality tests exist.
+- [ ] **Post-MVP TODO: label-swap runs** (added 2026-10-02, owner decision). Swapping which participant is A and which is B was never run;
+  every evaluation so far uses the original labels. The replay command already supports it (`--assignments swapped` or `both`), so the
+  work is to run it on the seeded-error debates and compare against the original-label results, to check the moderator does not treat a
+  claim differently depending on whether it comes from A or B.
+- [ ] **Post-MVP TODO: positive control** (added 2026-10-02, owner decision). Run a deliberately biased moderator (for example one told to
+  be stricter on one side's errors) through the same pipeline and confirm the analysis detects it. Without this, "no left-right difference
+  found" cannot be told apart from "this setup cannot detect a difference". Not built.
 
 ## Related open design notes (not scheduled, no code to write yet)
 

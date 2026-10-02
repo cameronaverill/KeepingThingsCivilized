@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "statewide_ban_states_crackdown",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I recognize why some people want tighter coordination with federal agents, but when local police routinely hand over information to immigration enforcement, it quietly undermines public safety. If someone is a victim or witness but is undocumented, I think the community loses out if that person is too afraid to come forward because contacting police might trigger deportation proceedings. Limiting cooperation isn't about shielding wrongdoing; it's about making sure basic trust between residents and officers isn't conditional on paperwork. I worry that tight cooperation sends the message that protection from crime depends on your immigration status."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I understand the trust concern, and it's a real one, but in my experience the opposite risk is just as serious. When local police decline to share information with federal authorities, it can mean that someone who has committed a serious offense and is in the country illegally simply walks free from custody before anyone follows up. That gap isn't hypothetical; it changes outcomes for victims. Local police already have limited resources, and refusing routine coordination doesn't erase the fact that immigration status and criminal conduct sometimes intersect in ways communities have a stake in."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about accountability, and I agree no one benefits if dangerous people are released without consequence. But I'd push back on treating all cooperation as one thing, because there's a real difference between a blanket policy of sharing custody data and narrowly targeted exceptions for people already convicted of serious crimes. Most residents interacting with police are witnesses, victims, or people reporting minor issues, not criminal suspects. Treating routine entanglement with federal enforcement as equivalent to rare, serious-case exceptions conflates two very different things, in my view."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that distinction is harder to maintain in practice than it sounds, because once any sharing becomes normalized, even narrowly, it creates uncertainty for people who can't easily tell which contact with police is safe. A single mother reporting a burglary shouldn't have to wonder whether that interaction might eventually touch an enforcement database. I believe the only way to keep public safety intact is to make local policing reliably separate from federal enforcement, so trust doesn't hinge on exceptions that in practice widen over time. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

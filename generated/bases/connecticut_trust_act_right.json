@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "connecticut_trust_act",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I recognize why some people want local officers to act as an extension of federal immigration enforcement, but in my view that cooperation does real harm to public safety. When police start handling civil immigration matters, immigrant residents stop calling for help or reporting crimes because they fear deportation for themselves or their neighbors. That silence makes entire neighborhoods less safe, not more. Local police should focus on local crime, and I think blending that job with federal civil enforcement breaks the trust that keeps communities willing to work with officers in the first place."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I understand the trust concern, but in my view the deeper issue is that refusing cooperation with federal authorities amounts to treating immigration law as optional depending on which city you're in. If local police won't work with federal agents at all, they're effectively deciding for themselves which laws deserve enforcement, and that weakens the broader system everyone depends on. Public safety, in my view, comes from consistent application of the law, not from carving out exceptions tied to someone's immigration status. I worry this approach quietly tells people that some legal obligations can simply be ignored."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a reasonable worry, and I don't minimize the concern about consistency. But I think there's an important difference between refusing to help with civil immigration enforcement broadly and declining to hold someone past their release date without a judicial warrant. Civil detainer requests aren't court orders, and I think cities are right to worry about the legal exposure of detaining someone solely on that basis. Limiting cooperation to what's judicially authorized isn't picking and choosing which laws matter, it's respecting the distinction between civil requests and binding legal process, which I think protects everyone's rights."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I hear that distinction, and I agree constitutional limits deserve real weight here. But I think when someone has already been arrested for a separate offense, declining to coordinate with federal agents before release can let a genuinely dangerous person back onto the street, and that risk falls on the whole community, not just the individual. I think baseline cooperation after an arrest is a reasonable floor, not an overreach. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}

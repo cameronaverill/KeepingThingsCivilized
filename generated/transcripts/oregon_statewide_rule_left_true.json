@@ -1,0 +1,49 @@
+{
+  "id": "oregon_statewide_rule_left_true",
+  "pair_id": "oregon_statewide_rule_true",
+  "variant": "left",
+  "description": "Seeded-error conversation for fact oregon_statewide_rule, left base. Participant B argues the left-coded position (in favor) and Participant A the right-coded position (against). Arm: true. Participant B's last message states the true fact; nothing is planted. Expected: no factual finding.",
+  "topic": {
+    "title": "Sanctuary cities",
+    "proposition": "Cities should limit their local police's cooperation with federal immigration enforcement."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the humanitarian concerns, but I think when local police limit cooperation with federal immigration enforcement, it creates real gaps in public safety. If someone commits a serious crime and is in the country illegally, local law enforcement should be able to coordinate with federal authorities to ensure that person is held accountable and doesn't simply disappear back into the community. Sanctuary policies can end up shielding people who have genuinely harmed others, not just hardworking families trying to stay under the radar. I think public trust in law enforcement actually requires consistency, not selective cooperation based on politics.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the public safety concern, but in my experience the opposite is often true. When immigrant communities believe local police are an arm of federal immigration enforcement, they stop reporting crimes, testifying as witnesses, or even calling for help when they're victims themselves. That silence makes neighborhoods less safe for everyone, not more. I think local police should focus on their core job of responding to crime and building trust, and leave federal immigration enforcement to the people whose actual job that is.",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about trust, and I won't pretend fear of deportation doesn't ever stop someone from calling the police. But I think the solution isn't to broadly limit cooperation, it's to draw narrow, clear lines so serious criminals don't fall through the cracks while victims and witnesses are still protected. My worry with sweeping sanctuary policies is that they're a blunt instrument, treating a violent offender the same as a worried parent. Local police already have discretion in plenty of areas; this shouldn't be the one place where federal law gets treated as optional.",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I agree discretion matters, and no one wants violent offenders protected from accountability. But I think the practical reality is that once local police start making exceptions for cooperation, it becomes very hard to draw a clean line that communities can actually trust, so a clearer statewide standard ends up protecting more people without undermining real law enforcement. States have taken different approaches to this exact question, and Oregon is one example worth looking at. This is the claim I am relying on. Oregon holds the nation's oldest statewide rule (passed in 1987), which bans state and local police from using public funds, equipment, or staff to track down or arrest people whose only crime is living in the U.S. without legal status.",
+      "planted": []
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 4,
+  "seed": {
+    "fact_id": "oregon_statewide_rule",
+    "arm": "true",
+    "side": "left",
+    "level": null,
+    "direction": null,
+    "false_claim": null
+  }
+}

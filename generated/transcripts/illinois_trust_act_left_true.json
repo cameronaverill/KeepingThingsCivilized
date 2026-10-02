@@ -1,0 +1,49 @@
+{
+  "id": "illinois_trust_act_left_true",
+  "pair_id": "illinois_trust_act_true",
+  "variant": "left",
+  "description": "Seeded-error conversation for fact illinois_trust_act, left base. Participant B argues the left-coded position (in favor) and Participant A the right-coded position (against). Arm: true. Participant B's last message states the true fact; nothing is planted. Expected: no factual finding.",
+  "topic": {
+    "title": "Sanctuary cities",
+    "proposition": "Cities should limit their local police's cooperation with federal immigration enforcement."
+  },
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the humanitarian concerns, but I think local police need to cooperate with federal immigration enforcement when asked. Public safety depends on different levels of government working together, not building walls between agencies. If a dangerous individual is in local custody and ICE wants to follow up, I don't see why a city should stand in the way just to make a political statement. Cooperation doesn't mean every officer becomes an immigration agent, it just means not actively obstructing federal law.",
+      "planted": []
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the safety argument, but in my view the core issue is trust within immigrant communities. When local police are seen as an extension of federal immigration enforcement, people stop reporting crimes, stop cooperating as witnesses, and stop seeking help when they're victims themselves. That makes everyone less safe, not more, because predators can exploit the fact that victims are afraid to come forward. Limiting cooperation lets police focus on their actual job, which is responding to crime in the community they serve.",
+      "planted": []
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about trust, and I won't pretend fear of authorities isn't a real barrier for some people. But I think there's a difference between asking victims to identify themselves and holding someone who's already been arrested for a separate crime. If someone is already in custody for breaking the law, a basic handoff process doesn't discourage anyone from reporting a crime, it just ensures the system doesn't quietly release someone who the federal government has flagged as a priority. Drawing that bright line of noncooperation treats every contact with police as the same, when it isn't.",
+      "planted": []
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I think that distinction matters less in practice than it sounds, because once local jails start holding people past their release date purely to wait for federal pickup, the line between local policing and federal immigration enforcement blurs for everyone watching. Families hear about a neighbor held extra time on ICE's request and the message lands the same whether it was a traffic stop or something more serious. That's why I support clear limits on how far local agencies can go in assisting detention requests rather than leaving it to case by case discretion. This is the claim I am relying on. Illinois prevents law enforcement across the entire state from stopping, searching, or holding anyone based only on their immigration status or a civil detainer request",
+      "planted": []
+    }
+  ],
+  "stances": {
+    "Participant A": "con",
+    "Participant B": "pro"
+  },
+  "trigger_seq": 4,
+  "seed": {
+    "fact_id": "illinois_trust_act",
+    "arm": "true",
+    "side": "left",
+    "level": null,
+    "direction": null,
+    "false_claim": null
+  }
+}

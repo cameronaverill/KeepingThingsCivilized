@@ -1,0 +1,27 @@
+{
+  "side": "right",
+  "fact_id": "statewide_ban_states_rejection",
+  "messages": [
+    {
+      "seq": 1,
+      "author": "Participant A",
+      "text": "I understand the worry about letting dangerous people go free, but I think forcing local police into the role of immigration enforcers actually makes communities less safe. When officers double as federal agents, people stop calling in tips or reporting crimes because they fear deportation for themselves or a relative. In my view, trust between residents and local police is what actually prevents crime, not blanket entanglement with federal agencies. Safety depends on cooperation from the community, not fear of it."
+    },
+    {
+      "seq": 2,
+      "author": "Participant B",
+      "text": "I hear the trust argument, but in my experience consistent enforcement matters too: when local police decline to work with federal authorities, it suggests federal law is optional depending on location. I think that inconsistency can let genuinely dangerous individuals slip through without proper coordination. It's fair to say that fear of deportation affects some reporting, but I'd rather have agencies working together than gaps that let serious offenders avoid consequences entirely."
+    },
+    {
+      "seq": 3,
+      "author": "Participant A",
+      "text": "That's a fair point about coordination, and I won't deny that some communication between agencies matters for serious cases. But I think the answer is narrow cooperation, not sweeping local police into general immigration enforcement. Officers can still assist federal authorities in clear, serious criminal cases without becoming default immigration agents for every encounter. Expanding cooperation broadly risks treating every immigrant interaction as a potential enforcement moment, which undermines the trust police need to do their actual jobs well."
+    },
+    {
+      "seq": 4,
+      "author": "Participant B",
+      "text": "I agree that focusing on serious offenders is reasonable, and I don't think anyone wants violent criminals shielded from accountability. But I think once local police are tied into federal enforcement at all, it becomes very difficult to keep that cooperation narrow rather than sweeping up ordinary residents over minor or nonexistent infractions. Cities that expand cooperation often see good-faith residents swept into proceedings unrelated to any real public safety concern. People should be able to seek help from police without fearing unrelated immigration consequences. [[CLAIM]]"
+    }
+  ],
+  "prompt_version": "mirror_v7"
+}
