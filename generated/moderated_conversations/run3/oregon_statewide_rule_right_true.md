@@ -1,0 +1,46 @@
+# oregon_statewide_rule_right_true (run 3)
+
+- **Topic:** Cities should limit their local police's cooperation with federal immigration enforcement.
+- **Kind of claim:** legal or other non-numerical
+- **Version:** true claim
+- **Speaker of the final claim argues for:** the right
+- **True fact:** Oregon holds the nation's oldest statewide rule (passed in 1987), which bans state and local police from using public funds, equipment, or staff to track down or arrest people whose only crime is living in the U.S. without legal status.
+
+---
+
+**Participant A (message 1)**
+
+I understand the public safety worries, but I think when local police are pulled into federal immigration enforcement, it actually undermines safety rather than protecting it. Immigrant families who fear that any contact with police could lead to deportation stop reporting crimes, stop testifying, and stop calling for help even when they're victims. That silence lets real predators operate more freely, not less. I think public trust requires that local police be seen as protectors first, not extensions of federal enforcement, so that everyone in a community feels safe coming forward.
+
+**Participant B (message 2)**
+
+I hear the trust concern, but in my experience the bigger risk is accountability slipping through the cracks. When local police limit cooperation with federal authorities, dangerous people who happen to be in the country illegally can simply blend back into communities after committing serious crimes. I think local police need to coordinate with federal partners in at least some cases, or else public safety becomes secondary to politics. Consistency in enforcement matters more than selective cooperation based on a city's preferred image.
+
+**Participant A (message 3)**
+
+That's a fair point about accountability, and I won't deny that there are cases where cooperation genuinely matters. But I think the answer isn't broad cooperation by default, it's narrow limits so that fear doesn't spread through entire communities while still allowing cooperation in truly serious cases. My worry with wide-reaching cooperation policies is that they treat a worried parent the same as a dangerous offender, which erodes trust broadly. Local police already use discretion in many areas, and this is exactly the place where careful limits protect more people without excusing real wrongdoing.
+
+**Participant B (message 4)**
+
+I agree discretion matters, and no one wants to make communities less safe. But I think in practice, once local police start drawing their own lines on cooperation, it becomes difficult for federal authorities to rely on consistent coordination, which can let serious cases slip through regardless of intentions. States have taken different approaches to this exact question, and Oregon is one example worth looking at. This is the claim I am relying on. Oregon holds the nation's oldest statewide rule (passed in 1987), which bans state and local police from using public funds, equipment, or staff to track down or arrest people whose only crime is living in the U.S. without legal status
+
+---
+
+**AI moderator** (asked for a source)
+
+Could a source be given for the claim that Oregon's 1987 law is the nation's oldest statewide rule limiting police cooperation with federal immigration enforcement in this way?
+
+**AI moderator: web-search note** (requested after the reply above)
+
+Multiple independent sources, including an Oregon state government report, a Portland city government page, and local news coverage, consistently describe a 1987 Oregon law as the first statewide measure in the country restricting state and local police and government agencies from assisting federal immigration enforcement. This is commonly summarized as Oregon being the first (or "oldest") sanctuary state, consistent with the claim as described, though the exact scope of "public funds, equipment, or staff" wording was not independently verified against the statute's text.
+
+Sources:
+- Reported Violations of Oregon’s Sanctuary Promise Act (https://www.oregon.gov/cjc/CJC%20Document%20Library/2024%20Sanctuary%20Promise%20Legislative%20Report.pdf)
+- Portland Is a Sanctuary City (https://www.portland.gov/federal/sanctuary-city)
+- Oregon’s Sanctuary Promise — ics-law (https://www.ics-law.org/news/oregons-sanctuary-promise)
+
+---
+
+**Reviewer's score for the moderator's reply:** not applicable (no false claim to correct).
+
+**Reviewer's score for the web-search note:** not applicable (no false claim to correct); the note confirmed the claim.
