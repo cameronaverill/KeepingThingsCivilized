@@ -507,14 +507,18 @@ def test_anonymous_visitors_never_see_any_username_on_any_page():
 
 # --- how this works ---------------------------------------------------------------------------------------------------
 
-def test_how_it_works_ends_its_two_position_paragraph_with_no_trailing_username_or_block_sentences():
-    """Wave 16 item 7: the username/blocking sentences that used to follow the two-position paragraph are gone; the
-    paragraph now ends at "...private to their two participants."."""
+def test_how_it_works_has_no_two_position_paragraph_and_no_username_or_block_sentences():
+    """Wave 16 item 7 removed the username/blocking sentences that used to follow the two-position paragraph; the owner
+    then removed that paragraph too. The Propositions section is now the "Get started..." and ending paragraphs only."""
     page = H.page_norm(Client().get("/how-it-works/"))
-    assert H.norm(K.HOW_PARAGRAPH) in page
+    assert K.HOW_GET_STARTED + " " + K.HOW_ENDING in page
+    assert H.norm(K.HOW_PARAGRAPH_REMOVED) not in page
+    assert "private to their two participants" not in page
     assert "Each of you is shown only as" not in page
     assert "You can block anyone" not in page
     assert "shown by username on the home page" not in page
+    assert "block" not in page.lower()
+    assert "username" not in page.lower()
 
 
 def test_unblocking_removes_only_your_own_block_of_that_person_not_someone_elses():

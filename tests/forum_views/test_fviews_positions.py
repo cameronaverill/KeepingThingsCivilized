@@ -182,8 +182,11 @@ def test_propose_heading_and_lead_are_the_final_wording():
     text = " ".join(flat(response).split())
     assert " ".join(K.PROPOSE_LEAD.split()) in text
     lead = next(p for p in root.find_all("p") if "State a position you hold" in p.text())
-    assert " ".join(lead.text().split()) == " ".join(K.PROPOSE_LEAD.split()), "the lead ends after 'both sides.'"
+    assert " ".join(lead.text().split()) == " ".join(K.PROPOSE_LEAD.split()), "the lead ends after 'the opposing view.'"
+    assert lead.get("class") == "lead"
+    assert K.PROPOSE_LEAD == "State a position you hold and want to talk through. Whoever joins will take the opposing view."
     assert K.PROPOSE_LEAD_OLD_TAIL not in text and "shown, shortened" not in text
+    assert K.PROPOSE_LEAD_REMOVED_TAIL not in text and "argue both sides" not in text
 
 
 def test_propose_form_starts_with_the_fixed_label_my_position_is_that():
@@ -286,16 +289,19 @@ def how_text():
     return " ".join(flat(Client().get(reverse("forum:how_it_works"))).split())
 
 
-def test_how_it_works_has_the_two_position_paragraph_verbatim_and_ending_there():
-    """Wave 16 item 7 shortened this paragraph: it now ends at "...private to their two participants." with no
-    trailing username/blocking sentences."""
+def test_how_it_works_no_longer_has_the_two_position_paragraph_and_opens_propositions_with_get_started():
+    """The owner removed the two-position paragraph (commit 5484f1c). The Propositions section now opens with the
+    one-sentence "Get started..." paragraph, verbatim and ending there."""
     text = how_text()
-    assert " ".join(K.HOW_PARAGRAPH.split()) in text
+    assert " ".join(K.HOW_PARAGRAPH_REMOVED.split()) not in text
+    assert "Every conversation is between two opposing positions" not in text
+    assert "Conversations are private to their two participants." not in text
+    assert K.HOW_GET_STARTED in text
     root = H.doc(Client().get(reverse("forum:how_it_works")))
-    para = next(p for p in root.find_all("p") if "Every conversation is between two opposing positions" in p.text())
-    normalised = H.norm(para.text())
-    assert H.norm(K.HOW_PARAGRAPH) in normalised
-    assert normalised.endswith("Conversations are private to their two participants.")
+    assert [p for p in root.find_all("p") if "two opposing positions" in p.text()] == []
+    section = next(s for s in root.find_all("section") if s.find("h2").text().strip() == "Propositions")
+    assert [H.norm(p.text()) for p in section.find_all("p")] == [K.HOW_GET_STARTED, K.HOW_ENDING]
+    assert K.HOW_GET_STARTED == "Get started by choosing a proposition to discuss or by creating one of your own."
 
 
 def test_how_it_works_no_longer_says_people_are_not_told_which_side():
@@ -305,12 +311,16 @@ def test_how_it_works_no_longer_says_people_are_not_told_which_side():
     assert not re.search(r"(?i)still waiting for|shown on the home page|opening message|what they would be joining", text)
 
 
-def test_how_it_works_explains_the_limits():
+def test_how_it_works_has_no_limits_section_and_states_no_limit_numbers():
     """Wave 16 item 7 removed the username/blocking sentences from this page entirely (that explanation now lives
-    only in the block control itself); the numeric limits remain."""
+    only in the block control itself); the owner then removed the Limits section too, so no numeric limit remains."""
     text = how_text()
-    for needle in ("3,000", "30 seconds", "200"):
-        assert needle in text
+    for needle in ("3,000", "30 seconds", "200", "about 500 words", "characters"):
+        assert needle not in text
+    root = H.doc(Client().get(reverse("forum:how_it_works")))
+    assert root.find_all(id="limits") == []
+    assert [h.text().strip() for h in root.find("main").find_all("h2")] == K.HOW_SECTIONS
+    assert re.findall(r"\d", root.find("main").text()) == []
 
 
 # --- wording that must not be on any page -------------------------------------------------------------------------------

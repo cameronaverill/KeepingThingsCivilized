@@ -1,4 +1,5 @@
-"""7b: accessible names, real buttons, page shell, the How this works page, numbers taken from settings."""
+"""7b: accessible names, real buttons, page shell, the How this works page (which shows no numbers), poll interval
+taken from settings."""
 import re
 
 import pytest
@@ -139,30 +140,37 @@ def how_text():
     return H.doc(Client().get(reverse("forum:how_it_works"))).text()
 
 
-def test_how_it_works_explains_the_limits_and_the_moderator_in_words():
+def how_main_text():
+    return H.doc(Client().get(reverse("forum:how_it_works"))).find("main").text()
+
+
+def test_how_it_works_explains_the_moderator_in_words_and_shows_no_limit_numbers():
+    """The owner removed the Limits section: the page explains the moderator in words and states no numbers."""
     text = how_text()
-    for needle in ("3,000", "30 seconds", "200"):
-        assert needle in text, f"the page should explain: {needle}"
-    assert re.search(r"\b20\b[^.]{0,40}(?:a day|per day|daily|propositions)", text), "the daily proposition limit is explained"
-    assert re.search(r"\b30\b\D{0,15}messages", text), "the per-conversation message cap is explained"
     assert "AI" in text and "moderator" in text.lower()
+    assert K.HOW_MODERATOR_PROBLEMS in H.norm(text)
+    assert K.HOW_NOT_A_JUDGE in H.norm(text)
+    for needle in ("3,000", "30 seconds", "200", "characters", "seconds", "a day", "per day"):
+        assert needle not in text, f"the page should no longer state: {needle}"
+    assert re.findall(r"\d", how_main_text()) == [], "the page content shows no digits"
+    root = H.doc(Client().get(reverse("forum:how_it_works")))
+    assert root.find_all(id="limits") == [], "the Limits section is gone"
+    assert [h.text().strip() for h in root.find("main").find_all("h2")] == K.HOW_SECTIONS
 
 
-def test_how_it_works_numbers_come_from_settings(settings):
+def test_how_it_works_shows_no_numbers_whatever_the_settings_are(settings):
+    """The page used to print the limits from settings; it now prints none, so changing them changes nothing."""
+    before = how_main_text()
     settings.MAX_MESSAGE_CHARS = 1234
     settings.MIN_SECONDS_BETWEEN_MESSAGES = 45
     settings.MAX_USER_MESSAGES_PER_CONVERSATION = 12
     settings.MAX_PROPOSITION_CHARS = 77
     settings.MAX_PROPOSITIONS_PER_USER_PER_DAY = 9
-    text = how_text()
-    for needle in ("1,234", "45 seconds", "77"):
-        assert needle in text, needle
-    assert re.search(r"\b9\b[^.]{0,40}(?:a day|per day|daily|propositions)", text)
-    assert re.search(r"\b12\b\D{0,15}messages", text)
-    for stale in ("3,000", "30 seconds"):
-        assert stale not in text, stale
-    assert not re.search(r"\b20\b[^.]{0,40}(?:a day|per day|daily|propositions)", text)
-    assert not re.search(r"\b30\b\D{0,15}messages", text)
+    text = how_main_text()
+    assert text == before
+    for needle in ("1,234", "1234", "45", "77", "12", "9"):
+        assert needle not in text, needle
+    assert re.findall(r"\d", text) == []
 
 
 def test_how_it_works_does_not_promise_labels_or_names():

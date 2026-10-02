@@ -86,6 +86,19 @@ def test_heading_search_form_and_blocked_link():
     assert K.OLD_HOME_SECTION not in root.text()
 
 
+def test_the_search_form_has_no_newest_first_hint_with_or_without_a_search():
+    """The owner removed the "Newest first." hint under the search box (commit 5484f1c); the order itself is unchanged."""
+    conv, me = K.wait_on(user_topic("Some claim."), "pro")
+    client = K.client_for(me)
+    for label, response in (("no search", page(client)), ("search", page(client, "claim")), ("no match", page(client, "zzz"))):
+        root = H.doc(response)
+        search = [f for f in H.forms(root) if f.get("role") == "search"]
+        assert len(search) == 1, label
+        assert "Newest first" not in root.text(), label
+        assert [n for n in search[0].walk() if "hint" in n.get("class", "").split()] == [], label
+        assert flat(search[0].text()) == K.SEARCH_LABEL + " Search", label
+
+
 def test_the_search_button_keeps_its_label_on_one_line_like_the_old_home_search():
     from pathlib import Path
 

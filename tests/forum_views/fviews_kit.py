@@ -27,17 +27,77 @@ OPEN_OWN_BUTTON = "Open your conversation"
 DISAGREE_BUTTON = "I disagree with this position"
 POSITION_PREFIX = "My position is that"
 CHOOSE_POSITION = "Choose a position first."
-PROPOSE_LEAD = (
-    "State a position you hold and want to talk through. Whoever joins will take the opposing view, so you will not "
-    "need to argue both sides."
-)
+# The owner's rewording (commit 5484f1c): the lead stops at "...the opposing view."; the "argue both sides" tail is gone.
+PROPOSE_LEAD = "State a position you hold and want to talk through. Whoever joins will take the opposing view."
 PROPOSE_LEAD_OLD_TAIL = "Your opening message will be shown, shortened, on the home page"
-HOW_PARAGRAPH = (
-    # Wave 16 item 7 (docs/wave16_brief.md) removed the trailing "AI moderator sees only the topic..." sentence.
+PROPOSE_LEAD_REMOVED_TAIL = "so you will not need to argue both sides"
+
+# --- How this works: the owner's rewording (commit 5484f1c). Straight quotes; compare with H.norm / quotes_straight. ----
+# The page is exactly these four sections, in this order, each with exactly these paragraphs. It shows no numbers.
+HOW_SECTIONS = ["What this site is", "Propositions", "What the AI moderator does", "What is recorded"]
+HOW_SITE = (
+    "Two people discuss a proposition in writing. An AI moderator reads each message and may add contributions of "
+    "its own."
+)
+HOW_GET_STARTED = "Get started by choosing a proposition to discuss or by creating one of your own."
+HOW_ENDING = (
+    "Either participant can end a conversation at any time. That closes it for both of you: it stays readable by "
+    "the participants, but nobody can post in it. It is kept for the research record."
+)
+HOW_MODERATOR_PROBLEMS = (
+    "After each message, the AI moderator looks for problems such as factual errors, unclear statements, and abusive "
+    "language and decides whether to jump in."
+)
+HOW_NOT_A_JUDGE = (
+    "The moderator is not a judge, and it can be wrong. If you think a contribution by the moderator is mistaken, "
+    "feel free to say so in the conversation."
+)
+HOW_RECORDED = "Your messages and the moderator's analysis and replies are stored for the research team's possible review."
+HOW_PARAGRAPHS = {
+    "What this site is": [HOW_SITE],
+    "Propositions": [HOW_GET_STARTED, HOW_ENDING],
+    "What the AI moderator does": [HOW_MODERATOR_PROBLEMS, HOW_NOT_A_JUDGE],
+    "What is recorded": [HOW_RECORDED],
+}
+# The two-position paragraph the page used to carry; the owner removed it, so it must be absent now.
+HOW_PARAGRAPH_REMOVED = (
     "Every conversation is between two opposing positions. The home page lists positions that someone holds and is "
     "waiting for someone to disagree with. Join one to take the other side, or start a discussion of your own with "
     "your position or one of the suggested topics. Conversations are private to their two participants."
 )
+# Wording the owner's rewording removed from the page (each is a fragment of a removed or reworded sentence).
+HOW_REMOVED_WORDING = [
+    "The site is part of a research project on AI-facilitated discussion.",
+    "may add notes of its own",
+    "Anyone with an account can propose a statement to discuss",
+    "nobody at the site reviews it first",
+    "listing one is not an endorsement",
+    "You can create up to",
+    "Choosing a proposition puts you in a conversation on it",
+    "A waiting conversation does not expire",
+    "Every conversation is between two opposing positions",
+    "Conversations are private to their two participants",
+    "Either of you can end a conversation",
+    "nobody can post in it, and it is kept for the research record",
+    "After each message it looks for problems",
+    "a factual error,",
+    "flooding the conversation",
+    "an unanswered question",
+    "decides whether to say anything",
+    "It is not a judge and it can be wrong",
+    "If you think a note is mistaken",
+    "about 500 words",
+    "Longer messages are not sent",
+    "You can post one message every",
+    "A conversation closes after",
+    "Nothing stops you posting several messages in a row",
+    "These limits keep the discussion readable",
+    "Whenever you cannot post",
+    "Sometimes the moderator is paused",
+    "your messages are still posted",
+    "so the research team can study how moderation treats different viewpoints",
+]
+HOW_REMOVED_HEADINGS = ["Limits", "Pauses"]
 HOME_HEADING = "Waiting to discuss"
 HOME_LEAD = (
     "These are positions that someone holds and is waiting for someone to disagree with. Pick one to take the other "
